@@ -99,9 +99,9 @@ confirm the toolchain end-to-end (still the one outstanding manual check).
 - Button-driven inputs: frame mounts, mech-type presets, weapon types, and the
   bonus/synergy "restrict" filters.
 - **Settings panel** on the Home tab: 6 dark themes (COMP/CON, HORUS, Harrison Armory,
-  IPS-Northstar, Smith-Shimano, Union), a comms-ticker toggle, and an animations toggle.
+  IPS-Northstar, Smith-Shimano, Union), a background-chatter toggle, and an animations toggle.
   Saved to `localStorage` — never touches the exported pack.
-- **Comms ticker** — a scrolling in-universe chatter feed along the bottom; the lines
+- **Comms chatter** — a faint scrolling feed behind the Home screen (COMP/CON style); the lines
   live in the `CHATTER` map near the top of the `<script>` (keyed by theme id), currently
   placeholder text.
 - Still to do: item search within long lists; the WordPress embed.
