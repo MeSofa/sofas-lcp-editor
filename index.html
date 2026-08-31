@@ -148,19 +148,24 @@
   }
   .settings-pop h3 { margin: 0 0 .7rem; }
 
-  /* home background chatter (COMP/CON style) */
+  /* home background chatter — typed out terminal-style (COMP/CON) */
   .home { position: relative; }
   .home-bg {
     position: absolute; top: -1.25rem; left: 50%; transform: translateX(-50%);
     width: 100vw; height: calc(100% + 2.5rem); overflow: hidden; z-index: 0; pointer-events: none;
-    opacity: .11; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: .82rem; line-height: 2; color: var(--accent); white-space: pre;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 76%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 76%, transparent);
+    display: flex; align-items: flex-end;
   }
-  .home-bg-track { padding: 0 8%; animation: bgscroll 50s linear infinite; }
-  @keyframes bgscroll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
-  #lcp-forge[data-motion="off"] .home-bg-track { animation: none; }
+  .home-bg-inner {
+    width: 100%; padding: 0 8%; opacity: .15;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82rem; line-height: 1.95; color: var(--accent);
+    white-space: pre-wrap; word-break: break-word;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 88%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 88%, transparent);
+  }
+  .home-bg-inner .cursor { animation: blink 1.05s step-end infinite; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+  #lcp-forge[data-motion="off"] .home-bg-inner .cursor { animation: none; opacity: .6; }
   .home-content { position: relative; z-index: 1; }
 
   /* modal transition */
@@ -343,7 +348,7 @@
 
         <!-- ============ HOME ============ -->
         <section v-show="tab==='home'" class="home">
-          <div class="home-bg" v-if="settings.chatter" aria-hidden="true"><div class="home-bg-track">{{ bgChatter }}</div></div>
+          <div class="home-bg" v-if="settings.chatter" aria-hidden="true"><div class="home-bg-inner">{{ chatterText }}<span class="cursor">▊</span></div></div>
           <div class="home-content">
           <div class="toolbar">
             <h2 style="border:0;margin:0;flex:0 0 auto">{{ lcp.lcp_manifest.name || 'Untitled pack' }}</h2>
@@ -2397,6 +2402,8 @@ const app = createApp({
       edit: { key: null, idx: -1 },
       settings: loadSettings(),
       showSettings: false,
+      chatterLog: [],
+      chatterTyping: '',
       themeList: THEME_LIST,
       lcp: freshLcp(),
       navGroups: ['Pack','Licensed data','Pilot data','NPC data','Other content','Output'],
@@ -2475,8 +2482,9 @@ const app = createApp({
     };
     window.addEventListener('keydown', this._esc);
     this.applySettings();
+    this.startChatter();
   },
-  beforeUnmount() { window.removeEventListener('keydown', this._esc); },
+  beforeUnmount() { window.removeEventListener('keydown', this._esc); this.stopChatter(); },
   watch: {
     settings: {
       deep: true,
@@ -2484,6 +2492,13 @@ const app = createApp({
         try { localStorage.setItem('sofa-lcp-settings', JSON.stringify(v)); } catch (e) {}
         this.applySettings();
       }
+    },
+    'settings.theme'() { this.startChatter(); },
+    'settings.chatter'(v) { if (v) this.startChatter(); else { this.stopChatter(); this.chatterLog = []; this.chatterTyping = ''; } },
+    'settings.motion'() { this.startChatter(); },
+    tab(v) {
+      if (v === 'home') { if (this.settings.chatter && this.settings.motion && !this._chatTimer) this._chatterTick(); }
+      else this.stopChatter();
     }
   },
   computed: {
@@ -2671,12 +2686,8 @@ const app = createApp({
       const { key, idx } = this.edit;
       return (key && this.lcp[key] && this.lcp[key][idx]) ? this.lcp[key][idx] : null;
     },
-    bgChatter() {
-      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
-      const rep = [];
-      while (rep.length < 80) rep.push(...lines);
-      const half = rep.join('\n');
-      return half + '\n' + half;   // duplicated so translateY(-50%) loops seamlessly
+    chatterText() {
+      return this.chatterLog.join('\n') + (this.chatterLog.length ? '\n' : '') + this.chatterTyping;
     },
     factionGlyph() { return GLYPHS[this.settings.theme] || '⬢'; },
     modalTitle() {
@@ -2706,6 +2717,35 @@ const app = createApp({
       if (!el) return;
       el.dataset.theme = this.settings.theme;
       el.dataset.motion = this.settings.motion ? 'on' : 'off';
+    },
+    stopChatter() { clearTimeout(this._chatTimer); this._chatTimer = null; },
+    startChatter() {
+      this.stopChatter();
+      if (!this.settings.chatter) { this.chatterLog = []; this.chatterTyping = ''; return; }
+      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
+      if (!this.settings.motion) {                    // static: no typing, just show a stack
+        const s = []; while (s.length < 24) s.push(...lines);
+        this.chatterLog = s.slice(-24); this.chatterTyping = ''; return;
+      }
+      // seed with some "history" so there's an immediate backdrop, then keep typing
+      const seed = []; while (seed.length < 16) seed.push(...lines);
+      this.chatterLog = seed.slice(-16);
+      this.chatterTyping = ''; this._chatIdx = seed.length;
+      if (this.tab === 'home') this._chatterTick();
+    },
+    _chatterTick() {
+      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
+      const target = lines[this._chatIdx % lines.length] || '';
+      if (this.chatterTyping.length < target.length) {
+        this.chatterTyping = target.slice(0, this.chatterTyping.length + 1);
+        this._chatTimer = setTimeout(() => this._chatterTick(), 24 + Math.random() * 34);
+      } else {
+        this.chatterLog.push(target);
+        if (this.chatterLog.length > 40) this.chatterLog.shift();
+        this.chatterTyping = '';
+        this._chatIdx++;
+        this._chatTimer = setTimeout(() => this._chatterTick(), 800 + Math.random() * 500);
+      }
     },
     openEdit(key, i) { this.edit = { key, idx: i }; this.tab = key; },
     closeEdit() { this.edit = { key: null, idx: -1 }; },
