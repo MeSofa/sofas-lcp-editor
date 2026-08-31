@@ -98,24 +98,23 @@ confirm the toolchain end-to-end (still the one outstanding manual check).
   also collapse individually.
 - Button-driven inputs: frame mounts, mech-type presets, weapon types, and the
   bonus/synergy "restrict" filters.
-- **Settings panel** on the Home tab: 6 dark themes (COMP/CON, HORUS, Harrison Armory,
-  IPS-Northstar, Smith-Shimano, Union), a background-chatter toggle, and an animations toggle.
-  Saved to `localStorage` — never touches the exported pack.
-- **Comms chatter** — a faint scrolling feed behind the Home screen (COMP/CON style); the lines
-  live in the `CHATTER` map near the top of the `<script>` (keyed by theme id), currently
-  placeholder text.
+- **Persistent bottom hotbar** (every tab): a ⚙ Settings popover — 6 dark themes (COMP/CON,
+  HORUS, Harrison Armory, IPS-Northstar, Smith-Shimano, Union), a background-chatter toggle,
+  an animations toggle — plus a live export-readiness / file-count readout. Settings are
+  saved to `localStorage` only; they never touch the exported pack.
+- **Comms chatter** — a faint vertically-scrolling feed behind the Home screen (COMP/CON
+  style).
 - Still to do: item search within long lists; the WordPress embed.
 
-### Editing the comms ticker
+### Editing the comms chatter
 
 In `index.html`, find `const CHATTER = {`. Each key is a theme id; each value is an array
-of one-liners that loop across the bottom bar. Edit / add freely — they're just strings.
+of one-liners that scroll behind the Home screen. Edit / add freely — they're just strings.
 
 ## Next
 
-- Embed on the WordPress site via a Code Snippet shortcode.
+- Embed on the WordPress site via a Code Snippet shortcode (own dark theme, not Bloom).
 - Confirm whether Foundry VTT import needs a separate export path.
-- Aesthetics pass to match the site's Bloom theme.
 
 ## Schema reference
 
