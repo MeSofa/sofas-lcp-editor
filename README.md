@@ -1,6 +1,7 @@
-# LCP Forge
+# Sofa's LCP Editor
 
 A client-side `.lcp` (Lancer Content Package) generator for [COMP/CON](https://compcon.app).
+(Repo/dir name still `lcp-forge` for history's sake.)
 
 Goal: match everything the official [`cc-lcp-editor`](https://github.com/massif-press/cc-lcp-editor)
 does, plus per-field help text and NPC support — and stay a single static file
@@ -87,7 +88,14 @@ confirm the toolchain end-to-end (still the one outstanding manual check).
   (`npc_classes.json` + `npc_features.json`), which COMP/CON also accepts.
 - `deprecated` flag; manufacturer inline SVG icons.
 - Layout is a `height: 100vh` app-shell — fine standalone, needs tuning for the WP embed.
-- No collapsible category groups / searchable dropdowns yet — the "neaten it up" pass.
+
+### UI
+
+- Home tab holds the manifest + a contents overview; each category is a list of
+  collapsible cards; the left nav groups collapse; mounts / mech-types / weapon-types /
+  bonus-restrict filters are button-driven.
+- Still to do here: modal editors (à la the official tool) if the collapsible cards feel
+  cramped; a proper search across items; the WordPress embed + theme styling.
 
 ## Next
 
