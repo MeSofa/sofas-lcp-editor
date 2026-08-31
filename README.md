@@ -3,7 +3,7 @@
 A client-side `.lcp` (Lancer Content Package) generator for [COMP/CON](https://compcon.app).
 
 Goal: match everything the official [`cc-lcp-editor`](https://github.com/massif-press/cc-lcp-editor)
-does, plus per-field help text and (later) NPC support — and stay a single static file
+does, plus per-field help text and NPC support — and stay a single static file
 so it can be embedded on a WordPress site via a Code Snippet shortcode.
 
 ## Running it
@@ -18,9 +18,9 @@ then visit <http://localhost:8777/index.html>.
 
 Vue 3 and JSZip load from unpkg CDN; everything else is inline. No build step.
 
-## Status — Phase 1 (in progress)
+## Status
 
-Done:
+Covers licensed data, pilot data, and NPC data. Done:
 
 - **Manifest** — name/author/description/version, image/website, v3 flag, dependencies, version history.
 - **Manufacturers** — id, name, description, quote, light/dark colors, icon URL.
@@ -30,6 +30,19 @@ Done:
 - **Weapons** — mount/type, damage (+ save/AoE/AP), range, tags, on-attack/hit/crit/miss,
   SP, cost, all seven flags (skirmish/barrage/no_attack/no_mods/no_core_bonus/no_bonus/no_synergy).
 - **Systems** — type, SP, effect, no_bonus/no_synergy flags.
+- **CORE Bonuses** — id, name, source, effect, description, mounted_effect + mechanical builders.
+- **Talents** — three ranks, each with `exclusive` + the mechanical builders.
+- **Skill Triggers** — id, name, description, detail, family.
+- **Backgrounds** — id, name, description, example skill ids.
+- **Reserves** — type, label, consumable + mechanical builders.
+- **Pilot Gear** — Weapon / Armor / Gear; weapons get damage + range; all get tags + builders.
+- **NPC Classes** — role, info (flavor/tactics/terse), 13 tiered stats (single or per-tier)
+  + tiered size, base/optional feature id lists, optional-selection limits.
+- **NPC Templates** — description, forceTag, prohibited templates, feature id lists, caveat,
+  selection limits; `"template": true` written automatically.
+- **NPC Features** — trait / system / reaction / tech / weapon; per-type fields (reaction
+  trigger; tech/weapon attack_bonus + accuracy; weapon: weapon_type, per-tier damage,
+  range, attacks, on-attack/hit/crit/miss); tags + actions/bonuses/synergies/deployables.
 - **Shared mechanical builders** on weapons / systems / frame traits / core system:
   **Actions** (+ cost/pilot/mech/bonus_damage), **Bonuses**, **Synergies**, **Counters**,
   **Deployables** (drones/turrets/mines: stats + nested damage/range/actions/bonuses).
@@ -55,23 +68,23 @@ A generated sample pack lives at
 [`examples/lcp-forge-test-pack_1.0.0.lcp`](examples/) — install it in COMP/CON to
 confirm the toolchain end-to-end (still the one outstanding manual check).
 
-### Known gaps vs. the official editor (deferred)
+### Not yet in the UI (all round-trip untouched on import)
 
-- Weapon **profiles** (multi-mode weapons) and **ammo** lists — round-trip but no UI yet.
-- **Integrated / special equipment** ID selectors.
-- **Active Effects** objects (the richer status/resist/effect blocks).
-- **Weapon Mods** (`weapon-mods.json`) — Phase 2, with the rest of licensed data.
+- Weapon **profiles** (multi-mode weapons) and **ammo** lists.
+- **Integrated / special equipment** ID selectors (used by frames, core bonuses, talents, …).
+- **Active Effects** objects — the richer status/resist/effect blocks.
+- **Weapon Mods** (`weapon_mods.json`), **Bonds** (`bonds.json`), **license collections**.
+- **NPC collection-style** files (`npcc_*` / `npct_*`) — export is library-style
+  (`npc_classes.json` + `npc_features.json`), which COMP/CON also accepts.
+- Phase 4 misc: environments, SITREPs, statuses, tables, custom stats, eidolons.
 - `deprecated` flag; manufacturer inline SVG icons.
-- Layout is `height: 100vh` app-shell — fine standalone, needs tuning for the WP embed.
+- Layout is a `height: 100vh` app-shell — fine standalone, needs tuning for the WP embed.
 
 ## Next
 
-- Phase 2: remaining Pilot + Licensed data categories (backgrounds, talents, core bonuses,
-  pilot gear, reserves, skill triggers, bonds, weapon mods, license collections).
-- Phase 3: NPC classes / templates / features — the headline feature the official tool lacks.
-- Phase 4: environments, SITREPs, statuses, tables, actions, custom stats, eidolons.
 - Embed on the WordPress site via a Code Snippet shortcode.
 - Confirm whether Foundry VTT import needs a separate export path.
+- Aesthetics pass to match the site's Bloom theme.
 
 ## Schema reference
 

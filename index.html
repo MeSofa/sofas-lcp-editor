@@ -9,10 +9,15 @@
   Single self-contained file: Vue 3 + JSZip from CDN, everything else inline,
   so it drops straight into a WordPress Code Snippet shortcode.
 
-  PHASE 1 scope: manifest, manufacturers, frames (traits + core system),
-  weapons, systems, custom tags, and full .lcp export/import — plus the
-  shared mechanical builders (bonuses, synergies, counters, deployables)
-  that Foundry's automation reads.
+  Covers: manifest; licensed data (manufacturers, frames + traits + core
+  systems, weapons, systems); pilot data (CORE bonuses, talents, skill
+  triggers, backgrounds, reserves, pilot gear); NPC data (classes,
+  templates, features); custom tags; and full flat .lcp export/import.
+  Shared builders (bonuses, synergies, counters, deployables) are what
+  Foundry's automation reads.
+
+  Not yet in the UI: weapon profiles / ammo, integrated & special-equipment
+  selectors, Active Effects objects, weapon mods, license collections.
 
   Schema references: https://github.com/massif-press/lancer-data/wiki
 -->
@@ -70,6 +75,8 @@
   .lf-nav button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .lf-nav .count { font-size: .75rem; opacity: .8; }
   .lf-nav button.active .count { color: var(--accent-ink); }
+  .lf-nav .nav-group { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); opacity: .7; padding: .7rem .6rem .2rem; }
+  .lf-nav .nav-group:first-child { padding-top: .2rem; }
   .lf-main { flex: 1; min-width: 0; overflow-y: auto; padding: 1.25rem 1.5rem 4rem; }
   .lf-main-inner { max-width: 900px; }
 
@@ -153,7 +160,7 @@
 <div id="lcp-forge">
   <div class="lf-top">
     <span class="brand">⬢ LCP&nbsp;Forge</span>
-    <span class="pill">Phase 1</span>
+    <span class="pill">Licensed · Pilot · NPC</span>
     <span class="spacer"></span>
     <input ref="importFile" type="file" accept=".lcp,.zip" style="display:none" @change="importLcp" />
     <button class="btn ghost" @click="$refs.importFile.click()">Load .lcp</button>
@@ -163,10 +170,13 @@
 
   <div class="lf-body">
     <nav class="lf-nav">
-      <button v-for="t in tabs" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
-        <span>{{ t.label }}</span>
-        <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
-      </button>
+      <template v-for="g in navGroups" :key="g">
+        <div class="nav-group">{{ g }}</div>
+        <button v-for="t in tabs.filter(x => x.group===g)" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
+          <span>{{ t.label }}</span>
+          <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
+        </button>
+      </template>
     </nav>
 
     <main class="lf-main">
@@ -563,6 +573,277 @@
           <button class="btn primary" @click="addSystem">+ System</button>
         </section>
 
+        <!-- ============ CORE BONUSES ============ -->
+        <section v-show="tab==='core_bonuses'">
+          <h2>CORE Bonuses <span class="pill">core_bonuses.json</span></h2>
+          <p class="lf-note">Extra CORE Bonuses pilots can pick at LL0/LL5/LL10. Note that many CORE Bonus effects are special-cased in COMP/CON — if the Bonuses builder can't fully express the rule, spell it out in the effect text.</p>
+          <p v-if="!lcp.core_bonuses.length" class="empty">No CORE bonuses yet.</p>
+          <div v-for="(c,i) in lcp.core_bonuses" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ c.name || 'Untitled CORE bonus' }}</span><button class="btn tiny danger" @click="removeItem('core_bonuses', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally cb_ prefixed. e.g. cb_myco_reinforced."/></label><input type="text" v-model="c.id" placeholder="cb_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
+            </div>
+            <div class="lf-field"><label>Source <span class="req">*</span><help t="Manufacturer ID — the manufacturer whose CORE Bonus pool this belongs to."/></label>
+              <select v-model="c.source"><option value="" disabled>— select —</option><option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }} — {{ m.name }}</option></select></div>
+            <div class="lf-field"><label>Effect <span class="req">*</span><help t="Rules text. HTML allowed."/></label><textarea v-model="c.effect"></textarea></div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text. HTML allowed."/></label><textarea v-model="c.description"></textarea></div>
+            <div class="lf-field"><label>Mounted effect <help t="Optional. Text shown on the mount panel when this is a mount-related CORE Bonus."/></label><input type="text" v-model="c.mounted_effect" /></div>
+            <action-list v-model="c.actions" label="Actions"></action-list>
+            <bonus-list v-model="c.bonuses"></bonus-list>
+            <synergy-list v-model="c.synergies"></synergy-list>
+            <deployable-list v-model="c.deployables"></deployable-list>
+            <counter-list v-model="c.counters"></counter-list>
+          </div>
+          <button class="btn primary" @click="push('core_bonuses', blankCoreBonus())">+ CORE Bonus</button>
+        </section>
+
+        <!-- ============ TALENTS ============ -->
+        <section v-show="tab==='talents'">
+          <h2>Talents <span class="pill">talents.json</span></h2>
+          <p class="lf-note">Every talent has exactly three ranks. Put the mechanical parts of each rank into its Actions / Bonuses / Synergies.</p>
+          <p v-if="!lcp.talents.length" class="empty">No talents yet.</p>
+          <div v-for="(t,i) in lcp.talents" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ t.name || 'Untitled talent' }}</span><button class="btn tiny danger" @click="removeItem('talents', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally t_ prefixed. e.g. t_myco_gunslinger."/></label><input type="text" v-model="t.id" placeholder="t_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="t.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the talent as a whole. HTML allowed."/></label><textarea v-model="t.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Terse <help t="Optional. A very short one-liner for condensed UI."/></label><input type="text" v-model="t.terse" /></div>
+              <div class="lf-field"><label>Icon URL <help t="Optional. URL to an SVG icon (inline icon_svg is preferred by Massif but not exposed here)."/></label><input type="url" v-model="t.icon_url" /></div>
+            </div>
+            <div v-for="(r,ri) in t.ranks" :key="ri" class="lf-sub">
+              <div class="head"><span class="title">Rank {{ ri+1 }} — {{ r.name || '(unnamed)' }}</span></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The name of this rank of the talent."/></label><input type="text" v-model="r.name" /></div>
+              <div class="lf-field"><label>Description <span class="req">*</span><help t="Rules + flavor for this rank. HTML allowed."/></label><textarea v-model="r.description"></textarea></div>
+              <div class="lf-checks"><label><input type="checkbox" v-model="r.exclusive" /> Exclusive <help t="If on, only the bonuses/deployables/integrated gear from the HIGHEST unlocked rank apply (e.g. an upgrading system). If off, every unlocked rank's contributions stack."/></label></div>
+              <action-list v-model="r.actions" label="Rank actions"></action-list>
+              <bonus-list v-model="r.bonuses"></bonus-list>
+              <synergy-list v-model="r.synergies"></synergy-list>
+              <deployable-list v-model="r.deployables"></deployable-list>
+              <counter-list v-model="r.counters"></counter-list>
+            </div>
+          </div>
+          <button class="btn primary" @click="push('talents', blankTalent())">+ Talent</button>
+        </section>
+
+        <!-- ============ SKILL TRIGGERS ============ -->
+        <section v-show="tab==='skills'">
+          <h2>Skill Triggers <span class="pill">skills.json</span></h2>
+          <p class="lf-note">Purely narrative — no mechanical fields. <span class="mono">family</span> only decides where in the list the skill appears.</p>
+          <p v-if="!lcp.skills.length" class="empty">No skill triggers yet.</p>
+          <div v-for="(s,i) in lcp.skills" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ s.name || 'Untitled skill' }}</span><button class="btn tiny danger" @click="removeItem('skills', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally sk_ prefixed. e.g. sk_myco_haggle. Referenced by Backgrounds."/></label><input type="text" v-model="s.id" placeholder="sk_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="s.name" /></div>
+              <div class="lf-field"><label>Family <span class="req">*</span><help t="str / con / dex / int / cha — just groups the skill visually next to similar ones. No mechanical effect."/></label>
+                <select v-model="s.family"><option v-for="f in skillFamilies" :key="f" :value="f">{{ f }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="The short trigger text. HTML allowed; keep it terse."/></label><textarea v-model="s.description"></textarea></div>
+            <div class="lf-field"><label>Detail <span class="req">*</span><help t="Longer flavor text for the Compendium and expanded cards. HTML allowed."/></label><textarea v-model="s.detail"></textarea></div>
+          </div>
+          <button class="btn primary" @click="push('skills', blankSkill())">+ Skill Trigger</button>
+        </section>
+
+        <!-- ============ BACKGROUNDS ============ -->
+        <section v-show="tab==='backgrounds'">
+          <h2>Backgrounds <span class="pill">backgrounds.json</span></h2>
+          <p v-if="!lcp.backgrounds.length" class="empty">No backgrounds yet.</p>
+          <div v-for="(bg,i) in lcp.backgrounds" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ bg.name || 'Untitled background' }}</span><button class="btn tiny danger" @click="removeItem('backgrounds', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally pbg_ prefixed. e.g. pbg_myco_courier."/></label><input type="text" v-model="bg.id" placeholder="pbg_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="bg.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text, often with italicised prompt questions. HTML allowed."/></label><textarea v-model="bg.description"></textarea></div>
+            <div class="lf-field"><label>Example skill IDs <help t="Optional, comma-separated skill trigger ids (from core data or your Skill Triggers tab). COMP/CON can auto-give the pilot 1 point in each."/></label><input type="text" v-model="bg._skills" placeholder="sk_charm, sk_threaten" /></div>
+          </div>
+          <button class="btn primary" @click="push('backgrounds', blankBackground())">+ Background</button>
+        </section>
+
+        <!-- ============ RESERVES ============ -->
+        <section v-show="tab==='reserves'">
+          <h2>Reserves <span class="pill">reserves.json</span></h2>
+          <p v-if="!lcp.reserves.length" class="empty">No reserves yet.</p>
+          <div v-for="(r,i) in lcp.reserves" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ r.name || 'Untitled reserve' }}</span><button class="btn tiny danger" @click="removeItem('reserves', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally reserve_ prefixed."/></label><input type="text" v-model="r.id" placeholder="reserve_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="r.name" /></div>
+              <div class="lf-field"><label>Type <span class="req">*</span><help t="Just decides the tab it appears under: Mech, Tactical, Resource, or Bonus. No mechanical effect."/></label>
+                <select v-model="r.type"><option v-for="x in reserveTypes" :key="x" :value="x">{{ x }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Label <help t="Optional. Alternate caption for the free-text field in the reserve's UI. Defaults to the name."/></label><input type="text" v-model="r.label" /></div>
+            <div class="lf-field"><label>Description <help t="Flavor / rules text. HTML allowed."/></label><textarea v-model="r.description"></textarea></div>
+            <div class="lf-checks"><label><input type="checkbox" v-model="r.consumable" /> Consumable <help t="If on, the reserve must be spent to use any of its actions/bonuses, and is then marked Used until manually re-enabled."/></label></div>
+            <action-list v-model="r.actions" label="Actions"></action-list>
+            <bonus-list v-model="r.bonuses"></bonus-list>
+            <synergy-list v-model="r.synergies"></synergy-list>
+            <deployable-list v-model="r.deployables"></deployable-list>
+            <counter-list v-model="r.counters"></counter-list>
+          </div>
+          <button class="btn primary" @click="push('reserves', blankReserve())">+ Reserve</button>
+        </section>
+
+        <!-- ============ PILOT GEAR ============ -->
+        <section v-show="tab==='pilot_gear'">
+          <h2>Pilot Gear <span class="pill">pilot_gear.json</span></h2>
+          <p class="lf-note">Pilot weapons, armor and equipment all live in one file, split by <span class="mono">type</span>. Pilot-scale — bonuses here apply to the pilot on foot, not the mech.</p>
+          <p v-if="!lcp.pilot_gear.length" class="empty">No pilot gear yet.</p>
+          <div v-for="(g,i) in lcp.pilot_gear" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ g.name || 'Untitled gear' }} <span class="pill">{{ g.type }}</span></span><button class="btn tiny danger" @click="removeItem('pilot_gear', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally pg_ prefixed."/></label><input type="text" v-model="g.id" placeholder="pg_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="g.name" /></div>
+              <div class="lf-field"><label>Type <span class="req">*</span><help t="Weapon, Armor, or Gear (case-sensitive). Only Weapon uses the damage/range fields."/></label>
+                <select v-model="g.type"><option v-for="x in pilotGearTypes" :key="x" :value="x">{{ x }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Description <help t="Flavor text. HTML allowed."/></label><textarea v-model="g.description"></textarea></div>
+            <div class="lf-field"><label>Effect <help t="Rules text. HTML allowed."/></label><textarea v-model="g.effect"></textarea></div>
+            <template v-if="g.type==='Weapon'">
+              <damage-list v-model="g.damage"></damage-list>
+              <range-list v-model="g.range"></range-list>
+            </template>
+            <tag-list v-model="g.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="g.actions" label="Actions"></action-list>
+            <bonus-list v-model="g.bonuses"></bonus-list>
+            <synergy-list v-model="g.synergies"></synergy-list>
+            <deployable-list v-model="g.deployables"></deployable-list>
+            <counter-list v-model="g.counters"></counter-list>
+          </div>
+          <button class="btn primary" @click="push('pilot_gear', blankPilotGear())">+ Pilot Gear</button>
+        </section>
+
+        <!-- ============ NPC CLASSES ============ -->
+        <section v-show="tab==='npc_classes'">
+          <h2>NPC Classes <span class="pill">npc_classes.json</span></h2>
+          <p class="lf-note">A class needs its stats and a list of feature ids. Build the features on the <strong>NPC Features</strong> tab first, then reference them here by id (comma-separated). Stats take a single number, or three comma-separated numbers for tier 1 / 2 / 3.</p>
+          <p v-if="!lcp.npc_classes.length" class="empty">No NPC classes yet.</p>
+          <div v-for="(c,i) in lcp.npc_classes" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ c.name || 'Untitled class' }}</span><button class="btn tiny danger" @click="removeItem('npc_classes', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npcc_ prefixed. Features reference this via their 'origin'."/></label><input type="text" v-model="c.id" placeholder="npcc_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
+              <div class="lf-field"><label>Role <span class="req">*</span><help t="One combat role: artillery, controller, defender, striker, support, or tank."/></label>
+                <select v-model="c.role"><option v-for="r in npcRoles" :key="r" :value="r">{{ r }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Flavor <span class="req">*</span><help t="Compendium fluff text. HTML allowed."/></label><textarea v-model="c.info.flavor"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Tactics <span class="req">*</span><help t="GM-facing strategy note."/></label><textarea v-model="c.info.tactics"></textarea></div>
+              <div class="lf-field"><label>Terse <span class="req">*</span><help t="GM-facing one-line overview — as short as possible."/></label><textarea v-model="c.info.terse"></textarea></div>
+            </div>
+            <h3>Stats <help t="Single number = same across tiers. Three numbers 'a, b, c' = tier 1 / 2 / 3."/></h3>
+            <div class="lf-stats">
+              <div class="lf-field" v-for="sf in npcStatFields" :key="sf[0]"><label style="font-size:.78rem">{{ sf[1] }}</label><input type="text" v-model="c._stats[sf[0]]" placeholder="e.g. 8  or  6,10,14" /></div>
+              <div class="lf-field"><label style="font-size:.78rem">Size <help t="A single size (0.5, 1, 2, 3), or per-tier options separated by ' / ' — e.g. '0.5,1 / 1 / 1,2'."/></label><input type="text" v-model="c._size" placeholder="1  or  0.5,1 / 1 / 1,2" /></div>
+            </div>
+            <div class="lf-field"><label>Base feature IDs <help t="Comma-separated. Features every NPC of this class gets automatically. Must match NPC Feature ids."/></label><input type="text" v-model="c._base" placeholder="npcf_..., npcf_..." /></div>
+            <div class="lf-field"><label>Optional feature IDs <help t="Comma-separated. Features the GM may pick when building the NPC."/></label><input type="text" v-model="c._optional" placeholder="npcf_..., npcf_..." /></div>
+            <details class="lf-block">
+              <summary>Optional feature selection limits</summary>
+              <div class="lf-row">
+                <div class="lf-field"><label>Min <help t="Minimum number of optional CLASS features chosen. Defaults to 0."/></label><input type="number" v-model.number="c.optionalClassMin" /></div>
+                <div class="lf-field"><label>Max <help t="Maximum number of optional CLASS features chosen."/></label><input type="number" v-model.number="c.optionalClassMax" /></div>
+                <div class="lf-field"><label>Per tier <help t="Extra optional class feature picks per NPC tier — added on top of min/max."/></label><input type="number" v-model.number="c.optionalClassPerTier" /></div>
+              </div>
+            </details>
+          </div>
+          <button class="btn primary" @click="push('npc_classes', blankNpcClass())">+ NPC Class</button>
+        </section>
+
+        <!-- ============ NPC TEMPLATES ============ -->
+        <section v-show="tab==='npc_templates'">
+          <h2>NPC Templates <span class="pill">npc_templates.json</span></h2>
+          <p class="lf-note">Templates (Grunt, Elite, Veteran…) layer features onto any class. <span class="mono">"template": true</span> is written automatically.</p>
+          <p v-if="!lcp.npc_templates.length" class="empty">No NPC templates yet.</p>
+          <div v-for="(t,i) in lcp.npc_templates" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ t.name || 'Untitled template' }}</span><button class="btn tiny danger" @click="removeItem('npc_templates', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npct_ prefixed."/></label><input type="text" v-model="t.id" placeholder="npct_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="t.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text. HTML allowed."/></label><textarea v-model="t.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Force NPC tag <help t="Optional. Locks the NPC's type tag: Mech, Ship, Vehicle, Biological, Squad, or Other."/></label>
+                <select v-model="t._forceTag"><option value="">(don't force)</option><option v-for="x in forceTags.slice(1)" :key="x" :value="x">{{ x }}</option></select></div>
+              <div class="lf-field"><label>Prohibits templates <help t="Comma-separated template ids that can't be combined with this one (e.g. Grunt prohibits Elite/Veteran/Ultra)."/></label><input type="text" v-model="t._prohibit" placeholder="npct_..., npct_..." /></div>
+            </div>
+            <div class="lf-field"><label>Base feature IDs <help t="Comma-separated. Applied automatically with this template."/></label><input type="text" v-model="t._base" placeholder="npcf_..." /></div>
+            <div class="lf-field"><label>Optional feature IDs <help t="Comma-separated. Offered when this template is applied."/></label><input type="text" v-model="t._optional" placeholder="npcf_..." /></div>
+            <div class="lf-field"><label>Caveat <help t="Optional. Special rules text that COMP/CON does not track mechanically."/></label><textarea v-model="t.caveat"></textarea></div>
+            <details class="lf-block">
+              <summary>Optional feature selection limits</summary>
+              <div class="lf-row">
+                <div class="lf-field"><label>Min <help t="Minimum optional feature selections for the whole NPC. Defaults to 0."/></label><input type="number" v-model.number="t.optionalMin" /></div>
+                <div class="lf-field"><label>Max <help t="Maximum optional feature selections for the whole NPC."/></label><input type="number" v-model.number="t.optionalMax" /></div>
+                <div class="lf-field"><label>Per tier <help t="Extra optional selections per NPC tier."/></label><input type="number" v-model.number="t.optionalPerTier" /></div>
+              </div>
+            </details>
+          </div>
+          <button class="btn primary" @click="push('npc_templates', blankNpcTemplate())">+ NPC Template</button>
+        </section>
+
+        <!-- ============ NPC FEATURES ============ -->
+        <section v-show="tab==='npc_features'">
+          <h2>NPC Features <span class="pill">npc_features.json</span></h2>
+          <p class="lf-note">Traits, systems, reactions, tech and weapons for NPCs. Tie a feature to its class/template with <strong>Origin</strong> + <strong>Base</strong>, or list its id under that class's base/optional features.</p>
+          <p v-if="!lcp.npc_features.length" class="empty">No NPC features yet.</p>
+          <div v-for="(f,i) in lcp.npc_features" :key="i" class="lf-list-item">
+            <div class="head"><span class="title">{{ f.name || 'Untitled feature' }} <span class="pill">{{ f.type }}</span></span><button class="btn tiny danger" @click="removeItem('npc_features', i)">Delete</button></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npcf_ prefixed."/></label><input type="text" v-model="f.id" placeholder="npcf_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="f.name" /></div>
+              <div class="lf-field"><label>Type <span class="req">*</span><help t="trait / system / reaction / tech / weapon. Each unlocks its own extra fields below."/></label>
+                <select v-model="f.type"><option v-for="x in npcFeatureTypes" :key="x" :value="x">{{ x }}</option></select></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Origin <help t="Optional. The id of the NPC Class or Template this feature belongs to. Needed when the class doesn't list this feature id itself."/></label>
+                <select v-model="f.origin">
+                  <option value="">(none)</option>
+                  <optgroup label="Classes"><option v-for="c in lcp.npc_classes" :key="c.id" :value="c.id">{{ c.name }} ({{ c.id }})</option></optgroup>
+                  <optgroup label="Templates"><option v-for="t in lcp.npc_templates" :key="t.id" :value="t.id">{{ t.name }} ({{ t.id }})</option></optgroup>
+                </select></div>
+              <div class="lf-field"><label class="lf-inline" style="margin-top:1.6rem"><input type="checkbox" v-model="f.base" /> Base feature <help t="On = always given to NPCs of the origin class/template. Off = an optional pick."/></label></div>
+            </div>
+            <div class="lf-field"><label>Effect <help t="Rules text. HTML allowed."/></label><textarea v-model="f.effect"></textarea></div>
+
+            <div v-if="f.type==='reaction'" class="lf-field"><label>Trigger <span class="req">*</span><help t="The condition that lets the NPC take this reaction. Displayed, not enforced."/></label><input type="text" v-model="f.trigger" /></div>
+
+            <template v-if="f.type==='tech' || f.type==='weapon'">
+              <div class="lf-row">
+                <div class="lf-field"><label>Attack bonus <help t="Flat bonus to attack rolls for this feature. One number, or three 'a, b, c' per tier."/></label><input type="text" v-model="f._attackBonus" placeholder="2  or  2,3,4" /></div>
+                <div class="lf-field"><label>Accuracy <help t="Accuracy dice for this feature's attacks; negative = Difficulty. One number or three per tier."/></label><input type="text" v-model="f._accuracy" placeholder="1  or  0,1,1" /></div>
+              </div>
+            </template>
+
+            <template v-if="f.type==='weapon'">
+              <div class="lf-row">
+                <div class="lf-field"><label>Weapon type <span class="req">*</span><help t="Format '{Size} {Type}', PC-style — e.g. 'Main Cannon', 'Superheavy Melee', 'Auxiliary Rifle'."/></label><input type="text" v-model="f.weapon_type" placeholder="Main Cannon" /></div>
+                <div class="lf-field"><label>Attacks <span class="req">*</span><help t="Attacks per use. One number, or three 'a, b, c' per tier."/></label><input type="text" v-model="f._attacks" placeholder="1  or  1,1,2" /></div>
+              </div>
+              <npc-damage-list v-model="f.npcDamage"></npc-damage-list>
+              <range-list v-model="f.range"></range-list>
+              <details class="lf-block">
+                <summary>On attack / hit / crit / miss</summary>
+                <div class="lf-field"><label>On attack <help t="Effect text applied when the attack is made."/></label><input type="text" v-model="f.on_attack" /></div>
+                <div class="lf-field"><label>On hit <help t="Effect text applied on a hit."/></label><input type="text" v-model="f.on_hit" /></div>
+                <div class="lf-field"><label>On crit <help t="Effect text applied on a crit."/></label><input type="text" v-model="f.on_crit" /></div>
+                <div class="lf-field"><label>On miss <help t="Effect text applied on a miss."/></label><input type="text" v-model="f.on_miss" /></div>
+              </details>
+            </template>
+
+            <tag-list v-model="f.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="f.actions" label="Actions"></action-list>
+            <bonus-list v-model="f.bonuses"></bonus-list>
+            <synergy-list v-model="f.synergies"></synergy-list>
+            <deployable-list v-model="f.deployables"></deployable-list>
+          </div>
+          <button class="btn primary" @click="push('npc_features', blankNpcFeature())">+ NPC Feature</button>
+        </section>
+
         <!-- ============ TAGS ============ -->
         <section v-show="tab==='tags'">
           <h2>Custom Tags <span class="pill">tags.json</span></h2>
@@ -935,6 +1216,35 @@ const RangeList = {
     </div>`
 };
 
+const NpcDamageList = {
+  name: 'npc-damage-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: DAMAGE_TYPES }),
+  methods: { add() { this.addRow({ type:'Kinetic', _t1:'', _t2:'', _t3:'', ap:undefined, aoe:'', save:'' }); } },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Damage <help t="NPC damage is three flat numbers, one per tier — no dice strings. Enter the tier 1 / 2 / 3 values."/></h3>
+      <div v-for="(d,i) in list" :key="i" class="lf-sub">
+        <div class="lf-row" style="align-items:flex-end">
+          <div class="lf-field" style="max-width:140px"><label>Type <help t="Kinetic, Energy, Explosive, Heat, Burn, or Variable."/></label>
+            <select v-model="d.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+          <div class="lf-field" style="max-width:80px"><label>T1</label><input type="number" v-model.number="d._t1" /></div>
+          <div class="lf-field" style="max-width:80px"><label>T2</label><input type="number" v-model.number="d._t2" /></div>
+          <div class="lf-field" style="max-width:80px"><label>T3</label><input type="number" v-model.number="d._t3" /></div>
+          <div class="lf-field" style="max-width:100px"><label>AP <help t="Armor-piercing."/></label>
+            <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
+          <button class="btn tiny danger" @click="rmRow(i)">✕</button>
+        </div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Save stat <help t="e.g. hull, agi, sys, eng. Blank = no save."/></label><input type="text" v-model="d.save" /></div>
+          <div class="lf-field"><label>AoE <help t="true, or a shape like 'burst 2'."/></label><input type="text" v-model="d.aoe" /></div>
+        </div>
+      </div>
+      <button class="btn tiny" @click="add">+ Damage</button>
+    </div>`
+};
+
 const TagList = {
   name: 'tag-list', mixins: [listModel],
   props: { modelValue: { type: Array, default: () => [] }, localTags: { type: Array, default: () => [] } },
@@ -1208,6 +1518,52 @@ const blankSystem = () => ({
   no_bonus:false, no_synergy:false
 });
 
+/* a reusable set of the mechanical builders that most pilot items carry */
+const mkBundle = () => ({ actions: [], bonuses: [], synergies: [], counters: [], deployables: [] });
+
+const blankSkill      = () => ({ id:'', name:'', description:'', detail:'', family:'str' });
+const blankBackground  = () => ({ id:'', name:'', description:'', _skills:'' });
+const blankCoreBonus   = () => ({ id:'', name:'', source:'', effect:'', description:'', mounted_effect:'', ...mkBundle() });
+const blankReserve     = () => ({ id:'', name:'', type:'Tactical', label:'', description:'', consumable:false, ...mkBundle() });
+const blankTalentRank  = () => ({ name:'', description:'', exclusive:false, ...mkBundle() });
+const blankTalent      = () => ({ id:'', name:'', description:'', terse:'', icon_url:'',
+                                  ranks:[blankTalentRank(), blankTalentRank(), blankTalentRank()] });
+const blankPilotGear   = () => ({ id:'', name:'', type:'Gear', description:'', effect:'',
+                                  damage:[], range:[], tags:[], ...mkBundle() });
+
+const blankNpcClass = () => ({
+  id:'', name:'', role:'striker',
+  info:{ flavor:'', tactics:'', terse:'' },
+  _stats:{ hp:'', armor:'', evade:'', edef:'', heatcap:'', speed:'', sensor:'', save:'',
+           hull:'', agility:'', systems:'', engineering:'', activations:'' },
+  _size:'1',
+  _base:'', _optional:'',
+  optionalClassMin:null, optionalClassMax:null, optionalClassPerTier:null
+});
+const blankNpcTemplate = () => ({
+  id:'', name:'', description:'', _forceTag:'', _prohibit:'', _base:'', _optional:'',
+  optionalMin:null, optionalMax:null, optionalPerTier:null, caveat:''
+});
+const blankNpcFeature = () => ({
+  id:'', name:'', type:'trait', origin:'', base:false, effect:'',
+  tags:[], actions:[], bonuses:[], synergies:[], deployables:[],
+  trigger:'',                                    // reaction
+  _attackBonus:'', _accuracy:'',                 // tech / weapon
+  weapon_type:'', _attacks:'1',                  // weapon
+  npcDamage:[], range:[], on_hit:'', on_crit:'', on_miss:'', on_attack:''
+});
+
+const freshLcp = () => ({
+  lcp_manifest: blankManifest(),
+  manufacturers: [], frames: [], weapons: [], systems: [],
+  core_bonuses: [], talents: [], skills: [], backgrounds: [], reserves: [], pilot_gear: [],
+  npc_classes: [], npc_templates: [], npc_features: [],
+  tags: []
+});
+
+const ALL_CATEGORIES = ['manufacturers','frames','weapons','systems','core_bonuses','talents','skills',
+  'backgrounds','reserves','pilot_gear','npc_classes','npc_templates','npc_features','tags'];
+
 /* =========================================================================
    Export shaping
    ========================================================================= */
@@ -1273,6 +1629,22 @@ const mechBundle = x => ({
   deployables: (x.deployables || []).map(shapeDeployable)
 });
 
+/* "8"  -> 8   |   "6, 10, 14" -> [6,10,14]   |   "" -> undefined */
+const tiered = s => {
+  const parts = csv(String(s ?? ''));
+  if (!parts.length) return undefined;
+  const nums = parts.map(Number);
+  return nums.length === 1 ? nums[0] : nums;
+};
+/* NPC size: "1" -> 1   |   "0.5,1 / 1 / 1,2" -> [[0.5,1],[1],[1,2]] */
+const npcSize = s => {
+  s = String(s ?? '').trim();
+  if (!s) return undefined;
+  if (s.includes('/')) return s.split('/').map(tier => csv(tier).map(Number));
+  const one = csv(s).map(Number);
+  return one.length === 1 ? one[0] : [one, one, one];
+};
+
 /* =========================================================================
    App
    ========================================================================= */
@@ -1282,18 +1654,36 @@ const app = createApp({
     return {
       tab: 'manifest',
       previewJson: false,
-      lcp: {
-        lcp_manifest: blankManifest(),
-        manufacturers: [], frames: [], weapons: [], systems: [], tags: []
-      },
+      lcp: freshLcp(),
+      navGroups: ['Pack','Licensed data','Pilot data','NPC data','Other'],
       tabs: [
-        { id:'manifest', label:'Manifest' },
-        { id:'manufacturers', label:'Manufacturers', key:'manufacturers' },
-        { id:'frames', label:'Frames', key:'frames' },
-        { id:'weapons', label:'Weapons', key:'weapons' },
-        { id:'systems', label:'Systems', key:'systems' },
-        { id:'tags', label:'Tags', key:'tags' },
-        { id:'export', label:'Export' }
+        { id:'manifest', label:'Manifest', group:'Pack' },
+        { id:'manufacturers', label:'Manufacturers', key:'manufacturers', group:'Licensed data' },
+        { id:'frames', label:'Frames', key:'frames', group:'Licensed data' },
+        { id:'weapons', label:'Weapons', key:'weapons', group:'Licensed data' },
+        { id:'systems', label:'Systems', key:'systems', group:'Licensed data' },
+        { id:'core_bonuses', label:'CORE Bonuses', key:'core_bonuses', group:'Pilot data' },
+        { id:'talents', label:'Talents', key:'talents', group:'Pilot data' },
+        { id:'skills', label:'Skill Triggers', key:'skills', group:'Pilot data' },
+        { id:'backgrounds', label:'Backgrounds', key:'backgrounds', group:'Pilot data' },
+        { id:'reserves', label:'Reserves', key:'reserves', group:'Pilot data' },
+        { id:'pilot_gear', label:'Pilot Gear', key:'pilot_gear', group:'Pilot data' },
+        { id:'npc_classes', label:'NPC Classes', key:'npc_classes', group:'NPC data' },
+        { id:'npc_templates', label:'NPC Templates', key:'npc_templates', group:'NPC data' },
+        { id:'npc_features', label:'NPC Features', key:'npc_features', group:'NPC data' },
+        { id:'tags', label:'Custom Tags', key:'tags', group:'Other' },
+        { id:'export', label:'Export', group:'Other' }
+      ],
+      npcRoles: ['artillery','controller','defender','striker','support','tank'],
+      npcFeatureTypes: ['trait','system','reaction','tech','weapon'],
+      reserveTypes: ['Mech','Tactical','Resource','Bonus'],
+      pilotGearTypes: ['Weapon','Armor','Gear'],
+      skillFamilies: ['str','con','dex','int','cha'],
+      forceTags: ['','Mech','Ship','Vehicle','Biological','Squad','Other'],
+      npcStatFields: [
+        ['hp','HP'],['armor','Armor'],['evade','Evade'],['edef','E-Def'],['heatcap','Heat Cap'],
+        ['speed','Speed'],['sensor','Sensors'],['save','Save'],['hull','Hull'],['agility','Agility'],
+        ['systems','Systems'],['engineering','Engineering'],['activations','Activations']
       ],
       mountTypes: ['Main','Heavy','Aux/Aux','Aux','Main/Aux','Flex','Integrated'],
       weaponMounts: ['Main','Heavy','Aux','Superheavy'],
@@ -1321,7 +1711,7 @@ const app = createApp({
   },
   computed: {
     nonEmptyCategories() {
-      return ['manufacturers','frames','weapons','systems','tags'].filter(c => (this.lcp[c] || []).length);
+      return ALL_CATEGORIES.filter(c => (this.lcp[c] || []).length);
     },
     exportFilename() {
       const n = (this.lcp.lcp_manifest.name || 'untitled').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
@@ -1396,6 +1786,74 @@ const app = createApp({
         scanMech(`Frame ${f.id||'?'} core`, { bonuses:[...(c.active_bonuses||[]),...(c.passive_bonuses||[])], synergies:[...(c.active_synergies||[]),...(c.passive_synergies||[])], counters:c.counters, deployables:c.deployables });
       });
 
+      // ---- pilot data ----
+      this.lcp.core_bonuses.forEach(x => {
+        track('CORE Bonus', x.id);
+        if (!x.name) p.push(`CORE Bonus ${x.id||'?'}: name is required.`);
+        if (!x.source) p.push(`CORE Bonus ${x.id||'?'}: source is required.`);
+        else if (!manIds.has(x.source)) p.push(`CORE Bonus ${x.id||'?'}: source "${x.source}" is not a defined manufacturer.`);
+        if (!x.effect) p.push(`CORE Bonus ${x.id||'?'}: effect is required.`);
+        if (!x.description) p.push(`CORE Bonus ${x.id||'?'}: description is required.`);
+        scanMech(`CORE Bonus ${x.id||'?'}`, x);
+      });
+      this.lcp.talents.forEach(x => {
+        track('Talent', x.id);
+        if (!x.name) p.push(`Talent ${x.id||'?'}: name is required.`);
+        if (!x.description) p.push(`Talent ${x.id||'?'}: description is required.`);
+        (x.ranks||[]).forEach((r,ri) => {
+          if (!r.name || !r.description) p.push(`Talent ${x.id||'?'} rank ${ri+1}: name and description required.`);
+          scanMech(`Talent ${x.id||'?'} rank ${ri+1}`, r);
+        });
+      });
+      this.lcp.skills.forEach(x => {
+        track('Skill', x.id);
+        if (!x.name || !x.description || !x.detail) p.push(`Skill ${x.id||'?'}: name, description and detail are required.`);
+      });
+      this.lcp.backgrounds.forEach(x => {
+        track('Background', x.id);
+        if (!x.name || !x.description) p.push(`Background ${x.id||'?'}: name and description required.`);
+      });
+      this.lcp.reserves.forEach(x => {
+        track('Reserve', x.id);
+        if (!x.name) p.push(`Reserve ${x.id||'?'}: name is required.`);
+        scanMech(`Reserve ${x.id||'?'}`, x);
+      });
+      this.lcp.pilot_gear.forEach(x => {
+        track('Pilot Gear', x.id);
+        if (!x.name) p.push(`Pilot Gear ${x.id||'?'}: name is required.`);
+        scanMech(`Pilot Gear ${x.id||'?'}`, x);
+      });
+
+      // ---- NPC data ----
+      const featureIds = new Set(this.lcp.npc_features.map(x => x.id));
+      const originIds = new Set([...this.lcp.npc_classes.map(x => x.id), ...this.lcp.npc_templates.map(x => x.id)]);
+      this.lcp.npc_classes.forEach(x => {
+        track('NPC Class', x.id);
+        if (!x.name) p.push(`NPC Class ${x.id||'?'}: name is required.`);
+        if (!this.npcRoles.includes(x.role)) p.push(`NPC Class ${x.id||'?'}: role must be one of ${this.npcRoles.join(', ')}.`);
+        if (!x.info.flavor || !x.info.tactics || !x.info.terse) p.push(`NPC Class ${x.id||'?'}: info needs flavor, tactics and terse.`);
+        ['hp','armor','evade','edef','heatcap','speed','save'].forEach(k => { if (!String(x._stats[k]).trim()) p.push(`NPC Class ${x.id||'?'}: stat "${k}" is required.`); });
+        [...csv(x._base), ...csv(x._optional)].forEach(fid => { if (!featureIds.has(fid)) p.push(`NPC Class ${x.id||'?'}: feature id "${fid}" is not a defined NPC Feature.`); });
+      });
+      this.lcp.npc_templates.forEach(x => {
+        track('NPC Template', x.id);
+        if (!x.name || !x.description) p.push(`NPC Template ${x.id||'?'}: name and description required.`);
+        [...csv(x._base), ...csv(x._optional)].forEach(fid => { if (!featureIds.has(fid)) p.push(`NPC Template ${x.id||'?'}: feature id "${fid}" is not a defined NPC Feature.`); });
+      });
+      this.lcp.npc_features.forEach(x => {
+        track('NPC Feature', x.id);
+        if (!x.name) p.push(`NPC Feature ${x.id||'?'}: name is required.`);
+        if (!this.npcFeatureTypes.includes(x.type)) p.push(`NPC Feature ${x.id||'?'}: type must be one of ${this.npcFeatureTypes.join(', ')}.`);
+        if (x.origin && !originIds.has(x.origin)) p.push(`NPC Feature ${x.id||'?'}: origin "${x.origin}" is not a defined class or template.`);
+        if (x.type === 'reaction' && !x.trigger) p.push(`NPC Feature ${x.id||'?'}: reaction features need a trigger.`);
+        if (x.type === 'weapon') {
+          if (!x.weapon_type) p.push(`NPC Feature ${x.id||'?'}: weapon features need a weapon type.`);
+          if (!String(x._attacks).trim()) p.push(`NPC Feature ${x.id||'?'}: weapon features need an attacks value.`);
+          (x.npcDamage||[]).forEach(d => { if (d._t1==='' || d._t2==='' || d._t3==='') p.push(`NPC Feature ${x.id||'?'}: each damage entry needs all three tier values.`); });
+        }
+        scanMech(`NPC Feature ${x.id||'?'}`, x);
+      });
+
       Object.entries(ids).forEach(([id, n]) => { if (n > 1) p.push(`Duplicate id "${id}" used ${n} times — ids must be globally unique.`); });
       return p;
     },
@@ -1411,14 +1869,18 @@ const app = createApp({
     go(t) { this.tab = t; },
     blankTrait,
     frameName(id) { const f = this.lcp.frames.find(x => x.id === id); return f ? f.name : ''; },
+    push(key, obj) { this.lcp[key].push(obj); },
     addManufacturer() { this.lcp.manufacturers.push({ id:'', name:'', description:'', quote:'', light:'#888888', dark:'#aaaaaa', icon_url:'' }); this.tab='manufacturers'; },
     addFrame() { this.lcp.frames.push(blankFrame()); },
     addWeapon() { this.lcp.weapons.push(blankWeapon()); },
     addSystem() { this.lcp.systems.push(blankSystem()); },
+    blankCoreBonus, blankTalent, blankTalentRank, blankSkill, blankBackground, blankReserve, blankPilotGear,
+    blankNpcClass, blankNpcTemplate, blankNpcFeature,
+    npcFeatureName(id) { const f = this.lcp.npc_features.find(x => x.id === id); return f ? f.name : id; },
     removeItem(key, i) { this.lcp[key].splice(i, 1); },
     resetAll() {
       if (!confirm('Discard everything and start a new pack?')) return;
-      this.lcp = { lcp_manifest: blankManifest(), manufacturers: [], frames: [], weapons: [], systems: [], tags: [] };
+      this.lcp = freshLcp();
       this.tab = 'manifest';
     },
 
@@ -1498,7 +1960,96 @@ const app = createApp({
       const manufacturers = this.lcp.manufacturers.map(x => clean(x));
       const tags = this.lcp.tags.map(x => clean(x));
 
-      return { lcp_manifest: manifest, manufacturers, frames, weapons, systems, tags };
+      const core_bonuses = this.lcp.core_bonuses.map(c => clean({
+        id: c.id, name: c.name, source: c.source, effect: c.effect, description: c.description,
+        mounted_effect: c.mounted_effect, ...mechBundle(c)
+      }));
+
+      const talents = this.lcp.talents.map(t => clean({
+        id: t.id, name: t.name, description: t.description, terse: t.terse, icon_url: t.icon_url,
+        ranks: (t.ranks || []).map(r => clean({
+          name: r.name, description: r.description, exclusive: r.exclusive || undefined, ...mechBundle(r)
+        }))
+      }));
+
+      const skills = this.lcp.skills.map(x => clean(x));
+
+      const backgrounds = this.lcp.backgrounds.map(bg => clean({
+        id: bg.id, name: bg.name, description: bg.description,
+        skills: csv(bg._skills)
+      }));
+
+      const reserves = this.lcp.reserves.map(r => clean({
+        id: r.id, name: r.name, type: r.type, label: r.label, description: r.description,
+        consumable: r.consumable || undefined, ...mechBundle(r)
+      }));
+
+      const pilot_gear = this.lcp.pilot_gear.map(g => clean({
+        id: g.id, name: g.name, type: g.type, description: g.description, effect: g.effect,
+        damage: g.type === 'Weapon' ? (g.damage || []).map(clean) : [],
+        range: g.type === 'Weapon' ? (g.range || []).map(clean) : [],
+        tags: (g.tags || []).map(clean), ...mechBundle(g)
+      }));
+
+      const npc_classes = this.lcp.npc_classes.map(c => {
+        const stats = {};
+        this.npcStatFields.forEach(([k]) => { const v = tiered(c._stats[k]); if (v !== undefined) stats[k] = v; });
+        const sz = npcSize(c._size); if (sz !== undefined) stats.size = sz;
+        return clean({
+          id: c.id, name: c.name, role: c.role,
+          info: { flavor: c.info.flavor, tactics: c.info.tactics, terse: c.info.terse },
+          stats,
+          base_features: csv(c._base), optional_features: csv(c._optional),
+          optionalClassMin: c.optionalClassMin ?? undefined,
+          optionalClassMax: c.optionalClassMax ?? undefined,
+          optionalClassPerTier: c.optionalClassPerTier ?? undefined
+        });
+      });
+
+      const npc_templates = this.lcp.npc_templates.map(t => clean({
+        id: t.id, template: true, name: t.name, description: t.description,
+        forceTag: t._forceTag || undefined,
+        prohibitTemplates: csv(t._prohibit),
+        base_features: csv(t._base), optional_features: csv(t._optional),
+        caveat: t.caveat,
+        optionalMin: t.optionalMin ?? undefined,
+        optionalMax: t.optionalMax ?? undefined,
+        optionalPerTier: t.optionalPerTier ?? undefined
+      }));
+
+      const npc_features = this.lcp.npc_features.map(f => {
+        const o = {
+          id: f.id, name: f.name, type: f.type, origin: f.origin, base: f.base || undefined,
+          effect: f.effect,
+          tags: (f.tags || []).map(clean),
+          actions: (f.actions || []).map(clean),
+          bonuses: (f.bonuses || []).map(shapeBonus),
+          synergies: (f.synergies || []).map(shapeSynergy),
+          deployables: (f.deployables || []).map(shapeDeployable)
+        };
+        if (f.type === 'reaction') o.trigger = f.trigger;
+        if (f.type === 'tech' || f.type === 'weapon') {
+          const ab = tiered(f._attackBonus); if (ab !== undefined) o.attack_bonus = Array.isArray(ab) ? ab : [ab, ab, ab];
+          const ac = tiered(f._accuracy); if (ac !== undefined) o.accuracy = Array.isArray(ac) ? ac : [ac, ac, ac];
+        }
+        if (f.type === 'weapon') {
+          o.weapon_type = f.weapon_type;
+          o.attacks = tiered(f._attacks);
+          o.range = (f.range || []).map(clean);
+          o.damage = (f.npcDamage || []).map(d => clean({
+            type: d.type, damage: [Number(d._t1) || 0, Number(d._t2) || 0, Number(d._t3) || 0],
+            ap: d.ap, aoe: d.aoe || undefined, save: d.save || undefined
+          }));
+          ['on_attack','on_hit','on_crit','on_miss'].forEach(k => { if (f[k]) o[k] = f[k]; });
+        }
+        return clean(o);
+      });
+
+      return {
+        lcp_manifest: manifest, manufacturers, frames, weapons, systems,
+        core_bonuses, talents, skills, backgrounds, reserves, pilot_gear,
+        npc_classes, npc_templates, npc_features, tags
+      };
     },
 
     async exportLcp() {
@@ -1525,7 +2076,7 @@ const app = createApp({
           return f ? JSON.parse(await f.async('string')) : null;
         };
         const man = await read('lcp_manifest.json');
-        const fresh = { lcp_manifest: blankManifest(), manufacturers: [], frames: [], weapons: [], systems: [], tags: [] };
+        const fresh = freshLcp();
         if (man) {
           Object.assign(fresh.lcp_manifest, man);
           fresh.lcp_manifest.v3 = !!man.v3;
@@ -1593,6 +2144,70 @@ const app = createApp({
           b.no_bonus=!!s.no_bonus; b.no_synergy=!!s.no_synergy;
           return b;
         });
+
+        const arr = a => Array.isArray(a) ? a.join(', ') : (a == null ? '' : String(a));
+
+        fresh.core_bonuses = ((await read('core_bonuses.json')) || []).map(c => ({
+          ...blankCoreBonus(), ...c, mounted_effect: c.mounted_effect || '', ...inBundle(c)
+        }));
+        fresh.skills = (await read('skills.json')) || [];
+        fresh.backgrounds = ((await read('backgrounds.json')) || []).map(bg => ({
+          id: bg.id, name: bg.name, description: bg.description || '', _skills: (bg.skills || []).join(', ')
+        }));
+        fresh.talents = ((await read('talents.json')) || []).map(t => ({
+          id: t.id, name: t.name, description: t.description || '', terse: t.terse || '', icon_url: t.icon_url || '',
+          ranks: (t.ranks || []).slice(0, 3).map(r => ({
+            name: r.name || '', description: r.description || '', exclusive: !!r.exclusive, ...inBundle(r)
+          }))
+        }));
+        while (fresh.talents.some(t => t.ranks.length < 3)) fresh.talents.forEach(t => { while (t.ranks.length < 3) t.ranks.push(blankTalentRank()); });
+        fresh.reserves = ((await read('reserves.json')) || []).map(r => ({
+          ...blankReserve(), ...r, label: r.label || '', description: r.description || '', consumable: !!r.consumable, ...inBundle(r)
+        }));
+        fresh.pilot_gear = ((await read('pilot_gear.json')) || []).map(g => ({
+          ...blankPilotGear(), ...g, description: g.description || '', effect: g.effect || '',
+          damage: g.damage || [], range: g.range || [], tags: g.tags || [], ...inBundle(g)
+        }));
+
+        fresh.npc_classes = ((await read('npc_classes.json')) || []).map(c => {
+          const b = blankNpcClass();
+          b.id = c.id; b.name = c.name; b.role = c.role || 'striker';
+          b.info = { flavor: (c.info||{}).flavor || '', tactics: (c.info||{}).tactics || '', terse: (c.info||{}).terse || '' };
+          this.npcStatFields.forEach(([k]) => { b._stats[k] = arr((c.stats||{})[k]); });
+          const sz = (c.stats||{}).size;
+          b._size = Array.isArray(sz) ? sz.map(t => (Array.isArray(t) ? t.join(',') : t)).join(' / ') : arr(sz);
+          b._base = (c.base_features || []).join(', '); b._optional = (c.optional_features || []).join(', ');
+          b.optionalClassMin = c.optionalClassMin ?? null; b.optionalClassMax = c.optionalClassMax ?? null; b.optionalClassPerTier = c.optionalClassPerTier ?? null;
+          return b;
+        });
+        fresh.npc_templates = ((await read('npc_templates.json')) || []).map(t => ({
+          ...blankNpcTemplate(), id: t.id, name: t.name, description: t.description || '',
+          _forceTag: t.forceTag || '', _prohibit: (t.prohibitTemplates || []).join(', '),
+          _base: (t.base_features || []).join(', '), _optional: (t.optional_features || []).join(', '),
+          caveat: t.caveat || '',
+          optionalMin: t.optionalMin ?? null, optionalMax: t.optionalMax ?? null, optionalPerTier: t.optionalPerTier ?? null
+        }));
+        fresh.npc_features = ((await read('npc_features.json')) || []).map(f => {
+          const b = blankNpcFeature();
+          Object.assign(b, {
+            id: f.id, name: f.name, type: f.type || 'trait', origin: f.origin || '', base: !!f.base,
+            effect: f.effect || '', trigger: f.trigger || '', weapon_type: f.weapon_type || '',
+            _attackBonus: arr(f.attack_bonus), _accuracy: arr(f.accuracy), _attacks: arr(f.attacks) || '1',
+            tags: f.tags || [], range: f.range || [],
+            on_attack: f.on_attack || '', on_hit: f.on_hit || '', on_crit: f.on_crit || '', on_miss: f.on_miss || ''
+          });
+          b.actions = f.actions || [];
+          b.bonuses = (f.bonuses || []).map(inBonus);
+          b.synergies = (f.synergies || []).map(inSyn);
+          b.deployables = (f.deployables || []).map(inDep);
+          b.npcDamage = (f.damage || []).map(d => ({
+            type: d.type || 'Kinetic',
+            _t1: (d.damage || [])[0] ?? '', _t2: (d.damage || [])[1] ?? '', _t3: (d.damage || [])[2] ?? '',
+            ap: d.ap, aoe: d.aoe || '', save: d.save || ''
+          }));
+          return b;
+        });
+
         this.lcp = fresh;
         this.tab = 'manifest';
         alert('Loaded ' + file.name);
@@ -1615,6 +2230,7 @@ app.component('bonus-list', BonusList);
 app.component('synergy-list', SynergyList);
 app.component('counter-list', CounterList);
 app.component('deployable-list', DeployableList);
+app.component('npc-damage-list', NpcDamageList);
 
 app.mount('#lcp-forge');
 </script>
