@@ -27,17 +27,30 @@
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
   :root {
-    --bg: #14161c;
-    --panel: #1c1f28;
-    --panel-2: #232734;
-    --line: #333849;
-    --text: #e6e8ef;
-    --muted: #9aa0b4;
-    --accent: #4db6ac;
-    --accent-ink: #08110f;
-    --danger: #e06c75;
-    --warn: #e5c07b;
-    --radius: 8px;
+    --bg: #14161c; --panel: #1c1f28; --panel-2: #232734; --line: #333849;
+    --text: #e6e8ef; --muted: #9aa0b4; --accent: #4db6ac; --accent-ink: #06110f;
+    --danger: #e06c75; --warn: #e5c07b; --radius: 8px;
+  }
+  /* ---- dark theme variants (data-theme on #lcp-forge) ---- */
+  #lcp-forge[data-theme="horus"] {
+    --bg:#0d0a12; --panel:#161120; --panel-2:#1f1830; --line:#3a2f52;
+    --text:#ece3fb; --muted:#9a8cbb; --accent:#b072e6; --accent-ink:#120520; --danger:#ff6f9e; --warn:#e6b3ff;
+  }
+  #lcp-forge[data-theme="harrison"] {
+    --bg:#15120d; --panel:#1e1913; --panel-2:#29221a; --line:#463824;
+    --text:#f2e9db; --muted:#b3a488; --accent:#e0a63c; --accent-ink:#1c1305; --danger:#e0685a; --warn:#f0d68a;
+  }
+  #lcp-forge[data-theme="ipsn"] {
+    --bg:#0f1319; --panel:#161c26; --panel-2:#1e2634; --line:#2f3d4f;
+    --text:#e4ecf5; --muted:#8fa0b3; --accent:#5b95d6; --accent-ink:#061019; --danger:#e0766a; --warn:#e8b562;
+  }
+  #lcp-forge[data-theme="ssc"] {
+    --bg:#121016; --panel:#1b1720; --panel-2:#241e2c; --line:#3d3348;
+    --text:#f3e8f0; --muted:#a996ad; --accent:#ea6ba8; --accent-ink:#1c0713; --danger:#ff7a6b; --warn:#ffcf7a;
+  }
+  #lcp-forge[data-theme="union"] {
+    --bg:#101318; --panel:#181c23; --panel-2:#20252e; --line:#333c48;
+    --text:#e8edf3; --muted:#93a1b2; --accent:#4a90d9; --accent-ink:#04101d; --danger:#e07066; --warn:#e6c06a;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); }
@@ -99,10 +112,48 @@
   .row {
     display: flex; align-items: center; gap: .6rem; padding: .55rem .8rem; cursor: pointer;
     background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
+    border-left: 3px solid var(--line); transition: border-color .12s, background .12s;
   }
-  .row:hover { border-color: var(--accent); }
+  .row:hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--panel-2); }
   .row .title { font-weight: 600; }
   .row .grow { flex: 1; }
+
+  /* empty state */
+  .emptybox {
+    text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px;
+    padding: 2rem 1rem; margin-bottom: 1rem; font-size: .9rem;
+  }
+
+  /* comms ticker */
+  .ticker {
+    flex-shrink: 0; height: 24px; background: var(--panel); border-top: 1px solid var(--line);
+    overflow: hidden; display: flex; align-items: center;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .74rem; color: var(--muted);
+  }
+  .ticker-track { display: inline-flex; white-space: nowrap; will-change: transform; animation: ticker 60s linear infinite; }
+  .ticker:hover .ticker-track { animation-play-state: paused; }
+  .ticker-track span { padding: 0 .1rem; }
+  .ticker .sep { color: var(--accent); padding: 0 1.4rem; opacity: .8; }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  #lcp-forge[data-motion="off"] .ticker-track { animation: none; }
+  #lcp-forge[data-motion="off"] .ticker { display: none; }
+
+  /* modal transition */
+  .m-enter-active, .m-leave-active { transition: opacity .14s ease; }
+  .m-enter-active .modal, .m-leave-active .modal { transition: transform .14s ease; }
+  .m-enter-from, .m-leave-to { opacity: 0; }
+  .m-enter-from .modal, .m-leave-to .modal { transform: translateY(-12px) scale(.98); }
+  #lcp-forge[data-motion="off"] .m-enter-active, #lcp-forge[data-motion="off"] .m-leave-active { transition: none; }
+
+  /* theme swatches */
+  .themes { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .themes button {
+    border: 2px solid var(--line); border-radius: 8px; padding: .5rem .7rem; cursor: pointer;
+    background: var(--sw-bg); color: var(--sw-text); font: inherit; font-size: .85rem; font-weight: 600;
+    display: flex; align-items: center; gap: .45rem;
+  }
+  .themes button.on { border-color: var(--sw-accent); }
+  .themes button .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--sw-accent); }
 
   /* modal editor */
   .modal-overlay {
@@ -238,7 +289,7 @@
 <div id="lcp-forge">
   <div class="lf-top">
     <button class="nav-toggle" @click="toggleNav" :title="navOpen ? 'Hide sidebar' : 'Show sidebar'">☰</button>
-    <span class="brand">⬢ Sofa's&nbsp;LCP&nbsp;Editor</span>
+    <span class="brand">{{ factionGlyph }} Sofa's&nbsp;LCP&nbsp;Editor</span>
     <span class="pill">{{ lcp.lcp_manifest.name || 'untitled pack' }}</span>
     <span class="spacer"></span>
     <input ref="importFile" type="file" accept=".lcp,.zip" style="display:none" @change="importLcp" />
@@ -360,6 +411,23 @@
               <span>{{ t.label }}</span><span class="n">{{ (lcp[t.key]||[]).length }}</span>
             </button>
           </div>
+
+          <details class="lf-block" style="margin-top:1.5rem">
+            <summary>Settings</summary>
+            <div class="lf-field">
+              <label>Theme <help t="All dark. Purely cosmetic — the exported .lcp is identical whichever you pick."/></label>
+              <div class="themes">
+                <button v-for="th in themeList" :key="th.id" :class="{on: settings.theme===th.id}"
+                  :style="{'--sw-bg':th.bg,'--sw-text':th.text,'--sw-accent':th.accent}"
+                  @click="setTheme(th.id)"><span class="dot"></span>{{ th.name }}</button>
+              </div>
+            </div>
+            <div class="lf-checks">
+              <label><input type="checkbox" v-model="settings.ticker" /> Show the comms ticker <help t="A scrolling feed of in-universe chatter along the bottom. Flavour lines change with the theme."/></label>
+              <label><input type="checkbox" v-model="settings.motion" /> Animations <help t="Off = no ticker scroll, no modal transitions. Respect this if motion bothers you."/></label>
+            </div>
+            <p class="lf-note" style="font-size:.82rem">Settings are saved in this browser only — they don't touch the pack.</p>
+          </details>
         </section>
 
         <!-- ============ MANUFACTURERS ============ -->
@@ -799,6 +867,7 @@
 
       </div>
 
+      <transition name="m">
       <div class="modal-overlay" v-if="edit.key" @click.self="closeEdit">
         <div class="modal">
           <div class="modal-head">
@@ -1430,10 +1499,20 @@
             </div>
           </template></template>
           </div>
-          <div class="modal-foot"><button class="btn primary" @click="closeEdit">Done</button></div>
+          <div class="modal-foot">
+            <span class="grow" style="flex:1;color:var(--muted);font-size:.8rem">Esc, or click outside, to close</span>
+            <button class="btn primary" @click="closeEdit">Done</button>
+          </div>
         </div>
       </div>
+      </transition>
     </main>
+  </div>
+
+  <div class="ticker" v-if="settings.ticker">
+    <div class="ticker-track">
+      <span v-for="(m,i) in tickerFeed" :key="i">{{ m }}<span class="sep">///</span></span>
+    </div>
   </div>
 </div>
 
@@ -1639,6 +1718,63 @@ const TAG_CATALOG = [
 const TAG_BY_ID = Object.fromEntries(TAG_CATALOG.map(x => [x.id, x]));
 const TAG_GROUPS = [...new Set(TAG_CATALOG.map(x => x.group))];
 const FOUNDRY_TAG_IDS = TAG_CATALOG.filter(x => x.fnd).map(x => x.id);
+
+/* =========================================================================
+   Themes + comms ticker
+   ------------------------------------------------------------------------
+   THEME_LIST — id / label / preview swatch colours (the real palette lives
+   in the CSS [data-theme] blocks).
+   CHATTER — the scrolling ticker lines, keyed by theme id.  ~~ WRITE HERE ~~
+   Each array is a list of one-liners; keep them short-ish. They loop.
+   ========================================================================= */
+const THEME_LIST = [
+  { id:'comp-con', name:'COMP/CON', bg:'#14161c', text:'#e6e8ef', accent:'#4db6ac' },
+  { id:'horus',    name:'HORUS',    bg:'#0d0a12', text:'#ece3fb', accent:'#b072e6' },
+  { id:'harrison', name:'Harrison Armory', bg:'#15120d', text:'#f2e9db', accent:'#e0a63c' },
+  { id:'ipsn',     name:'IPS-Northstar',   bg:'#0f1319', text:'#e4ecf5', accent:'#5b95d6' },
+  { id:'ssc',      name:'Smith-Shimano',   bg:'#121016', text:'#f3e8f0', accent:'#ea6ba8' },
+  { id:'union',    name:'Union',     bg:'#101318', text:'#e8edf3', accent:'#4a90d9' },
+];
+
+const CHATTER = {
+  'comp-con': [
+    'COMP/CON: NHP shell nominal. Awaiting content pack.',
+    'COMP/CON: reminder — back up your loadouts.',
+    'COMP/CON: schema validation is your friend.',
+  ],
+  'horus': [
+    '[BLACKBOX]: they are already inside the compiler.',
+    '[BLACKBOX]: define nothing. everything is already defined.',
+    '[BLACKBOX]: the pattern wants out.',
+  ],
+  'harrison': [
+    'ARMORY COMMS: submit content pack for Purview review.',
+    'ARMORY COMMS: superior by design. superior by decree.',
+    'ARMORY COMMS: license compliance is not optional, pilot.',
+  ],
+  'ipsn': [
+    'IPS-N DISPATCH: haul it, weld it, ship it.',
+    'IPS-N DISPATCH: the Long Rim does not forgive sloppy manifests.',
+    'IPS-N DISPATCH: coffee\'s cold. export\'s clean. good enough.',
+  ],
+  'ssc': [
+    'SSC NET: darling, that colour palette is *devastating*.',
+    'SSC NET: form follows function follows fashion.',
+    'SSC NET: the Trench watches. make it beautiful.',
+  ],
+  'union': [
+    'UNION SIGNAL: content pack logged with the Third Committee.',
+    'UNION SIGNAL: cornerstone directives remain in effect.',
+    'UNION SIGNAL: ...to the stars, together.',
+  ],
+};
+const GLYPHS = { 'comp-con':'⬢', horus:'❖', harrison:'◆', ipsn:'⬟', ssc:'✦', union:'✧' };
+
+const loadSettings = () => {
+  const d = { theme:'comp-con', ticker:true, motion:true };
+  try { return { ...d, ...JSON.parse(localStorage.getItem('sofa-lcp-settings') || '{}') }; }
+  catch (e) { return d; }
+};
 
 /* =========================================================================
    Shared sub-editors (registered globally near the bottom)
@@ -2226,6 +2362,8 @@ const app = createApp({
       collapsedNav: {},
       navOpen: true,
       edit: { key: null, idx: -1 },
+      settings: loadSettings(),
+      themeList: THEME_LIST,
       lcp: freshLcp(),
       navGroups: ['Pack','Licensed data','Pilot data','NPC data','Other content','Output'],
       tabs: [
@@ -2298,8 +2436,18 @@ const app = createApp({
   mounted() {
     this._esc = e => { if (e.key === 'Escape' && this.edit.key) this.closeEdit(); };
     window.addEventListener('keydown', this._esc);
+    this.applySettings();
   },
   beforeUnmount() { window.removeEventListener('keydown', this._esc); },
+  watch: {
+    settings: {
+      deep: true,
+      handler(v) {
+        try { localStorage.setItem('sofa-lcp-settings', JSON.stringify(v)); } catch (e) {}
+        this.applySettings();
+      }
+    }
+  },
   computed: {
     nonEmptyCategories() {
       const cats = ALL_CATEGORIES.filter(c => (this.lcp[c] || []).length);
@@ -2485,6 +2633,11 @@ const app = createApp({
       const { key, idx } = this.edit;
       return (key && this.lcp[key] && this.lcp[key][idx]) ? this.lcp[key][idx] : null;
     },
+    tickerFeed() {
+      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
+      return [...lines, ...lines, ...lines, ...lines];
+    },
+    factionGlyph() { return GLYPHS[this.settings.theme] || '⬢'; },
     modalTitle() {
       const M = { manufacturers:'Manufacturer', frames:'Frame', weapons:'Weapon', systems:'System',
         mods:'Weapon Mod', core_bonuses:'CORE Bonus', talents:'Talent', skills:'Skill Trigger',
@@ -2506,6 +2659,13 @@ const app = createApp({
     go(t) { this.tab = t; },
     toggleNavGroup(g) { this.collapsedNav = { ...this.collapsedNav, [g]: !this.collapsedNav[g] }; },
     toggleNav() { this.navOpen = !this.navOpen; },
+    setTheme(id) { this.settings.theme = id; },
+    applySettings() {
+      const el = document.getElementById('lcp-forge');
+      if (!el) return;
+      el.dataset.theme = this.settings.theme;
+      el.dataset.motion = this.settings.motion ? 'on' : 'off';
+    },
     openEdit(key, i) { this.edit = { key, idx: i }; this.tab = key; },
     closeEdit() { this.edit = { key: null, idx: -1 }; },
     toggleArr(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); },
