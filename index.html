@@ -853,8 +853,8 @@ const listModel = {
     set(v) { this.$emit('update:modelValue', v); }
   } },
   methods: {
-    _add(obj) { this.list = [...this.list, obj]; },
-    _rm(i) { const c = [...this.list]; c.splice(i, 1); this.list = c; }
+    addRow(obj) { this.list = [...this.list, obj]; },
+    rmRow(i) { const c = [...this.list]; c.splice(i, 1); this.list = c; }
   }
 };
 
@@ -864,13 +864,13 @@ const ActionList = {
   emits: ['update:modelValue'],
   data: () => ({ activationTypes: ACTIVATIONS, frequencies: FREQUENCIES }),
   methods: {
-    add() { this._add({ name:'', activation:'Quick', detail:'', frequency:'', trigger:'' }); }
+    add() { this.addRow({ name:'', activation:'Quick', detail:'', frequency:'', trigger:'' }); }
   },
   template: `
     <details class="lf-block">
       <summary>{{ label }} <span v-if="list.length" class="pill">{{ list.length }}</span></summary>
       <div v-for="(a,i) in list" :key="i" class="lf-sub">
-        <div class="head"><span class="title">{{ a.name || a.activation }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="head"><span class="title">{{ a.name || a.activation }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
         <div class="lf-row">
           <div class="lf-field"><label>Name <help t="Best practice: always name it. Systems fall back to the parent name if omitted."/></label><input type="text" v-model="a.name" /></div>
           <div class="lf-field"><label>Activation <span class="req">*</span><help t="The action type this costs: Free, Protocol, Quick, Full, Reaction, Quick/Full Tech, or Invade. Anything without an action type should be an Active Effect instead, not an Action."/></label>
@@ -903,7 +903,7 @@ const DamageList = {
   props: { modelValue: { type: Array, default: () => [] } },
   emits: ['update:modelValue'],
   data: () => ({ types: DAMAGE_TYPES }),
-  methods: { add() { this._add({ type:'Kinetic', val: 0 }); } },
+  methods: { add() { this.addRow({ type:'Kinetic', val: 0 }); } },
   template: `
     <div style="margin:.6rem 0">
       <h3>Damage <help t="A number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens are allowed."/></h3>
@@ -914,7 +914,7 @@ const DamageList = {
           <div class="lf-field"><label>Value <help t="A flat number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens like {grit} are allowed."/></label><input type="text" v-model="d.val" placeholder="4 or 2d6+2" /></div>
           <div class="lf-field" style="max-width:110px"><label>AP <help t="Armor-piercing — ignores armor. 'auto' lets COMP/CON infer it from tags."/></label>
             <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
-          <button class="btn tiny danger" @click="_rm(i)">✕</button>
+          <button class="btn tiny danger" @click="rmRow(i)">✕</button>
         </div>
         <details class="lf-block">
           <summary>Save / AoE</summary>
@@ -936,7 +936,7 @@ const RangeList = {
   props: { modelValue: { type: Array, default: () => [] } },
   emits: ['update:modelValue'],
   data: () => ({ types: RANGE_TYPES }),
-  methods: { add() { this._add({ type:'Range', val: 0 }); } },
+  methods: { add() { this.addRow({ type:'Range', val: 0 }); } },
   template: `
     <div style="margin:.6rem 0">
       <h3>Range</h3>
@@ -945,7 +945,7 @@ const RangeList = {
           <select v-model="r.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
         <div class="lf-field"><label>Value <help t="Maximum range in spaces. A number, or a dice/expression string. Special value strings are allowed as of v3."/></label><input type="text" v-model="r.val" placeholder="10" /></div>
         <div class="lf-field"><label>Min <help t="Optional minimum range — weapon can't fire closer than this."/></label><input type="text" v-model="r.min" /></div>
-        <button class="btn tiny danger" @click="_rm(i)">✕</button>
+        <button class="btn tiny danger" @click="rmRow(i)">✕</button>
       </div>
       <button class="btn tiny" @click="add">+ Range</button>
     </div>`
@@ -958,7 +958,7 @@ const TagList = {
   data: () => ({ catalog: TAG_CATALOG, groups: TAG_GROUPS }),
   computed: { localIds() { return this.localTags.map(x => x.id).filter(Boolean); } },
   methods: {
-    add() { this._add({ id:'', val:'', _custom:false }); },
+    add() { this.addRow({ id:'', val:'', _custom:false }); },
     known(id) { return TAG_BY_ID[id]; },
     isCustom(t) { return t._custom || (t.id && !TAG_BY_ID[t.id]); },
     selVal(t) { if (this.isCustom(t)) return '__custom'; return TAG_BY_ID[t.id] ? t.id : ''; },
@@ -984,7 +984,7 @@ const TagList = {
         <div class="head">
           <span class="title">{{ title(t) }}</span>
           <span v-if="known(t.id) && known(t.id).fnd" class="pill" title="Foundry's Lancer system has automation code for this tag">⚙ Foundry</span>
-          <button class="btn tiny danger" @click="_rm(i)">Remove</button>
+          <button class="btn tiny danger" @click="rmRow(i)">Remove</button>
         </div>
         <div class="lf-row">
           <div class="lf-field"><label>Tag <help t="Grouped by what the tag does. Selecting one writes its tg_ id to the export."/></label>
@@ -1025,16 +1025,24 @@ const BonusList = {
   emits: ['update:modelValue'],
   data: () => ({ catalog: BONUS_CATALOG, specials: BONUS_SPECIALS, typeHint: BONUS_TYPE_HINT }),
   methods: {
-    add() { this._add({ id:'hp', val:'1', _damage:'', _range:'', _wtype:'', _wsize:'', accuracy:null, overwrite:false, replace:false }); },
+    add() { this.addRow({ id:'hp', val:'1', _damage:'', _range:'', _wtype:'', _wsize:'', accuracy:null, overwrite:false, replace:false }); },
     def(id) { return BONUS_BY_ID[id]; },
-    opts(g) { return g[1]; }
+    valHelp(id) {
+      const d = BONUS_BY_ID[id];
+      if (!d) return 'The value to apply.';
+      if (d.type === 'bool') return 'Enter true or false.';
+      if (d.type === 'dieroll') return 'A die-roll list, comma-separated — e.g. 1,1d3,1d6,1d6.';
+      if (d.type === 'size[]') return 'A comma-separated list of sizes, e.g. 1/2, 1, 2.';
+      if (d.type === 'str') return 'A text value — see the description under the picker for what it expects.';
+      return 'A whole number, a special value in braces (' + BONUS_SPECIALS + ')';
+    }
   },
   template: `
     <details class="lf-block">
       <summary>Bonuses <span v-if="list.length" class="pill">{{ list.length }}</span>
         <help t="Mechanical value modifiers COMP/CON and Foundry apply automatically — +2 Hull, +1 SP, extra HP, and so on. Prefer a bonus over prose whenever a rule is just a number."/></summary>
       <div v-for="(b,i) in list" :key="i" class="lf-sub">
-        <div class="head"><span class="title">{{ def(b.id) ? def(b.id).label : b.id }} = {{ b.val }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="head"><span class="title">{{ def(b.id) ? def(b.id).label : b.id }} = {{ b.val }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
         <div class="lf-row">
           <div class="lf-field"><label>Bonus <span class="req">*</span><help t="Grouped by what it modifies. The description below shows exactly what COMP/CON changes."/></label>
             <select v-model="b.id">
@@ -1042,17 +1050,13 @@ const BonusList = {
                 <option v-for="o in g[1]" :key="o.id" :value="o.id">{{ o.label }}</option>
               </optgroup>
             </select></div>
-          <div class="lf-field" style="max-width:160px"><label>Value <span class="req">*</span><help t="What to add. Integer bonuses also accept special value strings and expressions — see the note below the picker."/></label><input type="text" v-model="b.val" /></div>
+          <div class="lf-field" style="max-width:160px"><label>Value <span class="req">*</span><help :t="valHelp(b.id)"/></label><input type="text" v-model="b.val" /></div>
           <div class="lf-field" style="max-width:120px"><label>Accuracy <help t="Optional. Adds Accuracy (+) or Difficulty (−) dice on top of the bonus."/></label><input type="number" v-model.number="b.accuracy" /></div>
         </div>
         <p v-if="def(b.id)" class="lf-note" style="font-size:.82rem; margin:.3rem 0">
           <strong>{{ def(b.id).id }}</strong> — {{ def(b.id).detail }}<br>
           <span style="opacity:.8">{{ typeHint[def(b.id).type] }}<span v-if="def(b.id).scope!=='All'"> · {{ def(b.id).scope }}-only.</span></span>
         </p>
-        <details v-if="def(b.id) && def(b.id).type==='int'" class="lf-block">
-          <summary>Special value strings</summary>
-          <p style="font-size:.8rem; margin:0">{{ specials }}</p>
-        </details>
         <details class="lf-block">
           <summary>Restrict to certain weapons</summary>
           <p class="lf-note" style="font-size:.8rem">Only meaningful for weapon/attack bonuses. Filters are ANDed — a weapon must match every filter you set. Comma-separated; blank = any.</p>
@@ -1079,14 +1083,14 @@ const SynergyList = {
   props: { modelValue: { type: Array, default: () => [] } },
   emits: ['update:modelValue'],
   data: () => ({ locations: SYNERGY_LOCATIONS }),
-  methods: { add() { this._add({ _locations:'weapon', detail:'', _wtype:'', _wsize:'', _stype:'' }); } },
+  methods: { add() { this.addRow({ _locations:'weapon', detail:'', _wtype:'', _wsize:'', _stype:'' }); } },
   template: `
     <details class="lf-block">
       <summary>Synergies <span v-if="list.length" class="pill">{{ list.length }}</span>
         <help t="Context hint text shown in a specific spot in COMP/CON. Use only for interactions/context that no other field (bonus, action, damage) can express."/></summary>
       <datalist id="synloc"><option v-for="l in locations" :key="l" :value="l"></option></datalist>
       <div v-for="(s,i) in list" :key="i" class="lf-sub">
-        <div class="head"><span class="title">{{ s._locations || 'synergy' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="head"><span class="title">{{ s._locations || 'synergy' }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
         <div class="lf-field"><label>Locations <span class="req">*</span><help t="Where the hint appears. Comma-separated. e.g. weapon, system, hull, move, boost, core_power."/></label><input type="text" list="synloc" v-model="s._locations" placeholder="weapon, system" /></div>
         <div class="lf-field"><label>Detail <span class="req">*</span><help t="The hint text. HTML allowed."/></label><textarea v-model="s.detail"></textarea></div>
         <details class="lf-block">
@@ -1106,13 +1110,13 @@ const CounterList = {
   name: 'counter-list', mixins: [listModel],
   props: { modelValue: { type: Array, default: () => [] } },
   emits: ['update:modelValue'],
-  methods: { add() { this._add({ id:'', name:'', default_value:0, min:0, max:null }); } },
+  methods: { add() { this.addRow({ id:'', name:'', default_value:0, min:0, max:null }); } },
   template: `
     <details class="lf-block">
       <summary>Counters <span v-if="list.length" class="pill">{{ list.length }}</span>
         <help t="A tick / clock / track shown in Active Mode — e.g. a charge meter. The value persists in save data, so the id must be unique."/></summary>
       <div v-for="(c,i) in list" :key="i" class="lf-sub">
-        <div class="head"><span class="title">{{ c.name || c.id || 'counter' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="head"><span class="title">{{ c.name || c.id || 'counter' }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
         <div class="lf-row">
           <div class="lf-field"><label>ID <span class="req">*</span><help t="Unique, e.g. ctr_myco_charge."/></label><input type="text" v-model="c.id" placeholder="ctr_..." /></div>
           <div class="lf-field"><label>Name <span class="req">*</span><help t="Label shown above the counter in Active Mode."/></label><input type="text" v-model="c.name" /></div>
@@ -1136,7 +1140,7 @@ const DeployableList = {
                  ['heatcap','Heat cap'],['repcap','Rep cap'],['sensor_range','Sensors'],['tech_attack','Tech atk'],
                  ['save','Save'],['speed','Speed']] }),
   methods: {
-    add() { this._add({ name:'', type:'Deployable', detail:'', activation:'Quick', deactivation:'', recall:'', redeploy:'',
+    add() { this.addRow({ name:'', type:'Deployable', detail:'', activation:'Quick', deactivation:'', recall:'', redeploy:'',
                         instances:null, size:null, hp:null, armor:null, evasion:null, edef:null, heatcap:null, repcap:null,
                         sensor_range:null, tech_attack:null, save:null, speed:null,
                         damage:[], range:[], actions:[], bonuses:[], synergies:[], tags:[] }); }
@@ -1146,7 +1150,7 @@ const DeployableList = {
       <summary>Deployables <span v-if="list.length" class="pill">{{ list.length }}</span>
         <help t="Drones, turrets, mines, snares — anything tracked as its own object on the battlefield with its own stats."/></summary>
       <div v-for="(d,i) in list" :key="i" class="lf-sub">
-        <div class="head"><span class="title">{{ d.name || 'deployable' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="head"><span class="title">{{ d.name || 'deployable' }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
         <div class="lf-row">
           <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name in the Active Mode deployable tracker, e.g. Shock Wreath, Turret Drone."/></label><input type="text" v-model="d.name" /></div>
           <div class="lf-field"><label>Type <span class="req">*</span><help t="Free text, but Drone and Mine get special defaults/handling. Defaults to Deployable."/></label><input type="text" v-model="d.type" placeholder="Deployable / Drone / Mine" /></div>
