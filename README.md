@@ -43,6 +43,13 @@ Covers licensed data, pilot data, and NPC data. Done:
 - **NPC Features** — trait / system / reaction / tech / weapon; per-type fields (reaction
   trigger; tech/weapon attack_bonus + accuracy; weapon: weapon_type, per-tier damage,
   range, attacks, on-attack/hit/crit/miss); tags + actions/bonuses/synergies/deployables.
+- **Weapon Mods** — system fields + allowed weapon types/sizes, added tags/damage/range,
+  on-attack/hit/crit/miss, plus the mod's own mechanical builders.
+- **Bonds** — major/minor ideals, questions (+ suggested answers), powers (frequency,
+  prerequisite, veteran/master).
+- **Environments** · **SITREPs** (pc/enemy victory, stalemate, deployment, objective,
+  extraction) · **Statuses & Conditions** · **Rollable Tables** (die + min/max/result rows)
+  · **Custom Stats** (experimental) · **Name Lists** (`lists.json`).
 - **Shared mechanical builders** on weapons / systems / frame traits / core system:
   **Actions** (+ cost/pilot/mech/bonus_damage), **Bonuses**, **Synergies**, **Counters**,
   **Deployables** (drones/turrets/mines: stats + nested damage/range/actions/bonuses).
@@ -73,12 +80,14 @@ confirm the toolchain end-to-end (still the one outstanding manual check).
 - Weapon **profiles** (multi-mode weapons) and **ammo** lists.
 - **Integrated / special equipment** ID selectors (used by frames, core bonuses, talents, …).
 - **Active Effects** objects — the richer status/resist/effect blocks.
-- **Weapon Mods** (`weapon_mods.json`), **Bonds** (`bonds.json`), **license collections**.
+- **Base Actions** (`actions.json`) and **Eidolons** (`eidolon_layers.json`) — niche;
+  eidolons need the Wallflower LCP and nest NPC features + shards.
+- **License collections** (`license_*.json` bundles).
 - **NPC collection-style** files (`npcc_*` / `npct_*`) — export is library-style
   (`npc_classes.json` + `npc_features.json`), which COMP/CON also accepts.
-- Phase 4 misc: environments, SITREPs, statuses, tables, custom stats, eidolons.
 - `deprecated` flag; manufacturer inline SVG icons.
 - Layout is a `height: 100vh` app-shell — fine standalone, needs tuning for the WP embed.
+- No collapsible category groups / searchable dropdowns yet — the "neaten it up" pass.
 
 ## Next
 
