@@ -124,19 +124,44 @@
     padding: 2rem 1rem; margin-bottom: 1rem; font-size: .9rem;
   }
 
-  /* comms ticker */
-  .ticker {
-    flex-shrink: 0; height: 24px; background: var(--panel); border-top: 1px solid var(--line);
-    overflow: hidden; display: flex; align-items: center;
-    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .74rem; color: var(--muted);
+  /* bottom hotbar (always visible) */
+  .hotbar {
+    flex-shrink: 0; min-height: 30px; background: var(--panel); border-top: 1px solid var(--line);
+    display: flex; align-items: center; gap: .8rem; padding: .2rem .8rem;
+    font-size: .78rem; color: var(--muted);
   }
-  .ticker-track { display: inline-flex; white-space: nowrap; will-change: transform; animation: ticker 60s linear infinite; }
-  .ticker:hover .ticker-track { animation-play-state: paused; }
-  .ticker-track span { padding: 0 .1rem; }
-  .ticker .sep { color: var(--accent); padding: 0 1.4rem; opacity: .8; }
-  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
-  #lcp-forge[data-motion="off"] .ticker-track { animation: none; }
-  #lcp-forge[data-motion="off"] .ticker { display: none; }
+  .hotbar .hb-btn {
+    background: none; border: 1px solid var(--line); color: var(--text); border-radius: 5px;
+    padding: .18rem .55rem; cursor: pointer; font: inherit; font-size: .78rem;
+    display: inline-flex; align-items: center; gap: .35rem;
+  }
+  .hotbar .hb-btn:hover, .hotbar .hb-btn.on { border-color: var(--accent); color: var(--accent); }
+  .hotbar .grow { flex: 1; }
+  .hotbar .ok { color: var(--accent); }
+  .hotbar .bad { color: var(--warn); }
+
+  .pop-backdrop { position: fixed; inset: 0; z-index: 118; }
+  .settings-pop {
+    position: fixed; right: .6rem; bottom: 38px; z-index: 120; width: 350px; max-width: calc(100vw - 1.2rem);
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 9px; padding: 1rem;
+    box-shadow: 0 16px 44px rgba(0,0,0,.55);
+  }
+  .settings-pop h3 { margin: 0 0 .7rem; }
+
+  /* home background chatter (COMP/CON style) */
+  .home { position: relative; }
+  .home-bg {
+    position: absolute; top: -1.25rem; left: 50%; transform: translateX(-50%);
+    width: 100vw; height: calc(100% + 2.5rem); overflow: hidden; z-index: 0; pointer-events: none;
+    opacity: .11; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82rem; line-height: 2; color: var(--accent); white-space: pre;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 76%, transparent);
+    mask-image: linear-gradient(to bottom, transparent, #000 14%, #000 76%, transparent);
+  }
+  .home-bg-track { padding: 0 8%; animation: bgscroll 50s linear infinite; }
+  @keyframes bgscroll { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+  #lcp-forge[data-motion="off"] .home-bg-track { animation: none; }
+  .home-content { position: relative; z-index: 1; }
 
   /* modal transition */
   .m-enter-active, .m-leave-active { transition: opacity .14s ease; }
@@ -317,7 +342,9 @@
       <div class="lf-main-inner">
 
         <!-- ============ HOME ============ -->
-        <section v-show="tab==='home'">
+        <section v-show="tab==='home'" class="home">
+          <div class="home-bg" v-if="settings.chatter" aria-hidden="true"><div class="home-bg-track">{{ bgChatter }}</div></div>
+          <div class="home-content">
           <div class="toolbar">
             <h2 style="border:0;margin:0;flex:0 0 auto">{{ lcp.lcp_manifest.name || 'Untitled pack' }}</h2>
             <span class="pill" v-if="lcp.lcp_manifest.version">v{{ lcp.lcp_manifest.version }}</span>
@@ -411,23 +438,7 @@
               <span>{{ t.label }}</span><span class="n">{{ (lcp[t.key]||[]).length }}</span>
             </button>
           </div>
-
-          <details class="lf-block" style="margin-top:1.5rem">
-            <summary>Settings</summary>
-            <div class="lf-field">
-              <label>Theme <help t="All dark. Purely cosmetic — the exported .lcp is identical whichever you pick."/></label>
-              <div class="themes">
-                <button v-for="th in themeList" :key="th.id" :class="{on: settings.theme===th.id}"
-                  :style="{'--sw-bg':th.bg,'--sw-text':th.text,'--sw-accent':th.accent}"
-                  @click="setTheme(th.id)"><span class="dot"></span>{{ th.name }}</button>
-              </div>
-            </div>
-            <div class="lf-checks">
-              <label><input type="checkbox" v-model="settings.ticker" /> Show the comms ticker <help t="A scrolling feed of in-universe chatter along the bottom. Flavour lines change with the theme."/></label>
-              <label><input type="checkbox" v-model="settings.motion" /> Animations <help t="Off = no ticker scroll, no modal transitions. Respect this if motion bothers you."/></label>
-            </div>
-            <p class="lf-note" style="font-size:.82rem">Settings are saved in this browser only — they don't touch the pack.</p>
-          </details>
+          </div>
         </section>
 
         <!-- ============ MANUFACTURERS ============ -->
@@ -1509,10 +1520,32 @@
     </main>
   </div>
 
-  <div class="ticker" v-if="settings.ticker">
-    <div class="ticker-track">
-      <span v-for="(m,i) in tickerFeed" :key="i">{{ m }}<span class="sep">///</span></span>
+  <div class="hotbar">
+    <button class="hb-btn" :class="{on: showSettings}" @click="showSettings = !showSettings">⚙ Settings</button>
+    <span>{{ themeList.find(t => t.id === settings.theme).name }}</span>
+    <span class="grow"></span>
+    <span v-if="problems.length" class="bad">⚠ {{ problems.length }} issue(s)</span>
+    <span v-else class="ok">✓ ready to export</span>
+    <span>·</span>
+    <span>{{ nonEmptyCategories.length }} file(s)</span>
+  </div>
+
+  <div class="pop-backdrop" v-if="showSettings" @click="showSettings = false"></div>
+  <div class="settings-pop" v-if="showSettings">
+    <h3>Settings</h3>
+    <div class="lf-field">
+      <label>Theme <help t="All dark. Purely cosmetic — the exported .lcp is identical whichever you pick."/></label>
+      <div class="themes">
+        <button v-for="th in themeList" :key="th.id" :class="{on: settings.theme === th.id}"
+          :style="{'--sw-bg':th.bg,'--sw-text':th.text,'--sw-accent':th.accent}"
+          @click="setTheme(th.id)"><span class="dot"></span>{{ th.name }}</button>
+      </div>
     </div>
+    <div class="lf-checks">
+      <label><input type="checkbox" v-model="settings.chatter" /> Home background chatter <help t="A faint scrolling feed of in-universe comms behind the Home screen, like COMP/CON. Lines change with the theme."/></label>
+      <label><input type="checkbox" v-model="settings.motion" /> Animations <help t="Off = no scrolling chatter, no modal transitions."/></label>
+    </div>
+    <p class="lf-note" style="font-size:.8rem; margin:.6rem 0 0">Saved in this browser only — never written to the pack.</p>
   </div>
 </div>
 
@@ -1771,7 +1804,7 @@ const CHATTER = {
 const GLYPHS = { 'comp-con':'⬢', horus:'❖', harrison:'◆', ipsn:'⬟', ssc:'✦', union:'✧' };
 
 const loadSettings = () => {
-  const d = { theme:'comp-con', ticker:true, motion:true };
+  const d = { theme:'comp-con', chatter:true, motion:true };
   try { return { ...d, ...JSON.parse(localStorage.getItem('sofa-lcp-settings') || '{}') }; }
   catch (e) { return d; }
 };
@@ -2363,6 +2396,7 @@ const app = createApp({
       navOpen: true,
       edit: { key: null, idx: -1 },
       settings: loadSettings(),
+      showSettings: false,
       themeList: THEME_LIST,
       lcp: freshLcp(),
       navGroups: ['Pack','Licensed data','Pilot data','NPC data','Other content','Output'],
@@ -2434,7 +2468,11 @@ const app = createApp({
     };
   },
   mounted() {
-    this._esc = e => { if (e.key === 'Escape' && this.edit.key) this.closeEdit(); };
+    this._esc = e => {
+      if (e.key !== 'Escape') return;
+      if (this.showSettings) this.showSettings = false;
+      else if (this.edit.key) this.closeEdit();
+    };
     window.addEventListener('keydown', this._esc);
     this.applySettings();
   },
@@ -2633,9 +2671,12 @@ const app = createApp({
       const { key, idx } = this.edit;
       return (key && this.lcp[key] && this.lcp[key][idx]) ? this.lcp[key][idx] : null;
     },
-    tickerFeed() {
+    bgChatter() {
       const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
-      return [...lines, ...lines, ...lines, ...lines];
+      const rep = [];
+      while (rep.length < 80) rep.push(...lines);
+      const half = rep.join('\n');
+      return half + '\n' + half;   // duplicated so translateY(-50%) loops seamlessly
     },
     factionGlyph() { return GLYPHS[this.settings.theme] || '⬢'; },
     modalTitle() {
