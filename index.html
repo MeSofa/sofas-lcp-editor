@@ -73,7 +73,7 @@
   .lf-top {
     display: flex; align-items: center; gap: 1rem;
     padding: .7rem 1rem; background: var(--panel); border-bottom: 1px solid var(--line);
-    flex-shrink: 0;
+    flex-shrink: 0; position: relative; z-index: 3;
   }
   .lf-top .brand { font-weight: 700; letter-spacing: .02em; }
   .lf-top .spacer { flex: 1; }
@@ -86,7 +86,7 @@
   .lf-nav {
     width: 190px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--line);
     padding: .6rem; display: flex; flex-direction: column; gap: 2px;
-    overflow-y: auto;
+    overflow-y: auto; position: relative; z-index: 3;
   }
   .lf-nav button {
     text-align: left; background: none; border: 0; color: var(--muted);
@@ -128,7 +128,7 @@
   .hotbar {
     flex-shrink: 0; min-height: 30px; background: var(--panel); border-top: 1px solid var(--line);
     display: flex; align-items: center; gap: .8rem; padding: .2rem .8rem;
-    font-size: .78rem; color: var(--muted);
+    font-size: .78rem; color: var(--muted); position: relative; z-index: 3;
   }
   .hotbar .hb-btn {
     background: none; border: 1px solid var(--line); color: var(--text); border-radius: 5px;
@@ -151,17 +151,17 @@
   /* home background chatter — typed out terminal-style (COMP/CON) */
   .home { position: relative; }
   .home-bg {
-    position: absolute; top: -1.25rem; left: 50%; transform: translateX(-50%);
-    width: 100vw; height: calc(100% + 2.5rem); overflow: hidden; z-index: 0; pointer-events: none;
+    position: fixed; left: 0; right: 0; top: 49px; bottom: 30px;
+    overflow: hidden; z-index: 0; pointer-events: none;
     display: flex; align-items: flex-end;
   }
   .home-bg-inner {
-    width: 100%; padding: 0 8%; opacity: .15;
+    width: 100%; padding: 0 7%; opacity: .18;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: .82rem; line-height: 1.95; color: var(--accent);
+    font-size: .82rem; line-height: 1.9; color: var(--accent);
     white-space: pre-wrap; word-break: break-word;
-    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 88%, transparent);
-    mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 88%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 90%);
+    mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 90%);
   }
   .home-bg-inner .cursor { animation: blink 1.05s step-end infinite; }
   @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
@@ -2723,14 +2723,11 @@ const app = createApp({
       this.stopChatter();
       if (!this.settings.chatter) { this.chatterLog = []; this.chatterTyping = ''; return; }
       const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
-      if (!this.settings.motion) {                    // static: no typing, just show a stack
-        const s = []; while (s.length < 24) s.push(...lines);
-        this.chatterLog = s.slice(-24); this.chatterTyping = ''; return;
+      if (!this.settings.motion) {                    // static: just show the lines once
+        this.chatterLog = [...lines]; this.chatterTyping = ''; return;
       }
-      // seed with some "history" so there's an immediate backdrop, then keep typing
-      const seed = []; while (seed.length < 16) seed.push(...lines);
-      this.chatterLog = seed.slice(-16);
-      this.chatterTyping = ''; this._chatIdx = seed.length;
+      // start empty — types up from nothing, oldest lines cull off the top
+      this.chatterLog = []; this.chatterTyping = ''; this._chatIdx = 0;
       if (this.tab === 'home') this._chatterTick();
     },
     _chatterTick() {
@@ -2738,13 +2735,13 @@ const app = createApp({
       const target = lines[this._chatIdx % lines.length] || '';
       if (this.chatterTyping.length < target.length) {
         this.chatterTyping = target.slice(0, this.chatterTyping.length + 1);
-        this._chatTimer = setTimeout(() => this._chatterTick(), 24 + Math.random() * 34);
+        this._chatTimer = setTimeout(() => this._chatterTick(), 15 + Math.random() * 22);
       } else {
         this.chatterLog.push(target);
-        if (this.chatterLog.length > 40) this.chatterLog.shift();
+        if (this.chatterLog.length > 22) this.chatterLog.shift();   // cull lines that scrolled off the top
         this.chatterTyping = '';
         this._chatIdx++;
-        this._chatTimer = setTimeout(() => this._chatterTick(), 800 + Math.random() * 500);
+        this._chatTimer = setTimeout(() => this._chatterTick(), 260 + Math.random() * 420);
       }
     },
     openEdit(key, i) { this.edit = { key, idx: i }; this.tab = key; },
