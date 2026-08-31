@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>LCP Forge — Lancer Content Pack Editor</title>
+<title>Sofa's LCP Editor</title>
 <!--
-  LCP Forge — a client-side .lcp generator for Lancer / COMP/CON.
+  Sofa's LCP Editor — a client-side .lcp generator for Lancer / COMP/CON.
   Single self-contained file: Vue 3 + JSZip from CDN, everything else inline,
   so it drops straight into a WordPress Code Snippet shortcode.
 
@@ -75,8 +75,13 @@
   .lf-nav button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .lf-nav .count { font-size: .75rem; opacity: .8; }
   .lf-nav button.active .count { color: var(--accent-ink); }
-  .lf-nav .nav-group { font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); opacity: .7; padding: .7rem .6rem .2rem; }
+  .lf-nav .nav-group {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    opacity: .8; padding: .7rem .6rem .3rem; cursor: pointer; display: flex; align-items: center; gap: .35rem;
+  }
+  .lf-nav .nav-group:hover { color: var(--text); }
   .lf-nav .nav-group:first-child { padding-top: .2rem; }
+  .lf-nav .nav-group .g-chev { font-size: .6rem; }
   .lf-main { flex: 1; min-width: 0; overflow-y: auto; padding: 1.25rem 1.5rem 4rem; }
   .lf-main-inner { max-width: 900px; }
 
@@ -110,10 +115,41 @@
 
   .lf-list-item {
     background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
-    padding: 1rem; margin-bottom: 1rem;
+    margin-bottom: .6rem; overflow: hidden;
   }
-  .lf-list-item > .head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+  .lf-list-item > .head {
+    display: flex; align-items: center; gap: .6rem; padding: .6rem .8rem; cursor: pointer;
+    user-select: none;
+  }
+  .lf-list-item > .head:hover { background: var(--panel-2); }
+  .lf-list-item.open > .head { border-bottom: 1px solid var(--line); }
+  .lf-list-item > .head .chev { color: var(--muted); font-size: .8rem; width: .9rem; }
   .lf-list-item > .head .title { font-weight: 650; flex: 1; }
+  .lf-list-item > .head .subtle { color: var(--muted); font-weight: 400; font-size: .85rem; }
+  .lf-list-item > .body { padding: 1rem; }
+
+  .toolbar { display: flex; align-items: center; gap: .5rem; margin: 0 0 1rem; flex-wrap: wrap; }
+  .toolbar .grow { flex: 1; }
+
+  .togglebtn {
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+    border-radius: 6px; padding: .35rem .7rem; cursor: pointer; font: inherit; font-size: .85rem;
+  }
+  .togglebtn:hover { color: var(--text); border-color: var(--accent); }
+  .togglebtn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .addbtns { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .addbtns .btn { padding: .3rem .6rem; font-size: .82rem; }
+
+  .overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
+  .overview button {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .7rem .8rem;
+    text-align: left; cursor: pointer; color: var(--text); font: inherit;
+    display: flex; justify-content: space-between; align-items: baseline; gap: .5rem;
+  }
+  .overview button:hover { border-color: var(--accent); }
+  .overview button .n { font-weight: 700; font-size: 1.1rem; }
+  .overview button.zero { color: var(--muted); }
+  .overview button.zero .n { color: var(--line); }
   .lf-sub {
     background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
     padding: .8rem; margin-bottom: .7rem;
@@ -159,8 +195,8 @@
 <body>
 <div id="lcp-forge">
   <div class="lf-top">
-    <span class="brand">⬢ LCP&nbsp;Forge</span>
-    <span class="pill">Licensed · Pilot · NPC</span>
+    <span class="brand">⬢ Sofa's&nbsp;LCP&nbsp;Editor</span>
+    <span class="pill">{{ lcp.lcp_manifest.name || 'untitled pack' }}</span>
     <span class="spacer"></span>
     <input ref="importFile" type="file" accept=".lcp,.zip" style="display:none" @change="importLcp" />
     <button class="btn ghost" @click="$refs.importFile.click()">Load .lcp</button>
@@ -171,21 +207,39 @@
   <div class="lf-body">
     <nav class="lf-nav">
       <template v-for="g in navGroups" :key="g">
-        <div class="nav-group">{{ g }}</div>
-        <button v-for="t in tabs.filter(x => x.group===g)" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
-          <span>{{ t.label }}</span>
-          <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
-        </button>
+        <div class="nav-group" @click="toggleNavGroup(g)">
+          <span class="g-chev">{{ collapsedNav[g] ? '▶' : '▼' }}</span> {{ g }}
+        </div>
+        <template v-if="!collapsedNav[g]">
+          <button v-for="t in tabs.filter(x => x.group===g)" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
+            <span>{{ t.label }}</span>
+            <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
+          </button>
+        </template>
       </template>
     </nav>
 
     <main class="lf-main">
       <div class="lf-main-inner">
 
-        <!-- ============ MANIFEST ============ -->
-        <section v-show="tab==='manifest'">
-          <h2>LCP Manifest <span class="pill">lcp_manifest.json</span></h2>
-          <p class="lf-note">Every .lcp needs this. It is the only required file in the archive.</p>
+        <!-- ============ HOME ============ -->
+        <section v-show="tab==='home'">
+          <div class="toolbar">
+            <h2 style="border:0;margin:0;flex:0 0 auto">{{ lcp.lcp_manifest.name || 'Untitled pack' }}</h2>
+            <span class="pill" v-if="lcp.lcp_manifest.version">v{{ lcp.lcp_manifest.version }}</span>
+            <span class="grow"></span>
+            <button class="btn ghost" @click="$refs.importFile.click()">Load .lcp</button>
+            <button class="btn" @click="resetAll">New pack</button>
+            <button class="btn primary" @click="go('export')">Export .lcp</button>
+          </div>
+
+          <div :class="['lf-note', problems.length ? 'lf-danger' : '']">
+            <template v-if="problems.length">{{ problems.length }} issue(s) to resolve before export — see the <a href="#" @click.prevent="go('export')">Export</a> tab.</template>
+            <template v-else>Ready to export. {{ nonEmptyCategories.length }} content file(s) + the manifest.</template>
+          </div>
+
+          <details class="lf-block" open>
+            <summary>Pack manifest <span class="pill">lcp_manifest.json</span></summary>
 
           <div class="lf-field">
             <label>Name <span class="req">*</span><help t="The display name of the content pack, shown in COMP/CON's Content Pack Manager. Also used to match dependencies, so keep it stable across versions."/></label>
@@ -223,34 +277,46 @@
             </label>
           </div>
 
-          <h3 style="margin-top:1.5rem">Dependencies</h3>
-          <p class="lf-note">Other packs that must be installed for this one to work. COMP/CON loads dependencies first and refuses to load this pack if one is missing.</p>
-          <div v-for="(d,i) in lcp.lcp_manifest.dependencies" :key="i" class="lf-sub">
-            <div class="head">
-              <span class="title">Dependency {{ i+1 }}</span>
-              <button class="btn tiny danger" @click="lcp.lcp_manifest.dependencies.splice(i,1)">Remove</button>
+          <details class="lf-block">
+            <summary>Dependencies <span v-if="lcp.lcp_manifest.dependencies.length" class="pill">{{ lcp.lcp_manifest.dependencies.length }}</span></summary>
+            <p class="lf-note">Other packs that must be installed for this one to work. COMP/CON loads dependencies first and refuses to load this pack if one is missing.</p>
+            <div v-for="(d,i) in lcp.lcp_manifest.dependencies" :key="i" class="lf-sub">
+              <div class="head">
+                <span class="title">Dependency {{ i+1 }}</span>
+                <button class="btn tiny danger" @click="lcp.lcp_manifest.dependencies.splice(i,1)">Remove</button>
+              </div>
+              <div class="lf-row">
+                <div class="lf-field"><label>Name <span class="req">*</span><help t="Must exactly match the name field in the dependency's own manifest."/></label><input type="text" v-model="d.name" /></div>
+                <div class="lf-field"><label>Version <span class="req">*</span><help t="A semver string. COMP/CON treats it as 'this version or later'. Use * for any version, or =X.Y.Z for an exact match."/></label><input type="text" v-model="d.version" placeholder="1.0.0 | * | =1.0.0" /></div>
+                <div class="lf-field"><label>Link <help t="Optional but recommended — where users can download the dependency."/></label><input type="url" v-model="d.link" /></div>
+              </div>
             </div>
-            <div class="lf-row">
-              <div class="lf-field"><label>Name <span class="req">*</span><help t="Must exactly match the name field in the dependency's own manifest."/></label><input type="text" v-model="d.name" /></div>
-              <div class="lf-field"><label>Version <span class="req">*</span><help t="A semver string. COMP/CON treats it as 'this version or later'. Use * for any version, or =X.Y.Z for an exact match."/></label><input type="text" v-model="d.version" placeholder="1.0.0 | * | =1.0.0" /></div>
-              <div class="lf-field"><label>Link <help t="Optional but recommended — where users can download the dependency."/></label><input type="url" v-model="d.link" /></div>
-            </div>
-          </div>
-          <button class="btn" @click="lcp.lcp_manifest.dependencies.push({name:'',version:'*',link:''})">+ Dependency</button>
+            <button class="btn tiny" @click="lcp.lcp_manifest.dependencies.push({name:'',version:'*',link:''})">+ Dependency</button>
+          </details>
 
-          <h3 style="margin-top:1.5rem">Version history</h3>
-          <div v-for="(v,i) in lcp.lcp_manifest.version_history" :key="i" class="lf-sub">
-            <div class="head">
-              <span class="title">Entry {{ i+1 }}</span>
-              <button class="btn tiny danger" @click="lcp.lcp_manifest.version_history.splice(i,1)">Remove</button>
+          <details class="lf-block">
+            <summary>Version history <span v-if="lcp.lcp_manifest.version_history.length" class="pill">{{ lcp.lcp_manifest.version_history.length }}</span></summary>
+            <div v-for="(v,i) in lcp.lcp_manifest.version_history" :key="i" class="lf-sub">
+              <div class="head">
+                <span class="title">Entry {{ i+1 }}</span>
+                <button class="btn tiny danger" @click="lcp.lcp_manifest.version_history.splice(i,1)">Remove</button>
+              </div>
+              <div class="lf-row">
+                <div class="lf-field"><label>Version <help t="semver x.y.z"/></label><input type="text" v-model="v.version" placeholder="1.1.0" /></div>
+                <div class="lf-field"><label>Date <help t="ISO date: YYYY-MM-DD"/></label><input type="text" v-model="v.date" placeholder="2026-08-31" /></div>
+              </div>
+              <div class="lf-field"><label>Changes <help t="One change per line. Rendered as a bullet list in COMP/CON."/></label><textarea v-model="v._changesText" placeholder="Added the Foobar frame&#10;Fixed Baz weapon damage"></textarea></div>
             </div>
-            <div class="lf-row">
-              <div class="lf-field"><label>Version <help t="semver x.y.z"/></label><input type="text" v-model="v.version" placeholder="1.1.0" /></div>
-              <div class="lf-field"><label>Date <help t="ISO date: YYYY-MM-DD"/></label><input type="text" v-model="v.date" placeholder="2026-08-31" /></div>
-            </div>
-            <div class="lf-field"><label>Changes <help t="One change per line. Rendered as a bullet list in COMP/CON."/></label><textarea v-model="v._changesText" placeholder="Added the Foobar frame&#10;Fixed Baz weapon damage"></textarea></div>
+            <button class="btn tiny" @click="lcp.lcp_manifest.version_history.push({version:'',date:'',_changesText:''})">+ Version entry</button>
+          </details>
+          </details>
+
+          <h3 style="margin-top:1.5rem">Contents</h3>
+          <div class="overview">
+            <button v-for="t in tabs.filter(x => x.key)" :key="t.id" :class="{zero: !(lcp[t.key]||[]).length}" @click="tab=t.id">
+              <span>{{ t.label }}</span><span class="n">{{ (lcp[t.key]||[]).length }}</span>
+            </button>
           </div>
-          <button class="btn" @click="lcp.lcp_manifest.version_history.push({version:'',date:'',_changesText:''})">+ Version entry</button>
         </section>
 
         <!-- ============ MANUFACTURERS ============ -->
@@ -259,11 +325,13 @@
           <p class="lf-note">Define these first — frames, weapons and systems reference a manufacturer by its <span class="mono">id</span> via their <span class="mono">source</span> field.</p>
           <p v-if="!lcp.manufacturers.length" class="empty">No manufacturers yet.</p>
 
-          <div v-for="(m,i) in lcp.manufacturers" :key="i" class="lf-list-item">
-            <div class="head">
-              <span class="title">{{ m.name || m.id || 'Untitled manufacturer' }}</span>
-              <button class="btn tiny danger" @click="removeItem('manufacturers', i)">Delete</button>
-            </div>
+          <div class="toolbar">
+            <button class="btn primary" @click="addManufacturer">+ Manufacturer</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.manufacturers.length > 1" @click="setOpen('manufacturers', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.manufacturers.length > 1" @click="setOpen('manufacturers', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(m,i) in lcp.manufacturers" :key="i" :item="m" :title="m.name || m.id || 'Untitled manufacturer'" @remove="removeItem('manufacturers', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Convention: a short acronym, e.g. GMS, HA, IPS-N. Referenced by source on equipment."/></label><input type="text" v-model="m.id" placeholder="MYCO" /></div>
               <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name, usually all caps, e.g. HARRISON ARMORY."/></label><input type="text" v-model="m.name" /></div>
@@ -275,8 +343,7 @@
               <div class="lf-field"><label>Dark color <span class="req">*</span><help t="Hex color (#RRGGBB) used in COMP/CON's dark theme."/></label><input type="text" v-model="m.dark" placeholder="#a15ea8" /></div>
             </div>
             <div class="lf-field"><label>Icon URL <help t="Optional fallback logo image. Inline SVG (icon_svg) is preferred by Massif but not exposed here yet."/></label><input type="url" v-model="m.icon_url" /></div>
-          </div>
-          <button class="btn primary" @click="addManufacturer">+ Manufacturer</button>
+          </item-card>
         </section>
 
         <!-- ============ FRAMES ============ -->
@@ -285,11 +352,13 @@
           <p v-if="!lcp.manufacturers.length" class="lf-note lf-warn">Add a manufacturer first — a frame's <span class="mono">source</span> must match one.</p>
           <p v-if="!lcp.frames.length" class="empty">No frames yet.</p>
 
-          <div v-for="(f,i) in lcp.frames" :key="i" class="lf-list-item">
-            <div class="head">
-              <span class="title">{{ f.name || 'Untitled frame' }}</span>
-              <button class="btn tiny danger" @click="removeItem('frames', i)">Delete</button>
-            </div>
+          <div class="toolbar">
+            <button class="btn primary" @click="addFrame">+ Frame</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.frames.length > 1" @click="setOpen('frames', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.frames.length > 1" @click="setOpen('frames', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(f,i) in lcp.frames" :key="i" :item="f" :title="f.name || 'Untitled frame'" @remove="removeItem('frames', i)">
 
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Convention: {prefix}_{type}_{name}, e.g. myco_frame_wyvern. Changing it later breaks user data that references it."/></label><input type="text" v-model="f.id" /></div>
@@ -306,8 +375,14 @@
               <div class="lf-field"><label>License level <span class="req">*</span><help t="0–3. The license rank at which this frame unlocks. 0 = available to everyone at LL0."/></label><input type="number" min="0" max="3" v-model.number="f.license_level" /></div>
             </div>
             <div class="lf-row">
-              <div class="lf-field"><label>Mech types <span class="req">*</span><help t="One or more, comma separated. A player-facing hint with no mechanical effect (e.g. Striker, Artillery, Support). At least one required."/></label><input type="text" v-model="f._mechtypeText" placeholder="Striker, Artillery" /></div>
               <div class="lf-field"><label>Variant of <help t="Optional. The id of the frame this is a variant of. If set, License ID becomes required."/></label><input type="text" v-model="f.variant" /></div>
+            </div>
+            <div class="lf-field">
+              <label>Mech types <span class="req">*</span><help t="One or more — a player-facing hint with no mechanical effect. Tap a preset or type your own, comma-separated."/></label>
+              <input type="text" v-model="f._mechtypeText" placeholder="Striker, Artillery" />
+              <div class="addbtns" style="margin-top:.4rem">
+                <button v-for="mt in mechTypeOptions" :key="mt" class="btn tiny" @click="addCsv(f, '_mechtypeText', mt)">+ {{ mt }}</button>
+              </div>
             </div>
             <div class="lf-field" v-if="f.variant">
               <label>License ID <span class="req">*</span><help t="Required for variants. Must match the id of the parent license frame."/></label>
@@ -315,16 +390,13 @@
             </div>
 
             <div class="lf-field">
-              <label>Mounts <span class="req">*</span><help t="The weapon mounts this frame provides. A frame can have several of the same type — add one per mount. Click a mount to remove it."/></label>
-              <div class="chips">
+              <label>Mounts <span class="req">*</span><help t="The weapon mounts this frame provides. A frame can have several of the same type — tap a button per mount. Click a mount chip to remove it."/></label>
+              <div class="chips" style="margin-bottom:.4rem">
                 <span v-for="(mt,mi) in f.mounts" :key="mi" class="chip click" @click="f.mounts.splice(mi,1)">{{ mt }} <span class="x">✕</span></span>
                 <span v-if="!f.mounts.length" class="mono" style="color:var(--muted)">none</span>
               </div>
-              <div class="lf-inline" style="margin-top:.5rem">
-                <select v-model="f._mountToAdd" style="max-width:180px">
-                  <option v-for="mt in mountTypes" :key="mt" :value="mt">{{ mt }}</option>
-                </select>
-                <button class="btn tiny" @click="f.mounts.push(f._mountToAdd)">+ Add mount</button>
+              <div class="addbtns">
+                <button v-for="mt in mountTypes" :key="mt" class="btn tiny" @click="f.mounts.push(mt)">+ {{ mt }}</button>
               </div>
             </div>
 
@@ -418,8 +490,7 @@
                 </div>
               </div>
             </details>
-          </div>
-          <button class="btn primary" @click="addFrame">+ Frame</button>
+          </item-card>
         </section>
 
         <!-- ============ WEAPONS ============ -->
@@ -428,11 +499,13 @@
           <p v-if="!lcp.frames.length" class="lf-note lf-warn">Weapons attach to a license — usually a frame. Add a frame first so you can pick its License ID.</p>
           <p v-if="!lcp.weapons.length" class="empty">No weapons yet.</p>
 
-          <div v-for="(w,i) in lcp.weapons" :key="i" class="lf-list-item">
-            <div class="head">
-              <span class="title">{{ w.name || 'Untitled weapon' }}</span>
-              <button class="btn tiny danger" @click="removeItem('weapons', i)">Delete</button>
-            </div>
+          <div class="toolbar">
+            <button class="btn primary" @click="addWeapon">+ Weapon</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.weapons.length > 1" @click="setOpen('weapons', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.weapons.length > 1" @click="setOpen('weapons', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(w,i) in lcp.weapons" :key="i" :item="w" :title="w.name || 'Untitled weapon'" @remove="removeItem('weapons', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. e.g. myco_weapon_railgun."/></label><input type="text" v-model="w.id" /></div>
               <div class="lf-field"><label>Name <span class="req">*</span><help t="The weapon's display name, e.g. Thermal Lance, Nexus (HUNTER)."/></label><input type="text" v-model="w.name" /></div>
@@ -463,9 +536,9 @@
                 <select v-model="w.mount"><option v-for="x in weaponMounts" :key="x" :value="x">{{ x }}</option></select>
               </div>
               <div class="lf-field">
-                <label>Weapon type(s) <span class="req">*</span><help t="One or more. Tick all that apply — most weapons have exactly one."/></label>
-                <div class="lf-checks">
-                  <label v-for="wt in weaponTypes" :key="wt"><input type="checkbox" :value="wt" v-model="w._typeArr" /> {{ wt }}</label>
+                <label>Weapon type(s) <span class="req">*</span><help t="One or more — most weapons have exactly one. Tap to toggle."/></label>
+                <div class="addbtns">
+                  <button v-for="wt in weaponTypes" :key="wt" type="button" :class="['togglebtn', {on: w._typeArr.includes(wt)}]" @click="toggleArr(w._typeArr, wt)">{{ wt }}</button>
                 </div>
               </div>
             </div>
@@ -507,8 +580,7 @@
             </details>
 
             <p class="lf-note" style="margin-top:.6rem; font-size:.82rem">Multi-mode weapons (<span class="mono">profiles</span>) and ammo lists aren't in the UI yet — load an existing .lcp with profiles and they'll round-trip untouched.</p>
-          </div>
-          <button class="btn primary" @click="addWeapon">+ Weapon</button>
+          </item-card>
         </section>
 
         <!-- ============ SYSTEMS ============ -->
@@ -516,11 +588,13 @@
           <h2>Systems <span class="pill">systems.json</span></h2>
           <p v-if="!lcp.systems.length" class="empty">No systems yet.</p>
 
-          <div v-for="(s,i) in lcp.systems" :key="i" class="lf-list-item">
-            <div class="head">
-              <span class="title">{{ s.name || 'Untitled system' }}</span>
-              <button class="btn tiny danger" @click="removeItem('systems', i)">Delete</button>
-            </div>
+          <div class="toolbar">
+            <button class="btn primary" @click="addSystem">+ System</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.systems.length > 1" @click="setOpen('systems', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.systems.length > 1" @click="setOpen('systems', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(s,i) in lcp.systems" :key="i" :item="s" :title="s.name || 'Untitled system'" @remove="removeItem('systems', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. e.g. myco_system_flux_capacitor. Changing it later breaks user data that references it."/></label><input type="text" v-model="s.id" /></div>
               <div class="lf-field"><label>Name <span class="req">*</span><help t="The system's display name, e.g. Pattern-A Smoke Charges."/></label><input type="text" v-model="s.name" /></div>
@@ -569,8 +643,7 @@
                 <label><input type="checkbox" v-model="s.no_synergy" /> Ignore synergies <help t="This system neither contributes to nor is marked by Synergies."/></label>
               </div>
             </details>
-          </div>
-          <button class="btn primary" @click="addSystem">+ System</button>
+          </item-card>
         </section>
 
         <!-- ============ WEAPON MODS ============ -->
@@ -578,8 +651,13 @@
           <h2>Weapon Mods <span class="pill">mods.json</span></h2>
           <p class="lf-note">A mod is a system with extra fields for which weapons it can attach to and what it adds. Added tags / damage / range are applied to the host weapon while the mod is installed.</p>
           <p v-if="!lcp.mods.length" class="empty">No weapon mods yet.</p>
-          <div v-for="(w,i) in lcp.mods" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ w.name || 'Untitled mod' }}</span><button class="btn tiny danger" @click="removeItem('mods', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('mods', blankMod())">+ Weapon Mod</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.mods.length > 1" @click="setOpen('mods', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.mods.length > 1" @click="setOpen('mods', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(w,i) in lcp.mods" :key="i" :item="w" :title="w.name || 'Untitled mod'" @remove="removeItem('mods', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally wm_ prefixed."/></label><input type="text" v-model="w.id" placeholder="wm_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="w.name" /></div>
@@ -619,8 +697,7 @@
             <synergy-list v-model="w.synergies"></synergy-list>
             <deployable-list v-model="w.deployables"></deployable-list>
             <counter-list v-model="w.counters"></counter-list>
-          </div>
-          <button class="btn primary" @click="push('mods', blankMod())">+ Weapon Mod</button>
+          </item-card>
         </section>
 
         <!-- ============ CORE BONUSES ============ -->
@@ -628,8 +705,13 @@
           <h2>CORE Bonuses <span class="pill">core_bonuses.json</span></h2>
           <p class="lf-note">Extra CORE Bonuses pilots can pick at LL0/LL5/LL10. Note that many CORE Bonus effects are special-cased in COMP/CON — if the Bonuses builder can't fully express the rule, spell it out in the effect text.</p>
           <p v-if="!lcp.core_bonuses.length" class="empty">No CORE bonuses yet.</p>
-          <div v-for="(c,i) in lcp.core_bonuses" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ c.name || 'Untitled CORE bonus' }}</span><button class="btn tiny danger" @click="removeItem('core_bonuses', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('core_bonuses', blankCoreBonus())">+ CORE Bonus</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.core_bonuses.length > 1" @click="setOpen('core_bonuses', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.core_bonuses.length > 1" @click="setOpen('core_bonuses', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(c,i) in lcp.core_bonuses" :key="i" :item="c" :title="c.name || 'Untitled CORE bonus'" @remove="removeItem('core_bonuses', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally cb_ prefixed. e.g. cb_myco_reinforced."/></label><input type="text" v-model="c.id" placeholder="cb_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
@@ -644,8 +726,7 @@
             <synergy-list v-model="c.synergies"></synergy-list>
             <deployable-list v-model="c.deployables"></deployable-list>
             <counter-list v-model="c.counters"></counter-list>
-          </div>
-          <button class="btn primary" @click="push('core_bonuses', blankCoreBonus())">+ CORE Bonus</button>
+          </item-card>
         </section>
 
         <!-- ============ TALENTS ============ -->
@@ -653,8 +734,13 @@
           <h2>Talents <span class="pill">talents.json</span></h2>
           <p class="lf-note">Every talent has exactly three ranks. Put the mechanical parts of each rank into its Actions / Bonuses / Synergies.</p>
           <p v-if="!lcp.talents.length" class="empty">No talents yet.</p>
-          <div v-for="(t,i) in lcp.talents" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ t.name || 'Untitled talent' }}</span><button class="btn tiny danger" @click="removeItem('talents', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('talents', blankTalent())">+ Talent</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.talents.length > 1" @click="setOpen('talents', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.talents.length > 1" @click="setOpen('talents', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(t,i) in lcp.talents" :key="i" :item="t" :title="t.name || 'Untitled talent'" @remove="removeItem('talents', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally t_ prefixed. e.g. t_myco_gunslinger."/></label><input type="text" v-model="t.id" placeholder="t_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="t.name" /></div>
@@ -675,8 +761,7 @@
               <deployable-list v-model="r.deployables"></deployable-list>
               <counter-list v-model="r.counters"></counter-list>
             </div>
-          </div>
-          <button class="btn primary" @click="push('talents', blankTalent())">+ Talent</button>
+          </item-card>
         </section>
 
         <!-- ============ SKILL TRIGGERS ============ -->
@@ -684,8 +769,13 @@
           <h2>Skill Triggers <span class="pill">skills.json</span></h2>
           <p class="lf-note">Purely narrative — no mechanical fields. <span class="mono">family</span> only decides where in the list the skill appears.</p>
           <p v-if="!lcp.skills.length" class="empty">No skill triggers yet.</p>
-          <div v-for="(s,i) in lcp.skills" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ s.name || 'Untitled skill' }}</span><button class="btn tiny danger" @click="removeItem('skills', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('skills', blankSkill())">+ Skill Trigger</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.skills.length > 1" @click="setOpen('skills', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.skills.length > 1" @click="setOpen('skills', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(s,i) in lcp.skills" :key="i" :item="s" :title="s.name || 'Untitled skill'" @remove="removeItem('skills', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally sk_ prefixed. e.g. sk_myco_haggle. Referenced by Backgrounds."/></label><input type="text" v-model="s.id" placeholder="sk_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="s.name" /></div>
@@ -694,32 +784,40 @@
             </div>
             <div class="lf-field"><label>Description <span class="req">*</span><help t="The short trigger text. HTML allowed; keep it terse."/></label><textarea v-model="s.description"></textarea></div>
             <div class="lf-field"><label>Detail <span class="req">*</span><help t="Longer flavor text for the Compendium and expanded cards. HTML allowed."/></label><textarea v-model="s.detail"></textarea></div>
-          </div>
-          <button class="btn primary" @click="push('skills', blankSkill())">+ Skill Trigger</button>
+          </item-card>
         </section>
 
         <!-- ============ BACKGROUNDS ============ -->
         <section v-show="tab==='backgrounds'">
           <h2>Backgrounds <span class="pill">backgrounds.json</span></h2>
           <p v-if="!lcp.backgrounds.length" class="empty">No backgrounds yet.</p>
-          <div v-for="(bg,i) in lcp.backgrounds" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ bg.name || 'Untitled background' }}</span><button class="btn tiny danger" @click="removeItem('backgrounds', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('backgrounds', blankBackground())">+ Background</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.backgrounds.length > 1" @click="setOpen('backgrounds', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.backgrounds.length > 1" @click="setOpen('backgrounds', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(bg,i) in lcp.backgrounds" :key="i" :item="bg" :title="bg.name || 'Untitled background'" @remove="removeItem('backgrounds', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally pbg_ prefixed. e.g. pbg_myco_courier."/></label><input type="text" v-model="bg.id" placeholder="pbg_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="bg.name" /></div>
             </div>
             <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text, often with italicised prompt questions. HTML allowed."/></label><textarea v-model="bg.description"></textarea></div>
             <div class="lf-field"><label>Example skill IDs <help t="Optional, comma-separated skill trigger ids (from core data or your Skill Triggers tab). COMP/CON can auto-give the pilot 1 point in each."/></label><input type="text" v-model="bg._skills" placeholder="sk_charm, sk_threaten" /></div>
-          </div>
-          <button class="btn primary" @click="push('backgrounds', blankBackground())">+ Background</button>
+          </item-card>
         </section>
 
         <!-- ============ RESERVES ============ -->
         <section v-show="tab==='reserves'">
           <h2>Reserves <span class="pill">reserves.json</span></h2>
           <p v-if="!lcp.reserves.length" class="empty">No reserves yet.</p>
-          <div v-for="(r,i) in lcp.reserves" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ r.name || 'Untitled reserve' }}</span><button class="btn tiny danger" @click="removeItem('reserves', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('reserves', blankReserve())">+ Reserve</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.reserves.length > 1" @click="setOpen('reserves', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.reserves.length > 1" @click="setOpen('reserves', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(r,i) in lcp.reserves" :key="i" :item="r" :title="r.name || 'Untitled reserve'" @remove="removeItem('reserves', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally reserve_ prefixed."/></label><input type="text" v-model="r.id" placeholder="reserve_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="r.name" /></div>
@@ -734,8 +832,7 @@
             <synergy-list v-model="r.synergies"></synergy-list>
             <deployable-list v-model="r.deployables"></deployable-list>
             <counter-list v-model="r.counters"></counter-list>
-          </div>
-          <button class="btn primary" @click="push('reserves', blankReserve())">+ Reserve</button>
+          </item-card>
         </section>
 
         <!-- ============ PILOT GEAR ============ -->
@@ -743,8 +840,13 @@
           <h2>Pilot Gear <span class="pill">pilot_gear.json</span></h2>
           <p class="lf-note">Pilot weapons, armor and equipment all live in one file, split by <span class="mono">type</span>. Pilot-scale — bonuses here apply to the pilot on foot, not the mech.</p>
           <p v-if="!lcp.pilot_gear.length" class="empty">No pilot gear yet.</p>
-          <div v-for="(g,i) in lcp.pilot_gear" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ g.name || 'Untitled gear' }} <span class="pill">{{ g.type }}</span></span><button class="btn tiny danger" @click="removeItem('pilot_gear', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('pilot_gear', blankPilotGear())">+ Pilot Gear</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.pilot_gear.length > 1" @click="setOpen('pilot_gear', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.pilot_gear.length > 1" @click="setOpen('pilot_gear', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(g,i) in lcp.pilot_gear" :key="i" :item="g" :title="g.name || 'Untitled gear'" :badge="g.type" @remove="removeItem('pilot_gear', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally pg_ prefixed."/></label><input type="text" v-model="g.id" placeholder="pg_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="g.name" /></div>
@@ -763,8 +865,7 @@
             <synergy-list v-model="g.synergies"></synergy-list>
             <deployable-list v-model="g.deployables"></deployable-list>
             <counter-list v-model="g.counters"></counter-list>
-          </div>
-          <button class="btn primary" @click="push('pilot_gear', blankPilotGear())">+ Pilot Gear</button>
+          </item-card>
         </section>
 
         <!-- ============ BONDS ============ -->
@@ -772,8 +873,13 @@
           <h2>Bonds <span class="pill">bonds.json</span></h2>
           <p class="lf-note">Karrakin Trade Baronies narrative rules. The Bond UI only appears in COMP/CON if the KTB LCP is installed — add it as a dependency on the Manifest tab.</p>
           <p v-if="!lcp.bonds.length" class="empty">No bonds yet.</p>
-          <div v-for="(b,i) in lcp.bonds" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ b.name || 'Untitled bond' }}</span><button class="btn tiny danger" @click="removeItem('bonds', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('bonds', blankBond())">+ Bond</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.bonds.length > 1" @click="setOpen('bonds', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.bonds.length > 1" @click="setOpen('bonds', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(b,i) in lcp.bonds" :key="i" :item="b" :title="b.name || 'Untitled bond'" @remove="removeItem('bonds', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally bond_ prefixed."/></label><input type="text" v-model="b.id" placeholder="bond_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="b.name" /></div>
@@ -804,8 +910,7 @@
               </div>
             </div>
             <button class="btn tiny" @click="b.powers.push(blankBondPower())">+ Power</button>
-          </div>
-          <button class="btn primary" @click="push('bonds', blankBond())">+ Bond</button>
+          </item-card>
         </section>
 
         <!-- ============ NPC CLASSES ============ -->
@@ -813,8 +918,13 @@
           <h2>NPC Classes <span class="pill">npc_classes.json</span></h2>
           <p class="lf-note">A class needs its stats and a list of feature ids. Build the features on the <strong>NPC Features</strong> tab first, then reference them here by id (comma-separated). Stats take a single number, or three comma-separated numbers for tier 1 / 2 / 3.</p>
           <p v-if="!lcp.npc_classes.length" class="empty">No NPC classes yet.</p>
-          <div v-for="(c,i) in lcp.npc_classes" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ c.name || 'Untitled class' }}</span><button class="btn tiny danger" @click="removeItem('npc_classes', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('npc_classes', blankNpcClass())">+ NPC Class</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.npc_classes.length > 1" @click="setOpen('npc_classes', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.npc_classes.length > 1" @click="setOpen('npc_classes', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(c,i) in lcp.npc_classes" :key="i" :item="c" :title="c.name || 'Untitled class'" @remove="removeItem('npc_classes', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npcc_ prefixed. Features reference this via their 'origin'."/></label><input type="text" v-model="c.id" placeholder="npcc_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
@@ -841,8 +951,7 @@
                 <div class="lf-field"><label>Per tier <help t="Extra optional class feature picks per NPC tier — added on top of min/max."/></label><input type="number" v-model.number="c.optionalClassPerTier" /></div>
               </div>
             </details>
-          </div>
-          <button class="btn primary" @click="push('npc_classes', blankNpcClass())">+ NPC Class</button>
+          </item-card>
         </section>
 
         <!-- ============ NPC TEMPLATES ============ -->
@@ -850,8 +959,13 @@
           <h2>NPC Templates <span class="pill">npc_templates.json</span></h2>
           <p class="lf-note">Templates (Grunt, Elite, Veteran…) layer features onto any class. <span class="mono">"template": true</span> is written automatically.</p>
           <p v-if="!lcp.npc_templates.length" class="empty">No NPC templates yet.</p>
-          <div v-for="(t,i) in lcp.npc_templates" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ t.name || 'Untitled template' }}</span><button class="btn tiny danger" @click="removeItem('npc_templates', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('npc_templates', blankNpcTemplate())">+ NPC Template</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.npc_templates.length > 1" @click="setOpen('npc_templates', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.npc_templates.length > 1" @click="setOpen('npc_templates', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(t,i) in lcp.npc_templates" :key="i" :item="t" :title="t.name || 'Untitled template'" @remove="removeItem('npc_templates', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npct_ prefixed."/></label><input type="text" v-model="t.id" placeholder="npct_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="t.name" /></div>
@@ -873,8 +987,7 @@
                 <div class="lf-field"><label>Per tier <help t="Extra optional selections per NPC tier."/></label><input type="number" v-model.number="t.optionalPerTier" /></div>
               </div>
             </details>
-          </div>
-          <button class="btn primary" @click="push('npc_templates', blankNpcTemplate())">+ NPC Template</button>
+          </item-card>
         </section>
 
         <!-- ============ NPC FEATURES ============ -->
@@ -882,8 +995,13 @@
           <h2>NPC Features <span class="pill">npc_features.json</span></h2>
           <p class="lf-note">Traits, systems, reactions, tech and weapons for NPCs. Tie a feature to its class/template with <strong>Origin</strong> + <strong>Base</strong>, or list its id under that class's base/optional features.</p>
           <p v-if="!lcp.npc_features.length" class="empty">No NPC features yet.</p>
-          <div v-for="(f,i) in lcp.npc_features" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ f.name || 'Untitled feature' }} <span class="pill">{{ f.type }}</span></span><button class="btn tiny danger" @click="removeItem('npc_features', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('npc_features', blankNpcFeature())">+ NPC Feature</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.npc_features.length > 1" @click="setOpen('npc_features', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.npc_features.length > 1" @click="setOpen('npc_features', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(f,i) in lcp.npc_features" :key="i" :item="f" :title="f.name || 'Untitled feature'" :badge="f.type" @remove="removeItem('npc_features', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npcf_ prefixed."/></label><input type="text" v-model="f.id" placeholder="npcf_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="f.name" /></div>
@@ -931,23 +1049,26 @@
             <bonus-list v-model="f.bonuses"></bonus-list>
             <synergy-list v-model="f.synergies"></synergy-list>
             <deployable-list v-model="f.deployables"></deployable-list>
-          </div>
-          <button class="btn primary" @click="push('npc_features', blankNpcFeature())">+ NPC Feature</button>
+          </item-card>
         </section>
 
         <!-- ============ ENVIRONMENTS ============ -->
         <section v-show="tab==='environments'">
           <h2>Environments <span class="pill">environments.json</span></h2>
           <p v-if="!lcp.environments.length" class="empty">No environments yet.</p>
-          <div v-for="(x,i) in lcp.environments" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ x.name || 'Untitled environment' }}</span><button class="btn tiny danger" @click="removeItem('environments', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('environments', blankEnvironment())">+ Environment</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.environments.length > 1" @click="setOpen('environments', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.environments.length > 1" @click="setOpen('environments', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(x,i) in lcp.environments" :key="i" :item="x" :title="x.name || 'Untitled environment'" @remove="removeItem('environments', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally env_ prefixed."/></label><input type="text" v-model="x.id" placeholder="env_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
             </div>
             <div class="lf-field"><label>Description <span class="req">*</span><help t="Detail + rules text for the environment. HTML allowed."/></label><textarea v-model="x.description"></textarea></div>
-          </div>
-          <button class="btn primary" @click="push('environments', blankEnvironment())">+ Environment</button>
+          </item-card>
         </section>
 
         <!-- ============ SITREPS ============ -->
@@ -955,8 +1076,13 @@
           <h2>SITREPs <span class="pill">sitreps.json</span></h2>
           <p class="lf-note">Preset scenarios for the Encounter Builder.</p>
           <p v-if="!lcp.sitreps.length" class="empty">No SITREPs yet.</p>
-          <div v-for="(x,i) in lcp.sitreps" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ x.name || 'Untitled SITREP' }}</span><button class="btn tiny danger" @click="removeItem('sitreps', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('sitreps', blankSitrep())">+ SITREP</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.sitreps.length > 1" @click="setOpen('sitreps', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.sitreps.length > 1" @click="setOpen('sitreps', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(x,i) in lcp.sitreps" :key="i" :item="x" :title="x.name || 'Untitled SITREP'" @remove="removeItem('sitreps', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally sitrep_ prefixed."/></label><input type="text" v-model="x.id" placeholder="sitrep_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
@@ -974,16 +1100,20 @@
               <div class="lf-field"><label>Objective <help t="Optional. Objective rules."/></label><textarea v-model="x.objective"></textarea></div>
               <div class="lf-field"><label>Extraction <help t="Optional. Extraction rules."/></label><textarea v-model="x.extraction"></textarea></div>
             </div>
-          </div>
-          <button class="btn primary" @click="push('sitreps', blankSitrep())">+ SITREP</button>
+          </item-card>
         </section>
 
         <!-- ============ STATUSES ============ -->
         <section v-show="tab==='statuses'">
           <h2>Statuses &amp; Conditions <span class="pill">statuses.json</span></h2>
           <p v-if="!lcp.statuses.length" class="empty">No statuses yet.</p>
-          <div v-for="(x,i) in lcp.statuses" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ x.name || 'Untitled status' }} <span class="pill">{{ x.type }}</span></span><button class="btn tiny danger" @click="removeItem('statuses', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('statuses', blankStatus())">+ Status / Condition</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.statuses.length > 1" @click="setOpen('statuses', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.statuses.length > 1" @click="setOpen('statuses', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(x,i) in lcp.statuses" :key="i" :item="x" :title="x.name || 'Untitled status'" :badge="x.type" @remove="removeItem('statuses', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Can be referenced as a bonus id or by actions' add_status."/></label><input type="text" v-model="x.id" placeholder="status_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
@@ -997,8 +1127,7 @@
             </div>
             <div class="lf-field"><label>Terse <help t="Optional. Shortest possible summary for cramped UI."/></label><input type="text" v-model="x.terse" /></div>
             <div class="lf-field"><label>Effects <span class="req">*</span><help t="Full rules text. HTML allowed."/></label><textarea v-model="x.effects"></textarea></div>
-          </div>
-          <button class="btn primary" @click="push('statuses', blankStatus())">+ Status / Condition</button>
+          </item-card>
         </section>
 
         <!-- ============ ROLLABLE TABLES ============ -->
@@ -1006,8 +1135,13 @@
           <h2>Rollable Tables <span class="pill">tables.json</span></h2>
           <p class="lf-note">Dice tables usable from Active Mode's Roll Table tool. Every possible roll on the die must be covered by a result's min–max range. Use min = max = -1 for a "multiple 1s" row.</p>
           <p v-if="!lcp.tables.length" class="empty">No tables yet.</p>
-          <div v-for="(x,i) in lcp.tables" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ x.title || 'Untitled table' }}</span><button class="btn tiny danger" @click="removeItem('tables', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('tables', blankTable())">+ Table</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.tables.length > 1" @click="setOpen('tables', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.tables.length > 1" @click="setOpen('tables', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(x,i) in lcp.tables" :key="i" :item="x" :title="x.title || 'Untitled table'" @remove="removeItem('tables', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique."/></label><input type="text" v-model="x.id" /></div>
               <div class="lf-field"><label>Title <span class="req">*</span></label><input type="text" v-model="x.title" /></div>
@@ -1029,8 +1163,7 @@
               <div class="lf-field"><label>Result <span class="req">*</span><help t="The outcome text. HTML allowed."/></label><textarea v-model="r.result"></textarea></div>
             </div>
             <button class="btn tiny" @click="x.results.push(blankTableResult())">+ Result</button>
-          </div>
-          <button class="btn primary" @click="push('tables', blankTable())">+ Table</button>
+          </item-card>
         </section>
 
         <!-- ============ NAME LISTS ============ -->
@@ -1048,8 +1181,13 @@
           <h2>Custom Stats <span class="pill">custom_stats.json</span></h2>
           <p class="lf-note lf-warn">Experimental in COMP/CON. A custom stat appears on <em>every</em> combat entity that has anything referencing it, and can't be shared across LCPs.</p>
           <p v-if="!lcp.custom_stats.length" class="empty">No custom stats yet.</p>
-          <div v-for="(x,i) in lcp.custom_stats" :key="i" class="lf-list-item">
-            <div class="head"><span class="title">{{ x.title || 'Untitled stat' }}</span><button class="btn tiny danger" @click="removeItem('custom_stats', i)">Delete</button></div>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('custom_stats', blankCustomStat())">+ Custom Stat</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.custom_stats.length > 1" @click="setOpen('custom_stats', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.custom_stats.length > 1" @click="setOpen('custom_stats', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(x,i) in lcp.custom_stats" :key="i" :item="x" :title="x.title || 'Untitled stat'" @remove="removeItem('custom_stats', i)">
             <div class="lf-row">
               <div class="lf-field"><label>Key <span class="req">*</span><help t="Globally unique identifier for the stat."/></label><input type="text" v-model="x.key" /></div>
               <div class="lf-field"><label>Title <span class="req">*</span></label><input type="text" v-model="x.title" /></div>
@@ -1060,8 +1198,7 @@
               <div class="lf-field"><label>Sort <help t="Position in stat-block UI. Negative = guaranteed first."/></label><input type="number" v-model.number="x.sort" /></div>
             </div>
             <div class="lf-checks"><label><input type="checkbox" v-model="x.trackable" /> Trackable <help t="On = a current/max stat with a tracker (like HP). Off = max-only (like Hull)."/></label></div>
-          </div>
-          <button class="btn primary" @click="push('custom_stats', blankCustomStat())">+ Custom Stat</button>
+          </item-card>
         </section>
 
         <!-- ============ TAGS ============ -->
@@ -1070,11 +1207,13 @@
           <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. The core tags (Accurate, Loading, Reliable X, …) are already in the tag picker on weapons and systems — you don't define those here. Note that a brand-new custom tag id is shown as text everywhere but isn't automated by COMP/CON or Foundry (they only automate a fixed list of known ids).</p>
           <p v-if="!lcp.tags.length" class="empty">No custom tags.</p>
 
-          <div v-for="(t,i) in lcp.tags" :key="i" class="lf-list-item">
-            <div class="head">
-              <span class="title">{{ t.name || t.id || 'Untitled tag' }}</span>
-              <button class="btn tiny danger" @click="removeItem('tags', i)">Delete</button>
-            </div>
+          <div class="toolbar">
+            <button class="btn primary" @click="lcp.tags.push({id:'tag',name:'',description:'',filter_ignore:false})">+ Tag</button>
+            <span class="grow"></span>
+            <button class="btn tiny ghost" v-if="lcp.tags.length > 1" @click="setOpen('tags', true)">Expand all</button>
+            <button class="btn tiny ghost" v-if="lcp.tags.length > 1" @click="setOpen('tags', false)">Collapse all</button>
+          </div>
+          <item-card v-for="(t,i) in lcp.tags" :key="i" :item="t" :title="t.name || t.id || 'Untitled tag'" @remove="removeItem('tags', i)">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally prefixed tg_ , e.g. tg_myco_overcharge."/></label><input type="text" v-model="t.id" placeholder="tg_..." /></div>
               <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name. May contain the {VAL} token, replaced by the value passed where the tag is used."/></label><input type="text" v-model="t.name" /></div>
@@ -1083,8 +1222,7 @@
             <div class="lf-checks">
               <label><input type="checkbox" v-model="t.filter_ignore" /> Hide from equipment filters <help t="Use for redundant tags (e.g. range-type tags) so the filter menu stays clean."/></label>
             </div>
-          </div>
-          <button class="btn primary" @click="lcp.tags.push({id:'tag',name:'',description:'',filter_ignore:false})">+ Tag</button>
+          </item-card>
         </section>
 
         <!-- ============ EXPORT ============ -->
@@ -1331,6 +1469,26 @@ const HelpTip = {
   template: `<span class="help" tabindex="0"><span class="dot">i</span><span class="bubble" v-html="t"></span></span>`
 };
 
+/* Collapsible card for one item in a category list. Open state lives on the
+   item object (item._open) so it survives re-renders; export strips it. */
+const ItemCard = {
+  name: 'item-card',
+  props: { item: { type: Object, required: true }, title: [String, Number], badge: [String, Number] },
+  emits: ['remove'],
+  computed: { open() { return this.item._open !== false; } },
+  methods: { toggle() { this.item._open = this.open ? false : true; } },
+  template: `
+    <div class="lf-list-item" :class="{ open }">
+      <div class="head" @click="toggle">
+        <span class="chev">{{ open ? '▾' : '▸' }}</span>
+        <span class="title">{{ (title === undefined || title === null || title === '') ? 'Untitled' : title }}</span>
+        <span v-if="badge !== undefined && badge !== null && badge !== ''" class="pill">{{ badge }}</span>
+        <button class="btn tiny danger" @click.stop="$emit('remove')">Delete</button>
+      </div>
+      <div v-show="open" class="body"><slot/></div>
+    </div>`
+};
+
 /* generic v-model helper for list editors */
 const listModel = {
   computed: { list: {
@@ -1539,7 +1697,8 @@ const BonusList = {
   emits: ['update:modelValue'],
   data: () => ({ catalog: BONUS_CATALOG, specials: BONUS_SPECIALS, typeHint: BONUS_TYPE_HINT }),
   methods: {
-    add() { this.addRow({ id:'hp', val:'1', _damage:'', _range:'', _wtype:'', _wsize:'', accuracy:null, overwrite:false, replace:false }); },
+    add() { this.addRow({ id:'hp', val:'1', _damage:[], _range:[], _wtype:[], _wsize:[], accuracy:null, overwrite:false, replace:false }); },
+    tog(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); },
     def(id) { return BONUS_BY_ID[id]; },
     valHelp(id) {
       const d = BONUS_BY_ID[id];
@@ -1572,16 +1731,17 @@ const BonusList = {
           <span style="opacity:.8">{{ typeHint[def(b.id).type] }}<span v-if="def(b.id).scope!=='All'"> · {{ def(b.id).scope }}-only.</span></span>
         </p>
         <details class="lf-block">
-          <summary>Restrict to certain weapons</summary>
-          <p class="lf-note" style="font-size:.8rem">Only meaningful for weapon/attack bonuses. Filters are ANDed — a weapon must match every filter you set. Comma-separated; blank = any.</p>
-          <div class="lf-row">
-            <div class="lf-field"><label>Damage types <help t="Kinetic, Energy, Explosive, Heat, Burn"/></label><input type="text" v-model="b._damage" placeholder="Explosive" /></div>
-            <div class="lf-field"><label>Range types <help t="Melee, Threat, Range, Line, Burst, Blast, Cone"/></label><input type="text" v-model="b._range" /></div>
-          </div>
-          <div class="lf-row">
-            <div class="lf-field"><label>Weapon types <help t="Melee, CQC, Rifle, Nexus, Cannon, Launcher, Improvised, any"/></label><input type="text" v-model="b._wtype" placeholder="Rifle, Cannon" /></div>
-            <div class="lf-field"><label>Weapon sizes <help t="Auxiliary, Main, Heavy, Superheavy, any"/></label><input type="text" v-model="b._wsize" /></div>
-          </div>
+          <summary>Restrict / flags
+            <span v-if="b._damage.length + b._range.length + b._wtype.length + b._wsize.length" class="pill">{{ b._damage.length + b._range.length + b._wtype.length + b._wsize.length }}</span></summary>
+          <p class="lf-note" style="font-size:.8rem">Only meaningful for weapon/attack bonuses. Filters are ANDed — a weapon must match every category you narrow. Nothing selected = any.</p>
+          <div class="lf-field"><label>Damage types</label><div class="addbtns">
+            <button v-for="x in ['Kinetic','Energy','Explosive','Heat','Burn']" :key="x" type="button" :class="['togglebtn',{on:b._damage.includes(x)}]" @click="tog(b._damage,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Range types</label><div class="addbtns">
+            <button v-for="x in ['Melee','Threat','Range','Line','Burst','Blast','Cone']" :key="x" type="button" :class="['togglebtn',{on:b._range.includes(x)}]" @click="tog(b._range,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Weapon types</label><div class="addbtns">
+            <button v-for="x in ['Melee','CQC','Rifle','Nexus','Cannon','Launcher','Improvised']" :key="x" type="button" :class="['togglebtn',{on:b._wtype.includes(x)}]" @click="tog(b._wtype,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Weapon sizes</label><div class="addbtns">
+            <button v-for="x in ['Auxiliary','Main','Heavy','Superheavy']" :key="x" type="button" :class="['togglebtn',{on:b._wsize.includes(x)}]" @click="tog(b._wsize,x)">{{ x }}</button></div></div>
           <div class="lf-checks">
             <label><input type="checkbox" v-model="b.overwrite" /> Overwrite <help t="Of all overwrite-flagged bonuses with this id, only the single highest is kept."/></label>
             <label><input type="checkbox" v-model="b.replace" /> Replace <help t="Replaces the base value outright with the sum of replace-flagged bonuses (e.g. set HP to a flat number)."/></label>
@@ -1597,7 +1757,10 @@ const SynergyList = {
   props: { modelValue: { type: Array, default: () => [] } },
   emits: ['update:modelValue'],
   data: () => ({ locations: SYNERGY_LOCATIONS }),
-  methods: { add() { this.addRow({ _locations:'weapon', detail:'', _wtype:'', _wsize:'', _stype:'' }); } },
+  methods: {
+    add() { this.addRow({ _locations:'weapon', detail:'', _wtype:[], _wsize:[], _stype:[] }); },
+    tog(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); }
+  },
   template: `
     <details class="lf-block">
       <summary>Synergies <span v-if="list.length" class="pill">{{ list.length }}</span>
@@ -1608,12 +1771,13 @@ const SynergyList = {
         <div class="lf-field"><label>Locations <span class="req">*</span><help t="Where the hint appears. Comma-separated. e.g. weapon, system, hull, move, boost, core_power."/></label><input type="text" list="synloc" v-model="s._locations" placeholder="weapon, system" /></div>
         <div class="lf-field"><label>Detail <span class="req">*</span><help t="The hint text. HTML allowed."/></label><textarea v-model="s.detail"></textarea></div>
         <details class="lf-block">
-          <summary>Filters (weapon/system only)</summary>
-          <div class="lf-row">
-            <div class="lf-field"><label>Weapon types <help t="Comma-separated. Only show this hint on weapons of these types. Blank = any."/></label><input type="text" v-model="s._wtype" /></div>
-            <div class="lf-field"><label>Weapon sizes <help t="Comma-separated. Only show this hint on weapons of these sizes. Blank = any."/></label><input type="text" v-model="s._wsize" /></div>
-            <div class="lf-field"><label>System types <help t="Comma-separated, e.g. Drone. Only show this hint on systems of these types. Blank = any."/></label><input type="text" v-model="s._stype" placeholder="Drone" /></div>
-          </div>
+          <summary>Filters (weapon / system hints only)</summary>
+          <div class="lf-field"><label>Weapon types</label><div class="addbtns">
+            <button v-for="x in ['Melee','CQC','Rifle','Nexus','Cannon','Launcher','Improvised']" :key="x" type="button" :class="['togglebtn',{on:s._wtype.includes(x)}]" @click="tog(s._wtype,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Weapon sizes</label><div class="addbtns">
+            <button v-for="x in ['Auxiliary','Main','Heavy','Superheavy']" :key="x" type="button" :class="['togglebtn',{on:s._wsize.includes(x)}]" @click="tog(s._wsize,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>System types</label><div class="addbtns">
+            <button v-for="x in ['AI','Deployable','Drone','Flight System','Shield','System','Tech']" :key="x" type="button" :class="['togglebtn',{on:s._stype.includes(x)}]" @click="tog(s._stype,x)">{{ x }}</button></div></div>
         </details>
       </div>
       <button class="btn tiny" @click="add">+ Synergy</button>
@@ -1714,7 +1878,7 @@ const blankCore = () => ({
 
 const blankFrame = () => ({
   id: '', name: '', source: '', license_id: '', license_level: 0,
-  _mechtypeText: '', _mountToAdd: 'Main', mounts: [], description: '', variant: '',
+  _mechtypeText: '', mounts: [], description: '', variant: '',
   stats: { size:1, structure:4, stress:4, armor:0, hp:8, evasion:8, edef:8,
            heatcap:6, repcap:4, sensor_range:10, tech_attack:0, save:10, speed:4, sp:6 },
   traits: [],
@@ -1830,22 +1994,23 @@ const clean = obj => {
 
 const csv = s => (s || '').split(',').map(x => x.trim()).filter(Boolean);
 
+const arrish = v => Array.isArray(v) ? v : csv(v);   // tolerate old comma-string data
 const shapeBonus = b => {
   const o = { id: b.id, val: isNaN(b.val) || b.val === '' ? b.val : Number(b.val) };
   if (b.accuracy) o.accuracy = Number(b.accuracy);
-  if (csv(b._damage).length) o.damage_types = csv(b._damage);
-  if (csv(b._range).length) o.range_types = csv(b._range);
-  if (csv(b._wtype).length) o.weapon_types = csv(b._wtype);
-  if (csv(b._wsize).length) o.weapon_sizes = csv(b._wsize);
+  if (arrish(b._damage).length) o.damage_types = arrish(b._damage);
+  if (arrish(b._range).length) o.range_types = arrish(b._range);
+  if (arrish(b._wtype).length) o.weapon_types = arrish(b._wtype);
+  if (arrish(b._wsize).length) o.weapon_sizes = arrish(b._wsize);
   if (b.overwrite) o.overwrite = true;
   if (b.replace) o.replace = true;
   return o;
 };
 const shapeSynergy = s => {
   const o = { locations: csv(s._locations), detail: s.detail };
-  if (csv(s._wtype).length) o.weapon_types = csv(s._wtype);
-  if (csv(s._wsize).length) o.weapon_sizes = csv(s._wsize);
-  if (csv(s._stype).length) o.system_types = csv(s._stype);
+  if (arrish(s._wtype).length) o.weapon_types = arrish(s._wtype);
+  if (arrish(s._wsize).length) o.weapon_sizes = arrish(s._wsize);
+  if (arrish(s._stype).length) o.system_types = arrish(s._stype);
   return o;
 };
 const numish = v => (typeof v === 'string' && v.trim() !== '' && !isNaN(v)) ? Number(v) : v;
@@ -1894,12 +2059,13 @@ const npcSize = s => {
 const app = createApp({
   data() {
     return {
-      tab: 'manifest',
+      tab: 'home',
       previewJson: false,
+      collapsedNav: {},
       lcp: freshLcp(),
       navGroups: ['Pack','Licensed data','Pilot data','NPC data','Other content','Output'],
       tabs: [
-        { id:'manifest', label:'Manifest', group:'Pack' },
+        { id:'home', label:'Home', group:'Pack' },
         { id:'manufacturers', label:'Manufacturers', key:'manufacturers', group:'Licensed data' },
         { id:'frames', label:'Frames', key:'frames', group:'Licensed data' },
         { id:'weapons', label:'Weapons', key:'weapons', group:'Licensed data' },
@@ -1941,6 +2107,7 @@ const app = createApp({
         ['systems','Systems'],['engineering','Engineering'],['activations','Activations']
       ],
       mountTypes: ['Main','Heavy','Aux/Aux','Aux','Main/Aux','Flex','Integrated'],
+      mechTypeOptions: ['Balanced','Artillery','Striker','Controller','Support','Defender'],
       weaponMounts: ['Main','Heavy','Aux','Superheavy'],
       weaponTypes: WEAPON_TYPES,
       systemTypes: ['System','AI','Deployable','Drone','Flight System','Shield','Tech'],
@@ -2155,6 +2322,10 @@ const app = createApp({
   },
   methods: {
     go(t) { this.tab = t; },
+    toggleNavGroup(g) { this.collapsedNav = { ...this.collapsedNav, [g]: !this.collapsedNav[g] }; },
+    toggleArr(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); },
+    addCsv(obj, key, v) { const parts = (obj[key] || '').split(',').map(x => x.trim()).filter(Boolean); if (!parts.includes(v)) parts.push(v); obj[key] = parts.join(', '); },
+    setOpen(key, v) { (this.lcp[key] || []).forEach(x => { x._open = v; }); },
     blankTrait,
     frameName(id) { const f = this.lcp.frames.find(x => x.id === id); return f ? f.name : ''; },
     push(key, obj) { this.lcp[key].push(obj); },
@@ -2170,7 +2341,7 @@ const app = createApp({
     resetAll() {
       if (!confirm('Discard everything and start a new pack?')) return;
       this.lcp = freshLcp();
-      this.tab = 'manifest';
+      this.tab = 'home';
     },
 
     buildOutput() {
@@ -2417,11 +2588,11 @@ const app = createApp({
         fresh.tags = (await read('tags.json')) || [];
 
         const inBonus = b => ({ id:b.id, val:String(b.val ?? ''), accuracy:b.accuracy ?? null,
-          _damage:(b.damage_types||[]).join(', '), _range:(b.range_types||[]).join(', '),
-          _wtype:(b.weapon_types||[]).join(', '), _wsize:(b.weapon_sizes||[]).join(', '),
+          _damage:[...(b.damage_types||[])], _range:[...(b.range_types||[])],
+          _wtype:[...(b.weapon_types||[])], _wsize:[...(b.weapon_sizes||[])],
           overwrite:!!b.overwrite, replace:!!b.replace });
         const inSyn = s => ({ _locations:(s.locations||[]).join(', '), detail:s.detail||'',
-          _wtype:(s.weapon_types||[]).join(', '), _wsize:(s.weapon_sizes||[]).join(', '), _stype:(s.system_types||[]).join(', ') });
+          _wtype:[...(s.weapon_types||[])], _wsize:[...(s.weapon_sizes||[])], _stype:[...(s.system_types||[])] });
         const inDep = d => ({ name:'', type:'Deployable', detail:'', activation:'Quick', deactivation:'', recall:'', redeploy:'',
           instances:null, size:null, hp:null, armor:null, evasion:null, edef:null, heatcap:null, repcap:null,
           sensor_range:null, tech_attack:null, save:null, speed:null, damage:[], range:[], actions:[], bonuses:[], synergies:[], tags:[],
@@ -2562,8 +2733,10 @@ const app = createApp({
         const listData = (await read('lists.json')) || {};
         this.listFields.forEach(([k]) => { fresh._lists[k] = (listData[k] || []).join('\n'); });
 
+        ALL_CATEGORIES.forEach(c => (fresh[c] || []).forEach(x => { if (x && typeof x === 'object') x._open = false; }));
+
         this.lcp = fresh;
-        this.tab = 'manifest';
+        this.tab = 'home';
         alert('Loaded ' + file.name);
       } catch (err) {
         console.error(err);
@@ -2576,6 +2749,7 @@ const app = createApp({
 });
 
 app.component('help', HelpTip);
+app.component('item-card', ItemCard);
 app.component('action-list', ActionList);
 app.component('damage-list', DamageList);
 app.component('range-list', RangeList);
