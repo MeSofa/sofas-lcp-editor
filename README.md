@@ -31,11 +31,18 @@ Done:
   SP, cost, all seven flags (skirmish/barrage/no_attack/no_mods/no_core_bonus/no_bonus/no_synergy).
 - **Systems** — type, SP, effect, no_bonus/no_synergy flags.
 - **Shared mechanical builders** on weapons / systems / frame traits / core system:
-  **Actions** (+ cost/pilot/mech/bonus_damage), **Bonuses** (full bonus-id list, value +
-  special strings, damage/range/weapon-type/size filters, overwrite/replace — this is what
-  Foundry reads for automation), **Synergies** (locations + detail + filters),
-  **Counters**, **Deployables** (drones/turrets/mines: stats + nested damage/range/actions/bonuses).
-- **Custom tags** — id, name (with `{VAL}`), description, filter_ignore.
+  **Actions** (+ cost/pilot/mech/bonus_damage), **Bonuses**, **Synergies**, **Counters**,
+  **Deployables** (drones/turrets/mines: stats + nested damage/range/actions/bonuses).
+- **Tag picker** — pick core Lancer tags by name from a grouped catalogue (verbatim rules
+  text from `lib/tags.json`, `{VAL}` substituted live); the `tg_` id is written for you.
+  A ⚙ badge marks tags the Foundry Lancer system actually automates. "Custom / from a
+  dependency" escape hatch for arbitrary ids.
+- **Bonus picker** — grouped by what each bonus modifies, with the exact "what COMP/CON
+  changes" text, value-type hint, PC/NPC scope, and the special-value-string reference
+  inline. This is the data Foundry reads for automation.
+- **Custom tags** — id, name (with `{VAL}`), description, filter_ignore, with an upfront
+  note that custom ids are display-only (no app automates an unknown tag id).
+- Every input field has an ⓘ tooltip.
 - **Export** — flat `.lcp` zip (`lcp_manifest.json` + one file per non-empty category) via
   JSZip; live validation (required fields, unique ids, source/license cross-refs, known bonus ids).
 - **Import** — load an existing `.lcp`/`.zip` back in; unknown fields (e.g. weapon `profiles`,

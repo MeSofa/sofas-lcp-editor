@@ -283,7 +283,7 @@
 
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Convention: {prefix}_{type}_{name}, e.g. myco_frame_wyvern. Changing it later breaks user data that references it."/></label><input type="text" v-model="f.id" /></div>
-              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="f.name" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The frame's display name, e.g. Everest, Blackbeard. Also the usual name of its license."/></label><input type="text" v-model="f.name" /></div>
             </div>
             <div class="lf-row">
               <div class="lf-field">
@@ -334,7 +334,7 @@
                 <span class="title">{{ tr.name || 'Trait' }}</span>
                 <button class="btn tiny danger" @click="f.traits.splice(ti,1)">Remove</button>
               </div>
-              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="tr.name" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The trait's name as shown on the frame, e.g. Ferocious, Nuclear Cavalier."/></label><input type="text" v-model="tr.name" /></div>
               <div class="lf-field"><label>Description <span class="req">*</span><help t="Rules + flavor. HTML allowed."/></label><textarea v-model="tr.description"></textarea></div>
               <action-list v-model="tr.actions" label="Trait actions"></action-list>
               <bonus-list v-model="tr.bonuses"></bonus-list>
@@ -346,7 +346,7 @@
 
             <h3 style="margin-top:1.2rem">Core system <help t="Every frame has exactly one. The unique CORE Power."/></h3>
             <div class="lf-sub">
-              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="f.core_system.name" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The name of the CORE System itself (e.g. Ouraboros Device), distinct from the active/passive effect names below."/></label><input type="text" v-model="f.core_system.name" /></div>
               <div class="lf-field"><label>Description <help t="Flavor text. Optional but recommended. HTML allowed."/></label><textarea v-model="f.core_system.description"></textarea></div>
               <div class="lf-row">
                 <div class="lf-field"><label>Active name <span class="req">*</span><help t="Name of the CORE Power's active effect."/></label><input type="text" v-model="f.core_system.active_name" /></div>
@@ -425,7 +425,7 @@
             </div>
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. e.g. myco_weapon_railgun."/></label><input type="text" v-model="w.id" /></div>
-              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="w.name" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The weapon's display name, e.g. Thermal Lance, Nexus (HUNTER)."/></label><input type="text" v-model="w.name" /></div>
             </div>
             <div class="lf-row">
               <div class="lf-field">
@@ -512,8 +512,8 @@
               <button class="btn tiny danger" @click="removeItem('systems', i)">Delete</button>
             </div>
             <div class="lf-row">
-              <div class="lf-field"><label>ID <span class="req">*</span></label><input type="text" v-model="s.id" /></div>
-              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="s.name" /></div>
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. e.g. myco_system_flux_capacitor. Changing it later breaks user data that references it."/></label><input type="text" v-model="s.id" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The system's display name, e.g. Pattern-A Smoke Charges."/></label><input type="text" v-model="s.name" /></div>
             </div>
             <div class="lf-row">
               <div class="lf-field">
@@ -532,8 +532,8 @@
               </div>
             </div>
             <div class="lf-row">
-              <div class="lf-field"><label>License (display) <span class="req">*</span></label><input type="text" v-model="s.license" /></div>
-              <div class="lf-field"><label>License level <span class="req">*</span></label><input type="number" min="0" max="3" v-model.number="s.license_level" /></div>
+              <div class="lf-field"><label>License (display) <span class="req">*</span><help t="Display name of the containing license — usually the frame's name. Auto-filled from the License ID above."/></label><input type="text" v-model="s.license" /></div>
+              <div class="lf-field"><label>License level <span class="req">*</span><help t="0–3. The license rank at which this system unlocks."/></label><input type="number" min="0" max="3" v-model.number="s.license_level" /></div>
             </div>
             <div class="lf-row">
               <div class="lf-field">
@@ -555,8 +555,8 @@
             <details class="lf-block">
               <summary>Flags</summary>
               <div class="lf-checks">
-                <label><input type="checkbox" v-model="s.no_bonus" /> Ignore bonuses</label>
-                <label><input type="checkbox" v-model="s.no_synergy" /> Ignore synergies</label>
+                <label><input type="checkbox" v-model="s.no_bonus" /> Ignore bonuses <help t="This system neither registers nor is affected by Bonuses."/></label>
+                <label><input type="checkbox" v-model="s.no_synergy" /> Ignore synergies <help t="This system neither contributes to nor is marked by Synergies."/></label>
               </div>
             </details>
           </div>
@@ -566,7 +566,23 @@
         <!-- ============ TAGS ============ -->
         <section v-show="tab==='tags'">
           <h2>Custom Tags <span class="pill">tags.json</span></h2>
-          <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. Core tags (Accurate, Loading, Reliable X, …) are already available — reference them by id without defining them here.</p>
+          <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. The core tags (Accurate, Loading, Reliable X, …) are already in the tag picker on weapons and systems — you don't define those here.</p>
+          <details class="lf-block lf-warn" style="border-left:3px solid var(--warn)">
+            <summary style="color:var(--warn)">Will a custom tag drive automation? — read this</summary>
+            <p style="font-size:.86rem">
+              <strong>Short answer: no, not on its own.</strong> Both COMP/CON and Foundry only automate a
+              <em>fixed, hard-coded list</em> of tag ids (Accurate, Inaccurate, AP, Overkill, Reliable, Loading,
+              Limited, Knockback, Heat (Self), Smart, Seeking, Thrown, Overshield, Recharge, AI, …). A brand-new
+              id like <span class="mono">tg_myco_unreliable</span> gets its <em>name and description shown</em>
+              everywhere (with <span class="mono">{VAL}</span> filled in), but no dice are rolled for it.
+            </p>
+            <p style="font-size:.86rem">
+              So a "deal X damage only on a miss" tag would just be flavour text. The mechanically-automated ways to
+              express that are: the <strong>Reliable X</strong> core tag (Foundry rolls it on a miss), the weapon's
+              <strong>on-miss</strong> field (shown, not rolled), a <strong>damage</strong> entry with a save, or a
+              <strong>bonus</strong>. Use a custom tag when you want a reusable, named piece of rules text — not for automation.
+            </p>
+          </details>
           <p v-if="!lcp.tags.length" class="empty">No custom tags.</p>
 
           <div v-for="(t,i) in lcp.tags" :key="i" class="lf-list-item">
@@ -631,65 +647,194 @@ const RANGE_TYPES  = ['Threat','Range','Burst','Blast','Cone','Line'];
 const WEAPON_TYPES = ['Rifle','Cannon','Launcher','CQB','Nexus','Melee'];
 const WEAPON_SIZES = ['Auxiliary','Main','Heavy','Superheavy'];
 
-/* Bonus IDs, grouped for the <select>. Source: lancer-data wiki Bonus List. */
-const BONUS_GROUPS = [
-  ['Weapons / attacks', [
-    ['range','Add range (incl. Threat)'], ['damage','Add damage'], ['attack_roll','Add to attack rolls'],
-    ['accuracy','Add Accuracy'], ['threat','Add Threat'], ['thrown','Add Thrown'],
-    ['tech_attack','Add tech attack'],
+/* Bonus catalogue. Source: lancer-data wiki "Bonus List".
+   b(id, label, detail, type, scope) — detail is exactly what COMP/CON changes.
+   type: int | bool | str | dieroll | size[]   scope: All | PC | NPC          */
+const mkB = (id, label, detail, type = 'int', scope = 'All') => ({ id, label, detail, type, scope });
+const BONUS_CATALOG = [
+  ['Weapons & attacks', [
+    mkB('range','Weapon range','Adds to the Range (including Threat) of the affected weapons.'),
+    mkB('damage','Weapon damage','Adds flat damage to the affected weapons.'),
+    mkB('attack_roll','Weapon attack roll','Adds a flat bonus to attack rolls made with the affected weapons.'),
+    mkB('accuracy','Weapon Accuracy','Adds Accuracy dice to attacks with the affected weapons.'),
+    mkB('threat','Weapon Threat','Adds to the Threat range of the affected weapons.'),
+    mkB('thrown','Weapon Thrown','Gives the affected weapons the Thrown tag at this value.'),
+    mkB('tech_attack','Tech attack roll','Adds a flat bonus to tech attack rolls.'),
   ]],
-  ['Mech stats', [
-    ['hp','HP'], ['armor','Armor'], ['armor_max','Max armor cap'], ['structure','Structure'],
-    ['stress','Reactor stress'], ['heatcap','Heat cap'], ['repcap','Repair cap'], ['speed','Speed'],
-    ['boost','Boost speed'], ['evasion','Evasion'], ['edef','E-Defense'], ['sensor','Sensor range'],
-    ['attack','Attack bonus'], ['grapple','Grapple'], ['ram','Ram'], ['save','Save target'],
-    ['sp','System Points'], ['size','Size'],
+  ['Mech / NPC stats', [
+    mkB('hp','Max HP','Adds to the mech or NPC maximum HP.'),
+    mkB('armor','Armor','Adds to Armor (flat damage reduction).'),
+    mkB('armor_max','Max Armor cap','Raises the cap on total Armor (normally 4).'),
+    mkB('structure','Structure','Adds to the Structure track.'),
+    mkB('stress','Reactor Stress','Adds to the Reactor Stress track.'),
+    mkB('heatcap','Heat Cap','Adds to Heat Capacity.'),
+    mkB('repcap','Repair Cap','Adds to Repair Capacity.'),
+    mkB('speed','Speed','Adds to standard movement Speed.'),
+    mkB('boost','Boost speed','Adds extra movement when taking the Boost action.'),
+    mkB('evasion','Evasion','Adds to Evasion.'),
+    mkB('edef','E-Defense','Adds to E-Defense.'),
+    mkB('sensor','Sensor range','Adds to Sensor range.'),
+    mkB('attack','Attack bonus (all)','Adds a flat bonus to every attack roll the mech/NPC makes.'),
+    mkB('grapple','Grapple value','Adds to the mech/NPC Grapple value.'),
+    mkB('ram','Ram value','Adds to the mech/NPC Ram value.'),
+    mkB('save','Save target','Adds to this mech/NPC Save target (the number others roll against it).'),
+    mkB('sp','System Points','Adds to available SP.'),
+    mkB('size','Size','Adds to Size.'),
   ]],
   ['HASE checks & saves', [
-    ['hull','Hull checks + saves'], ['agility','Agility checks + saves'], ['engineering','Engineering checks + saves'], ['systems','Systems checks + saves'],
-    ['hull_check','Hull checks'], ['agility_check','Agility checks'], ['engineering_check','Engineering checks'], ['systems_check','Systems checks'],
-    ['hull_save','Hull saves'], ['agility_save','Agility saves'], ['engineering_save','Engineering saves'], ['systems_save','Systems saves'],
+    mkB('hull','Hull checks + saves','Adds to both Hull checks and Hull saves.'),
+    mkB('agility','Agility checks + saves','Adds to both Agility checks and Agility saves.'),
+    mkB('engineering','Engineering checks + saves','Adds to both Engineering checks and Engineering saves.'),
+    mkB('systems','Systems checks + saves','Adds to both Systems checks and Systems saves.'),
+    mkB('hull_check','Hull checks only','Adds to Hull checks (not saves).'),
+    mkB('agility_check','Agility checks only','Adds to Agility checks (not saves).'),
+    mkB('engineering_check','Engineering checks only','Adds to Engineering checks (not saves).'),
+    mkB('systems_check','Systems checks only','Adds to Systems checks (not saves).'),
+    mkB('hull_save','Hull saves only','Adds to Hull saves (not checks).'),
+    mkB('agility_save','Agility saves only','Adds to Agility saves (not checks).'),
+    mkB('engineering_save','Engineering saves only','Adds to Engineering saves (not checks).'),
+    mkB('systems_save','Systems saves only','Adds to Systems saves (not checks).'),
   ]],
-  ['Deployables / drones', [
-    ['deployable_hp','Deployable HP'], ['deployable_armor','Deployable armor'], ['deployable_evasion','Deployable evasion'],
-    ['deployable_edef','Deployable edef'], ['deployable_size','Deployable size'], ['deployable_charges','Deployable charges'],
-    ['deployable_heatcap','Deployable heatcap'], ['deployable_repcap','Deployable repcap'], ['deployable_sensor_range','Deployable sensors'],
-    ['deployable_tech_attack','Deployable tech attack'], ['deployable_save','Deployable save'], ['deployable_speed','Deployable speed'],
-    ['drone_hp','Drone HP'], ['drone_armor','Drone armor'], ['drone_evasion','Drone evasion'], ['drone_edef','Drone edef'],
-    ['drone_size','Drone size'], ['drone_charges','Drone charges'], ['drone_heatcap','Drone heatcap'], ['drone_repcap','Drone repcap'],
-    ['drone_sensor_range','Drone sensors'], ['drone_tech_attack','Drone tech attack'], ['drone_save','Drone save'], ['drone_speed','Drone speed'],
-    ['deploy_count','Extra deploy action'],
+  ['Your deployables & drones', [
+    mkB('deployable_hp','Deployable HP','Adds HP to every Deployable you have on the field.'),
+    mkB('deployable_armor','Deployable Armor','Adds Armor to every Deployable you have deployed.'),
+    mkB('deployable_evasion','Deployable Evasion','Adds Evasion to every Deployable you have deployed.'),
+    mkB('deployable_edef','Deployable E-Def','Adds E-Defense to every Deployable you have deployed.'),
+    mkB('deployable_size','Deployable Size','Adds Size to every Deployable you have deployed.'),
+    mkB('deployable_charges','Deployable charges','Adds charges to every Deployable you have deployed.'),
+    mkB('deployable_heatcap','Deployable Heat Cap','Adds Heat Capacity to every Deployable you have deployed.'),
+    mkB('deployable_repcap','Deployable Repair Cap','Adds Repair Capacity to every Deployable you have deployed.'),
+    mkB('deployable_sensor_range','Deployable Sensors','Adds Sensor range to every Deployable you have deployed.'),
+    mkB('deployable_tech_attack','Deployable tech attack','Adds tech attack to every Deployable you have deployed.'),
+    mkB('deployable_save','Deployable Save','Adds to the Save of every Deployable you have deployed.'),
+    mkB('deployable_speed','Deployable Speed','Adds Speed to every Deployable you have deployed.'),
+    mkB('drone_hp','Drone HP','Adds HP to every Drone you have deployed.'),
+    mkB('drone_armor','Drone Armor','Adds Armor to every Drone you have deployed.'),
+    mkB('drone_evasion','Drone Evasion','Adds Evasion to every Drone you have deployed.'),
+    mkB('drone_edef','Drone E-Def','Adds E-Defense to every Drone you have deployed.'),
+    mkB('drone_size','Drone Size','Adds Size to every Drone you have deployed.'),
+    mkB('drone_charges','Drone charges','Adds charges to every Drone you have deployed.'),
+    mkB('drone_heatcap','Drone Heat Cap','Adds Heat Capacity to every Drone you have deployed.'),
+    mkB('drone_repcap','Drone Repair Cap','Adds Repair Capacity to every Drone you have deployed.'),
+    mkB('drone_sensor_range','Drone Sensors','Adds Sensor range to every Drone you have deployed.'),
+    mkB('drone_tech_attack','Drone tech attack','Adds tech attack to every Drone you have deployed.'),
+    mkB('drone_save','Drone Save','Adds to the Save of every Drone you have deployed.'),
+    mkB('drone_speed','Drone Speed','Adds Speed to every Drone you have deployed.'),
+    mkB('deploy_count','Extra Deploy action','Grants an additional Deploy action for deployables.'),
   ]],
-  ['Pilot', [
-    ['pilot_hp','Pilot HP'], ['pilot_armor','Pilot armor'], ['pilot_evasion','Pilot evasion'], ['pilot_edef','Pilot edef'],
-    ['pilot_speed','Pilot speed'], ['pilot_armor_slots','Pilot armor slots'], ['pilot_gear_slots','Pilot gear slots'],
-    ['pilot_weapon_slots','Pilot weapon slots'], ['ai_cap','AI capacity'], ['limited_bonus','Limited uses'],
-    ['skill_point','Skill trigger point'], ['mech_skill_point','Mech skill (HASE) point'], ['talent_point','Talent point'],
-    ['license_point','License point'], ['cb_point','CORE bonus point'],
-    ['cheap_struct','Half-cost structure repairs (bool)'], ['cheap_stress','Half-cost stress repairs (bool)'],
-    ['mount_accuracy','All mounts: +accuracy'], ['mount_range','All mounts: +range'], ['mount_damage','All mounts: +damage'],
-    ['mount_damage_type','All mounts: override damage type'], ['mount_range_type','All mounts: override range type'],
-    ['mount_weapon_type','All mounts: override weapon type'], ['add_mount','Gain a mount (type:max)'],
+  ['Pilot (PC only)', [
+    mkB('pilot_hp','Pilot HP','Adds to the pilot\'s (on-foot) HP.','int','PC'),
+    mkB('pilot_armor','Pilot Armor','Adds to the pilot\'s on-foot Armor.','int','PC'),
+    mkB('pilot_evasion','Pilot Evasion','Adds to the pilot\'s on-foot Evasion.','int','PC'),
+    mkB('pilot_edef','Pilot E-Def','Adds to the pilot\'s on-foot E-Defense.','int','PC'),
+    mkB('pilot_speed','Pilot Speed','Adds to the pilot\'s on-foot Speed.','int','PC'),
+    mkB('pilot_armor_slots','Pilot armor slots','Increases how many pieces of pilot armor can be carried.','int','PC'),
+    mkB('pilot_gear_slots','Pilot gear slots','Increases how many pieces of pilot gear can be carried.','int','PC'),
+    mkB('pilot_weapon_slots','Pilot weapon slots','Increases how many pilot weapons can be carried.','int','PC'),
+    mkB('ai_cap','AI capacity','Increases how many AI-tagged systems can be installed.','int','PC'),
+    mkB('limited_bonus','Limited uses','Adds uses to every Limited-tagged item.','int','PC'),
+    mkB('skill_point','Skill Trigger point','Grants an extra pilot Skill Trigger point.','int','PC'),
+    mkB('mech_skill_point','Mech skill (HASE) point','Grants an extra HASE point.','int','PC'),
+    mkB('talent_point','Talent point','Grants an extra Talent point.','int','PC'),
+    mkB('license_point','License point','Grants an extra License point.','int','PC'),
+    mkB('cb_point','CORE Bonus point','Grants an extra CORE Bonus point.','int','PC'),
+    mkB('cheap_struct','Cheap Structure repairs','Structure repairs cost half as many repairs. Value is true/false.','bool','PC'),
+    mkB('cheap_stress','Cheap Stress repairs','Reactor Stress repairs cost half as many repairs. Value is true/false.','bool','PC'),
+    mkB('overcharge','Overcharge track','Overrides the Overcharge die track. Value is a die-roll list, e.g. 1,1d3,1d6,1d6.','dieroll','PC'),
+    mkB('mount_accuracy','All mounted weapons: Accuracy','Adds Accuracy to every mounted weapon.','int','PC'),
+    mkB('mount_range','All mounted weapons: Range','Adds Range to every mounted weapon.','int','PC'),
+    mkB('mount_damage','All mounted weapons: Damage','Adds Damage to every mounted weapon.','int','PC'),
+    mkB('mount_damage_type','All mounted weapons: damage type','Overrides the damage type of every mounted weapon. Value is a damage type.','str','PC'),
+    mkB('mount_range_type','All mounted weapons: range type','Overrides the range type of every mounted weapon. Value is a range type.','str','PC'),
+    mkB('mount_weapon_type','All mounted weapons: weapon type','Overrides the weapon type of every mounted weapon. Value is a weapon type.','str','PC'),
+    mkB('add_mount','Gain a mount','Adds a mount. Value is "type:max", e.g. main:3 (adds a Main mount unless the mech already has 3+ mounts).','str','PC'),
   ]],
-  ['NPC', [
-    ['sizes','NPC size choices'], ['activations','Activations / round'], ['activations_pct','Extra activation per X PCs'],
-    ['no_mods','Cannot equip mods (bool)'],
+  ['NPC only', [
+    mkB('sizes','NPC size choices','Adds size options offered during NPC creation. Value is a list of sizes.','size[]','NPC'),
+    mkB('activations','Activations / round','Adds activations per round.','int','NPC'),
+    mkB('activations_pct','Extra activation per X PCs','Grants an extra activation for every X player characters in the fight.','int','NPC'),
+    mkB('no_mods','Cannot equip mods','This NPC feature cannot take mods. Value is true/false.','bool','NPC'),
   ]],
 ];
-const ALL_BONUS_IDS = BONUS_GROUPS.flatMap(g => g[1].map(b => b[0]));
+const ALL_BONUSES = BONUS_CATALOG.flatMap(g => g[1]);
+const ALL_BONUS_IDS = ALL_BONUSES.map(x => x.id);
+const BONUS_BY_ID = Object.fromEntries(ALL_BONUSES.map(x => [x.id, x]));
+const BONUS_SPECIALS = 'll (license level) · grit · tier (NPC) · size · hp · current_hp · armor · heat · heatcap · '
+  + 'evasion · edef · speed · save · sp · structure · stress · repcap · sensor · tech_attack · overshield · '
+  + 'hull · agi · sys · eng. Wrap in braces, e.g. {ll}. Expressions like "2 + {ll}" or "({grit}/2)+1" also work.';
 
 const SYNERGY_LOCATIONS = [
   'rest','weapon','system','deployable','drone','move','boost','structure','armor','hp','overshield',
   'stress','heat','repair','core_power','overcharge','hull','agility','systems','engineering','pilot_weapon','cascade'
 ];
 
-const CORE_TAGS = [
-  'tg_accurate','tg_inaccurate','tg_ai','tg_arcing','tg_armament','tg_ap','tg_burst','tg_blast','tg_cone','tg_line',
-  'tg_danger_zone','tg_deployable','tg_drone','tg_grenade','tg_heat_self','tg_indestructible','tg_invade','tg_knockback',
-  'tg_limited','tg_loading','tg_mine','tg_mod','tg_ordnance','tg_overkill','tg_overshield','tg_protocol','tg_quick_action',
-  'tg_full_action','tg_free_action','tg_reaction','tg_recharge','tg_reliable','tg_seeking','tg_self_destruct','tg_shield',
-  'tg_smart','tg_thrown','tg_unique','tg_set_max_uses','tg_set_damage_type','tg_set_damage_value'
+/* Core Lancer tag catalogue (verbatim names + rules text from lancer-data
+   lib/tags.json). `fnd: 1` = the Foundry Lancer system has code that automates
+   this tag id. Everything else is display-only in both apps.
+   takesVal is derived from a {VAL} token in the name.                        */
+const mkT = (id, name, description, group, fnd = 0) => ({ id, name, description, group, fnd, takesVal: name.includes('{VAL}') });
+const TAG_CATALOG = [
+  mkT('tg_accurate','Accurate {VAL}','Attacks made with this weapon receive +{VAL} Accuracy.','Attack & damage',1),
+  mkT('tg_inaccurate','Inaccurate {VAL}','Attacks made with this weapon receive +{VAL} Difficulty.','Attack & damage',1),
+  mkT('tg_ap','Armor-Piercing (AP)','Damage dealt by this weapon ignores Armor.','Attack & damage',1),
+  mkT('tg_overkill','Overkill {VAL}','When rolling damage with this weapon, any damage die that lands on a {VAL} makes the attacker take 1 Heat and is rerolled. Repeats on further {VAL}s.','Attack & damage',1),
+  mkT('tg_reliable','Reliable {VAL}','This weapon always deals at least {VAL} damage, even on a miss or a low damage roll. Reliable damage inherits base damage type and tags like AP, but not hit-only tags like Knockback.','Attack & damage',1),
+  mkT('tg_arcing','Arcing','Can be fired over obstacles and does not require line of sight, as long as a path to the target can be traced. Still affected by cover.','Attack & damage'),
+  mkT('tg_seeking','Seeking','Ignores cover and does not require line of sight, as long as a path to the target can be drawn.','Attack & damage',1),
+  mkT('tg_smart','Smart','All attacks with this weapon target E-Defense instead of Evasion. Targets with no E-Defense count as 8.','Attack & damage',1),
+  mkT('tg_knockback','Knockback {VAL}','On a hit, the user may knock the target {VAL} spaces directly away from the origin. Multiple Knockback effects stack.','Attack & damage',1),
+  mkT('tg_archaic','Archaic','This weapon is old-fashioned and can\'t harm mechs.','Attack & damage'),
+  mkT('tg_ordnance','Ordnance','Can only be fired before the user moves or acts (Protocols excepted). Can\'t hit targets engaged with the user and can\'t be used for Overwatch.','Attack & damage',1),
+
+  mkT('tg_burn','Burn {VAL}','On a hit, deals {VAL} Burn: the target takes {VAL} damage immediately (ignoring Armor), then marks {VAL} Burn. At end of turn they make an Engineering check to clear it or take that much damage again.','Damage over time & heat'),
+  mkT('tg_heat_self','Heat {VAL} (Self)','Immediately after using this weapon or system, the user takes {VAL} Heat.','Damage over time & heat',1),
+  mkT('tg_heat_target','Heat {VAL} (Target)','On a hit, this weapon or system deals {VAL} Heat to its target.','Damage over time & heat'),
+
+  mkT('tg_line','Line {VAL}','Attacks affect characters in a straight line {VAL} spaces long.','Range & area'),
+  mkT('tg_cone','Cone {VAL}','Attacks affect characters in a cone {VAL} spaces long, {VAL} wide at the far end, starting 1 space wide.','Range & area'),
+  mkT('tg_blast','Blast {VAL}','Attacks affect all characters within {VAL} spaces of a point in Range and line of sight. Cover/LoS are figured from the blast\'s centre.','Range & area'),
+  mkT('tg_burst','Burst {VAL}','Attacks affect all characters within {VAL} spaces of the user (or target). The character at the centre is not hit unless stated.','Range & area'),
+  mkT('tg_threat','Threat {VAL}','This weapon can make Overwatch attacks within {VAL} spaces (or melee attacks within {VAL} spaces, if melee).','Range & area'),
+  mkT('tg_thrown','Thrown {VAL}','This melee weapon can be thrown at a target within {VAL} spaces (follows melee attack rules but affected by cover). It must be retrieved as a free action before reuse.','Range & area',1),
+  mkT('tg_range','Range ({VAL})','This system can be activated at a range of {VAL} spaces.','Range & area'),
+
+  mkT('tg_loading','Loading','Must be reloaded after each use (Stabilize, or some systems).','Usage & actions'),
+  mkT('tg_loading_after','Loading (Multiple Uses)','Must be reloaded after {VAL} uses. COMP/CON-specific alias for Loading.','Usage & actions'),
+  mkT('tg_limited','Limited {VAL}','Can only be used {VAL} times before a Full Repair. Uses are sometimes called "charges".','Usage & actions',1),
+  mkT('tg_recharge','Recharge {VAL}+','(NPC) Once used, unusable until recharged. At the start of the NPC\'s turn roll 1d6; on {VAL}+ it recharges.','Usage & actions',1),
+  mkT('tg_unique','Unique','Each character can only have one copy of this installed at a time.','Usage & actions',1),
+  mkT('tg_danger_zone','Danger Zone','Can only be used while the user is in the Danger Zone (Heat ≥ half Heat Cap).','Usage & actions'),
+  mkT('tg_protocol','Protocol','Can be activated as a free action, but only at the start of the user\'s turn.','Usage & actions'),
+  mkT('tg_quick_action','Quick Action','This system requires a quick action to activate.','Usage & actions'),
+  mkT('tg_full_action','Full Action','This system requires a full action to activate.','Usage & actions'),
+  mkT('tg_free_action','Free Action','Can be used at any point in the user\'s turn and does not count against their actions.','Usage & actions'),
+  mkT('tg_reaction','Reaction','This system can be activated as a reaction.','Usage & actions'),
+  mkT('tg_quick_tech','Quick Tech','This tech can be used as a Quick Tech action.','Usage & actions'),
+  mkT('tg_full_tech','Full Tech','This tech can be used as a Full Tech action.','Usage & actions'),
+  mkT('tg_invade','Invade','Provides additional options for the Invade quick tech action.','Usage & actions'),
+  mkT('tg_turn','{VAL}/Turn','Can be used {VAL} times in any given turn.','Usage & actions'),
+  mkT('tg_round','{VAL}/Round','Can be used {VAL} times between the start of the user\'s turn and the start of their next.','Usage & actions'),
+  mkT('tg_unlimited','Unlimited','Can be used any number of times per round.','Usage & actions'),
+
+  mkT('tg_deployable','Deployable','An object that can be deployed on the field (quick action, adjacent free space; 5 Evasion, 10 HP per Size unless stated).','Deployables & drones'),
+  mkT('tg_drone','Drone','A semi-autonomous Size 1/2 allied unit (10 Evasion, 5 HP, 0 Armor unless stated). Deploy within Sensors + line of sight; recall with the deploy action.','Deployables & drones'),
+  mkT('tg_mine','Mine','Planted in an adjacent free space; arms at end of turn and triggers as a Burst attack when a character enters an adjacent space.','Deployables & drones'),
+  mkT('tg_grenade','Grenade','As a quick action, thrown to a space within line of sight and Range.','Deployables & drones'),
+  mkT('tg_shield','Shield','This system is an energy shield of some kind.','Deployables & drones'),
+  mkT('tg_ai','AI','Only one AI system may be installed at a time. Grants the mech AI behaviour; AIs can cascade and can\'t benefit from talents.','Deployables & drones',1),
+
+  mkT('tg_overshield','Overshield','Temporary HP that is hit before real HP and does not stack (highest value wins). Disappears at end of scene / on a condition.','Defensive & misc',1),
+  mkT('tg_resistance','Resistance','Halve all damage from a source you have resistance to.','Defensive & misc'),
+  mkT('tg_indestructible','Indestructible','This equipment cannot be marked as Destroyed.','Defensive & misc',1),
+  mkT('tg_mod','Mod','A modification that can be applied to a weapon (one Mod per weapon).','Defensive & misc'),
+
+  mkT('tg_set_max_uses','Set Max Uses','COMP/CON behaviour tag: lets the player set this item\'s maximum uses.','COMP/CON behaviour tags'),
+  mkT('tg_set_damage_type','Set Damage Type','COMP/CON behaviour tag: lets the player set this item\'s damage type.','COMP/CON behaviour tags'),
+  mkT('tg_set_damage_value','Set Damage Value','COMP/CON behaviour tag: lets the player set this item\'s damage value.','COMP/CON behaviour tags'),
 ];
+const TAG_BY_ID = Object.fromEntries(TAG_CATALOG.map(x => [x.id, x]));
+const TAG_GROUPS = [...new Set(TAG_CATALOG.map(x => x.group))];
+const FOUNDRY_TAG_IDS = TAG_CATALOG.filter(x => x.fnd).map(x => x.id);
 
 /* =========================================================================
    Shared sub-editors (registered globally near the bottom)
@@ -728,7 +873,7 @@ const ActionList = {
         <div class="head"><span class="title">{{ a.name || a.activation }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
         <div class="lf-row">
           <div class="lf-field"><label>Name <help t="Best practice: always name it. Systems fall back to the parent name if omitted."/></label><input type="text" v-model="a.name" /></div>
-          <div class="lf-field"><label>Activation <span class="req">*</span></label>
+          <div class="lf-field"><label>Activation <span class="req">*</span><help t="The action type this costs: Free, Protocol, Quick, Full, Reaction, Quick/Full Tech, or Invade. Anything without an action type should be an Active Effect instead, not an Action."/></label>
             <select v-model="a.activation"><option v-for="x in activationTypes" :key="x" :value="x">{{ x }}</option></select></div>
         </div>
         <div class="lf-field"><label>Detail <span class="req">*</span><help t="Second person, present tense. HTML allowed; prefer &lt;br&gt; over paragraphs. Do NOT restate activation/frequency here."/></label><textarea v-model="a.detail"></textarea></div>
@@ -744,8 +889,8 @@ const ActionList = {
             <div class="lf-field"><label>Bonus damage <help t="A dice string (e.g. 1d6) added to the origin item's damage."/></label><input type="text" v-model="a.bonus_damage" /></div>
           </div>
           <div class="lf-checks">
-            <label><input type="checkbox" v-model="a.pilot" /> Pilot only (unmounted)</label>
-            <label><input type="checkbox" v-model="a.mech" /> Mech only (mounted)</label>
+            <label><input type="checkbox" v-model="a.pilot" /> Pilot only (unmounted) <help t="Action is only offered in Active Mode while the pilot is on foot. Defaults on for pilot gear."/></label>
+            <label><input type="checkbox" v-model="a.mech" /> Mech only (mounted) <help t="Action is only offered while the pilot is in their mech. Defaults on for mech equipment."/></label>
           </div>
         </details>
       </div>
@@ -766,7 +911,7 @@ const DamageList = {
         <div class="lf-row" style="align-items:flex-end">
           <div class="lf-field" style="max-width:150px"><label>Type <help t="Kinetic, Energy, Explosive, Heat, Burn, or Variable."/></label>
             <select v-model="d.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
-          <div class="lf-field"><label>Value</label><input type="text" v-model="d.val" placeholder="4 or 2d6+2" /></div>
+          <div class="lf-field"><label>Value <help t="A flat number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens like {grit} are allowed."/></label><input type="text" v-model="d.val" placeholder="4 or 2d6+2" /></div>
           <div class="lf-field" style="max-width:110px"><label>AP <help t="Armor-piercing — ignores armor. 'auto' lets COMP/CON infer it from tags."/></label>
             <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
           <button class="btn tiny danger" @click="_rm(i)">✕</button>
@@ -779,7 +924,7 @@ const DamageList = {
             <div class="lf-field"><label>Target <help t="Ordering hint for Active Mode: self, ally, or enemy."/></label>
               <select v-model="d.target"><option :value="undefined">(enemy)</option><option value="self">self</option><option value="ally">ally</option><option value="enemy">enemy</option></select></div>
           </div>
-          <div class="lf-checks"><label><input type="checkbox" v-model="d.save_half" /> Half damage on a successful save</label></div>
+          <div class="lf-checks"><label><input type="checkbox" v-model="d.save_half" /> Half damage on a successful save <help t="On a save that succeeds, the target takes half instead of none. Off = a successful save negates the damage entirely."/></label></div>
         </details>
       </div>
       <button class="btn tiny" @click="add">+ Damage</button>
@@ -798,7 +943,7 @@ const RangeList = {
       <div v-for="(r,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
         <div class="lf-field" style="max-width:150px"><label>Type <help t="Range = standard ranged attack. Threat = melee reach."/></label>
           <select v-model="r.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
-        <div class="lf-field"><label>Value</label><input type="text" v-model="r.val" placeholder="10" /></div>
+        <div class="lf-field"><label>Value <help t="Maximum range in spaces. A number, or a dice/expression string. Special value strings are allowed as of v3."/></label><input type="text" v-model="r.val" placeholder="10" /></div>
         <div class="lf-field"><label>Min <help t="Optional minimum range — weapon can't fire closer than this."/></label><input type="text" v-model="r.min" /></div>
         <button class="btn tiny danger" @click="_rm(i)">✕</button>
       </div>
@@ -810,49 +955,107 @@ const TagList = {
   name: 'tag-list', mixins: [listModel],
   props: { modelValue: { type: Array, default: () => [] }, localTags: { type: Array, default: () => [] } },
   emits: ['update:modelValue'],
-  data: () => ({ coreTags: CORE_TAGS }),
-  computed: { allIds() { return [...this.coreTags, ...this.localTags.map(t => t.id).filter(Boolean)]; } },
-  methods: { add() { this._add({ id:'', val:'' }); } },
+  data: () => ({ catalog: TAG_CATALOG, groups: TAG_GROUPS }),
+  computed: { localIds() { return this.localTags.map(x => x.id).filter(Boolean); } },
+  methods: {
+    add() { this._add({ id:'', val:'', _custom:false }); },
+    known(id) { return TAG_BY_ID[id]; },
+    isCustom(t) { return t._custom || (t.id && !TAG_BY_ID[t.id]); },
+    selVal(t) { if (this.isCustom(t)) return '__custom'; return TAG_BY_ID[t.id] ? t.id : ''; },
+    setSel(t, v) {
+      if (v === '__custom') { t._custom = true; }
+      else { t._custom = false; t.id = v; if (!TAG_BY_ID[v] || !TAG_BY_ID[v].takesVal) t.val = ''; }
+    },
+    takesVal(t) { const d = TAG_BY_ID[t.id]; return !d || d.takesVal; },
+    render(str, t) {
+      const d = TAG_BY_ID[t.id]; if (!d) return str;
+      const v = (t.val === '' || t.val == null) ? (d.takesVal ? 'X' : '') : t.val;
+      return str.replaceAll('{VAL}', v);
+    },
+    title(t) { const d = TAG_BY_ID[t.id]; return d ? this.render(d.name, t) : (t.id || 'new tag'); },
+    tags(g) { return this.catalog.filter(x => x.group === g); }
+  },
   template: `
     <details class="lf-block">
-      <summary>Tags <span v-if="list.length" class="pill">{{ list.length }}</span> <help t="Reference tags by id. Core tags like tg_loading / tg_reliable / tg_limited are built in. Value fills the tag's {VAL} token (e.g. Reliable 2, Limited 3)."/></summary>
-      <datalist id="taglist"><option v-for="t in allIds" :key="t" :value="t"></option></datalist>
-      <div v-for="(t,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
-        <div class="lf-field"><label>Tag ID</label><input type="text" list="taglist" v-model="t.id" placeholder="tg_loading" /></div>
-        <div class="lf-field" style="max-width:130px"><label>Value <help t="Optional. Numeric or text passed to {VAL}."/></label><input type="text" v-model="t.val" /></div>
-        <button class="btn tiny danger" @click="_rm(i)">✕</button>
+      <summary>Tags <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Pick a tag by name — the correct tg_ id is written to the .lcp for you. Core tags are recognised by COMP/CON; the ⚙ badge marks the ones Foundry also automates. Use 'Custom / from a dependency' for a tag id that isn't in this list."/></summary>
+      <datalist id="localtagids"><option v-for="x in localIds" :key="x" :value="x"></option></datalist>
+      <div v-for="(t,i) in list" :key="i" class="lf-sub">
+        <div class="head">
+          <span class="title">{{ title(t) }}</span>
+          <span v-if="known(t.id) && known(t.id).fnd" class="pill" title="Foundry's Lancer system has automation code for this tag">⚙ Foundry</span>
+          <button class="btn tiny danger" @click="_rm(i)">Remove</button>
+        </div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Tag <help t="Grouped by what the tag does. Selecting one writes its tg_ id to the export."/></label>
+            <select :value="selVal(t)" @change="setSel(t, $event.target.value)">
+              <option value="">— choose a tag —</option>
+              <optgroup v-for="g in groups" :key="g" :label="g">
+                <option v-for="tg in tags(g)" :key="tg.id" :value="tg.id">{{ tg.name }}</option>
+              </optgroup>
+              <option value="__custom">Custom / from a dependency…</option>
+            </select>
+          </div>
+          <div v-if="takesVal(t)" class="lf-field" style="max-width:140px">
+            <label>Value <help t="Fills the {VAL} in the tag's name and rules text — e.g. 2 for Reliable 2, or 3 for Limited 3."/></label>
+            <input type="text" v-model="t.val" />
+          </div>
+        </div>
+        <div v-if="isCustom(t)" class="lf-field">
+          <label>Custom tag ID <span class="req">*</span><help t="The exact id string, e.g. tg_myco_flux. It must match a tag you define in the Custom Tags tab, or one from a dependency pack."/></label>
+          <input type="text" list="localtagids" v-model="t.id" placeholder="tg_..." />
+        </div>
+        <p v-if="known(t.id)" class="lf-note" style="font-size:.82rem; margin:.4rem 0 0" v-html="render(known(t.id).description, t)"></p>
       </div>
       <button class="btn tiny" @click="add">+ Tag</button>
     </details>`
+};
+
+const BONUS_TYPE_HINT = {
+  int: 'Takes an integer, or a special value string (see below).',
+  bool: 'Takes true or false.',
+  str: 'Takes a text value (see the description for what).',
+  dieroll: 'Takes a die-roll list, e.g. 1,1d3,1d6,1d6.',
+  'size[]': 'Takes a comma-separated list of sizes, e.g. 1/2, 1, 2.'
 };
 
 const BonusList = {
   name: 'bonus-list', mixins: [listModel],
   props: { modelValue: { type: Array, default: () => [] } },
   emits: ['update:modelValue'],
-  data: () => ({ groups: BONUS_GROUPS }),
+  data: () => ({ catalog: BONUS_CATALOG, specials: BONUS_SPECIALS, typeHint: BONUS_TYPE_HINT }),
   methods: {
-    add() { this._add({ id:'hp', val:'1', _damage:'', _range:'', _wtype:'', _wsize:'', accuracy:null, overwrite:false, replace:false }); }
+    add() { this._add({ id:'hp', val:'1', _damage:'', _range:'', _wtype:'', _wsize:'', accuracy:null, overwrite:false, replace:false }); },
+    def(id) { return BONUS_BY_ID[id]; },
+    opts(g) { return g[1]; }
   },
   template: `
     <details class="lf-block">
       <summary>Bonuses <span v-if="list.length" class="pill">{{ list.length }}</span>
-        <help t="Mechanical value modifiers COMP/CON (and Foundry) apply automatically — +2 Hull, +1 SP, extra HP, etc. Use these instead of prose whenever a rule can be expressed as a number."/></summary>
+        <help t="Mechanical value modifiers COMP/CON and Foundry apply automatically — +2 Hull, +1 SP, extra HP, and so on. Prefer a bonus over prose whenever a rule is just a number."/></summary>
       <div v-for="(b,i) in list" :key="i" class="lf-sub">
-        <div class="head"><span class="title">{{ b.id }} = {{ b.val }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="head"><span class="title">{{ def(b.id) ? def(b.id).label : b.id }} = {{ b.val }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
         <div class="lf-row">
-          <div class="lf-field"><label>Bonus <span class="req">*</span></label>
+          <div class="lf-field"><label>Bonus <span class="req">*</span><help t="Grouped by what it modifies. The description below shows exactly what COMP/CON changes."/></label>
             <select v-model="b.id">
-              <optgroup v-for="g in groups" :key="g[0]" :label="g[0]">
-                <option v-for="opt in g[1]" :key="opt[0]" :value="opt[0]">{{ opt[1] }} ({{ opt[0] }})</option>
+              <optgroup v-for="g in catalog" :key="g[0]" :label="g[0]">
+                <option v-for="o in g[1]" :key="o.id" :value="o.id">{{ o.label }}</option>
               </optgroup>
             </select></div>
-          <div class="lf-field" style="max-width:160px"><label>Value <span class="req">*</span><help t="A number, or a special string in braces like {ll}, {grit}, {tier}. Expressions such as 2 + {ll} work too."/></label><input type="text" v-model="b.val" /></div>
-          <div class="lf-field" style="max-width:120px"><label>Accuracy <help t="Optional. Adds Accuracy (+) or Difficulty (−) dice to the bonus."/></label><input type="number" v-model.number="b.accuracy" /></div>
+          <div class="lf-field" style="max-width:160px"><label>Value <span class="req">*</span><help t="What to add. Integer bonuses also accept special value strings and expressions — see the note below the picker."/></label><input type="text" v-model="b.val" /></div>
+          <div class="lf-field" style="max-width:120px"><label>Accuracy <help t="Optional. Adds Accuracy (+) or Difficulty (−) dice on top of the bonus."/></label><input type="number" v-model.number="b.accuracy" /></div>
         </div>
+        <p v-if="def(b.id)" class="lf-note" style="font-size:.82rem; margin:.3rem 0">
+          <strong>{{ def(b.id).id }}</strong> — {{ def(b.id).detail }}<br>
+          <span style="opacity:.8">{{ typeHint[def(b.id).type] }}<span v-if="def(b.id).scope!=='All'"> · {{ def(b.id).scope }}-only.</span></span>
+        </p>
+        <details v-if="def(b.id) && def(b.id).type==='int'" class="lf-block">
+          <summary>Special value strings</summary>
+          <p style="font-size:.8rem; margin:0">{{ specials }}</p>
+        </details>
         <details class="lf-block">
-          <summary>Restrict / flags</summary>
-          <p class="lf-note" style="font-size:.8rem">Filters are ANDed — an item must match every filter set to receive the bonus. Comma-separated. Leave blank for "any".</p>
+          <summary>Restrict to certain weapons</summary>
+          <p class="lf-note" style="font-size:.8rem">Only meaningful for weapon/attack bonuses. Filters are ANDed — a weapon must match every filter you set. Comma-separated; blank = any.</p>
           <div class="lf-row">
             <div class="lf-field"><label>Damage types <help t="Kinetic, Energy, Explosive, Heat, Burn"/></label><input type="text" v-model="b._damage" placeholder="Explosive" /></div>
             <div class="lf-field"><label>Range types <help t="Melee, Threat, Range, Line, Burst, Blast, Cone"/></label><input type="text" v-model="b._range" /></div>
@@ -862,8 +1065,8 @@ const BonusList = {
             <div class="lf-field"><label>Weapon sizes <help t="Auxiliary, Main, Heavy, Superheavy, any"/></label><input type="text" v-model="b._wsize" /></div>
           </div>
           <div class="lf-checks">
-            <label><input type="checkbox" v-model="b.overwrite" /> Overwrite <help t="Keep only the single highest overwrite-flagged bonus of this id, discarding all others."/></label>
-            <label><input type="checkbox" v-model="b.replace" /> Replace <help t="Replace the base value entirely with the summed replace bonuses (e.g. set HP to a flat number)."/></label>
+            <label><input type="checkbox" v-model="b.overwrite" /> Overwrite <help t="Of all overwrite-flagged bonuses with this id, only the single highest is kept."/></label>
+            <label><input type="checkbox" v-model="b.replace" /> Replace <help t="Replaces the base value outright with the sum of replace-flagged bonuses (e.g. set HP to a flat number)."/></label>
           </div>
         </details>
       </div>
@@ -889,9 +1092,9 @@ const SynergyList = {
         <details class="lf-block">
           <summary>Filters (weapon/system only)</summary>
           <div class="lf-row">
-            <div class="lf-field"><label>Weapon types</label><input type="text" v-model="s._wtype" /></div>
-            <div class="lf-field"><label>Weapon sizes</label><input type="text" v-model="s._wsize" /></div>
-            <div class="lf-field"><label>System types</label><input type="text" v-model="s._stype" placeholder="Drone" /></div>
+            <div class="lf-field"><label>Weapon types <help t="Comma-separated. Only show this hint on weapons of these types. Blank = any."/></label><input type="text" v-model="s._wtype" /></div>
+            <div class="lf-field"><label>Weapon sizes <help t="Comma-separated. Only show this hint on weapons of these sizes. Blank = any."/></label><input type="text" v-model="s._wsize" /></div>
+            <div class="lf-field"><label>System types <help t="Comma-separated, e.g. Drone. Only show this hint on systems of these types. Blank = any."/></label><input type="text" v-model="s._stype" placeholder="Drone" /></div>
           </div>
         </details>
       </div>
@@ -912,12 +1115,12 @@ const CounterList = {
         <div class="head"><span class="title">{{ c.name || c.id || 'counter' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
         <div class="lf-row">
           <div class="lf-field"><label>ID <span class="req">*</span><help t="Unique, e.g. ctr_myco_charge."/></label><input type="text" v-model="c.id" placeholder="ctr_..." /></div>
-          <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
+          <div class="lf-field"><label>Name <span class="req">*</span><help t="Label shown above the counter in Active Mode."/></label><input type="text" v-model="c.name" /></div>
         </div>
         <div class="lf-row">
           <div class="lf-field"><label>Default <help t="Starting value. Defaults to 0."/></label><input type="number" v-model.number="c.default_value" /></div>
-          <div class="lf-field"><label>Min</label><input type="number" v-model.number="c.min" /></div>
-          <div class="lf-field"><label>Max</label><input type="number" v-model.number="c.max" /></div>
+          <div class="lf-field"><label>Min <help t="Lowest value the player can set. Leave blank for no lower bound."/></label><input type="number" v-model.number="c.min" /></div>
+          <div class="lf-field"><label>Max <help t="Highest value the player can set. Leave blank for no upper bound."/></label><input type="number" v-model.number="c.max" /></div>
         </div>
       </div>
       <button class="btn tiny" @click="add">+ Counter</button>
@@ -945,16 +1148,16 @@ const DeployableList = {
       <div v-for="(d,i) in list" :key="i" class="lf-sub">
         <div class="head"><span class="title">{{ d.name || 'deployable' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
         <div class="lf-row">
-          <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="d.name" /></div>
+          <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name in the Active Mode deployable tracker, e.g. Shock Wreath, Turret Drone."/></label><input type="text" v-model="d.name" /></div>
           <div class="lf-field"><label>Type <span class="req">*</span><help t="Free text, but Drone and Mine get special defaults/handling. Defaults to Deployable."/></label><input type="text" v-model="d.type" placeholder="Deployable / Drone / Mine" /></div>
         </div>
         <div class="lf-field"><label>Detail <span class="req">*</span><help t="Short description shown in Active Mode. HTML allowed."/></label><textarea v-model="d.detail"></textarea></div>
         <div class="lf-row">
           <div class="lf-field"><label>Deploy <help t="Action type of the Deploy action on the parent. Defaults to Quick."/></label>
             <select v-model="d.activation"><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
-          <div class="lf-field"><label>Deactivate</label><select v-model="d.deactivation"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
-          <div class="lf-field"><label>Recall</label><select v-model="d.recall"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
-          <div class="lf-field"><label>Redeploy</label><select v-model="d.redeploy"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Deactivate <help t="Optional. Action on the deployable that deletes it (no refund)."/></label><select v-model="d.deactivation"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Recall <help t="Optional. Action that removes the deployable and refunds its charge cost to the parent."/></label><select v-model="d.recall"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Redeploy <help t="Optional. Action available after a recall that puts the deployable back with no cost."/></label><select v-model="d.redeploy"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
         </div>
         <h4>Stats <help t="All optional — leave blank to use COMP/CON's type/size-based defaults. Special value strings like {grit} are allowed."/></h4>
         <div class="lf-stats">
