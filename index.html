@@ -665,6 +665,9 @@ const HelpTip = {
   template: `<span class="help" tabindex="0"><span class="dot">i</span><span class="bubble" v-html="t"></span></span>`
 };
 
+/* Shared components are registered globally (below) so they also work
+   inside the nested list editors, not just the root template. */
+
 /* ---------- factories ---------- */
 
 const blankManifest = () => ({
@@ -702,7 +705,6 @@ const blankSystem = () => ({
 /* ---------- app ---------- */
 
 const app = createApp({
-  components: { HelpTip, ActionList, DamageList, RangeList, TagList },
   data() {
     return {
       tab: 'manifest',
@@ -963,6 +965,12 @@ const app = createApp({
     }
   }
 });
+
+app.component('help', HelpTip);
+app.component('action-list', ActionList);
+app.component('damage-list', DamageList);
+app.component('range-list', RangeList);
+app.component('tag-list', TagList);
 
 app.mount('#lcp-forge');
 </script>
