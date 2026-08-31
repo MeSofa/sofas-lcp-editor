@@ -91,11 +91,15 @@ confirm the toolchain end-to-end (still the one outstanding manual check).
 
 ### UI
 
-- Home tab holds the manifest + a contents overview; each category is a list of
-  collapsible cards; the left nav groups collapse; mounts / mech-types / weapon-types /
-  bonus-restrict filters are button-driven.
-- Still to do here: modal editors (à la the official tool) if the collapsible cards feel
-  cramped; a proper search across items; the WordPress embed + theme styling.
+- Home tab holds the manifest + a contents overview.
+- Each category is a compact list of rows; **clicking a row opens a modal editor**
+  (Done / ✕ / Esc / click-outside to close).
+- The left nav **toggles from the ☰ button** for a full-width editing area; nav groups
+  also collapse individually.
+- Button-driven inputs: frame mounts, mech-type presets, weapon types, and the
+  bonus/synergy "restrict" filters.
+- Still to do: colour themes + a settings panel (planned for the Home screen); item
+  search; the WordPress embed.
 
 ## Next
 
