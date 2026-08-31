@@ -566,23 +566,7 @@
         <!-- ============ TAGS ============ -->
         <section v-show="tab==='tags'">
           <h2>Custom Tags <span class="pill">tags.json</span></h2>
-          <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. The core tags (Accurate, Loading, Reliable X, …) are already in the tag picker on weapons and systems — you don't define those here.</p>
-          <details class="lf-block lf-warn" style="border-left:3px solid var(--warn)">
-            <summary style="color:var(--warn)">Will a custom tag drive automation? — read this</summary>
-            <p style="font-size:.86rem">
-              <strong>Short answer: no, not on its own.</strong> Both COMP/CON and Foundry only automate a
-              <em>fixed, hard-coded list</em> of tag ids (Accurate, Inaccurate, AP, Overkill, Reliable, Loading,
-              Limited, Knockback, Heat (Self), Smart, Seeking, Thrown, Overshield, Recharge, AI, …). A brand-new
-              id like <span class="mono">tg_myco_unreliable</span> gets its <em>name and description shown</em>
-              everywhere (with <span class="mono">{VAL}</span> filled in), but no dice are rolled for it.
-            </p>
-            <p style="font-size:.86rem">
-              So a "deal X damage only on a miss" tag would just be flavour text. The mechanically-automated ways to
-              express that are: the <strong>Reliable X</strong> core tag (Foundry rolls it on a miss), the weapon's
-              <strong>on-miss</strong> field (shown, not rolled), a <strong>damage</strong> entry with a save, or a
-              <strong>bonus</strong>. Use a custom tag when you want a reusable, named piece of rules text — not for automation.
-            </p>
-          </details>
+          <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. The core tags (Accurate, Loading, Reliable X, …) are already in the tag picker on weapons and systems — you don't define those here. Note that a brand-new custom tag id is shown as text everywhere but isn't automated by COMP/CON or Foundry (they only automate a fixed list of known ids).</p>
           <p v-if="!lcp.tags.length" class="empty">No custom tags.</p>
 
           <div v-for="(t,i) in lcp.tags" :key="i" class="lf-list-item">
@@ -1012,9 +996,9 @@ const TagList = {
 };
 
 const BONUS_TYPE_HINT = {
-  int: 'Takes an integer, or a special value string (see below).',
+  int: 'Takes an integer.',
   bool: 'Takes true or false.',
-  str: 'Takes a text value (see the description for what).',
+  str: 'Takes a text value.',
   dieroll: 'Takes a die-roll list, e.g. 1,1d3,1d6,1d6.',
   'size[]': 'Takes a comma-separated list of sizes, e.g. 1/2, 1, 2.'
 };

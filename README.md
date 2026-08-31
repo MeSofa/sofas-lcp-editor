@@ -51,7 +51,9 @@ Done:
 Validated in-browser: flat zip with correct names; export → import round-trips byte-stable;
 generated JSON matches the lancer-data wiki schemas.
 
-Not yet verified: import into a live COMP/CON instance (the real end-to-end check).
+A generated sample pack lives at
+[`examples/lcp-forge-test-pack_1.0.0.lcp`](examples/) — install it in COMP/CON to
+confirm the toolchain end-to-end (still the one outstanding manual check).
 
 ### Known gaps vs. the official editor (deferred)
 
