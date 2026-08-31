@@ -10,8 +10,9 @@
   so it drops straight into a WordPress Code Snippet shortcode.
 
   PHASE 1 scope: manifest, manufacturers, frames (traits + core system),
-  weapons, systems, custom tags, and full .lcp export/import.
-  Later phases add the remaining pilot / licensed / NPC / misc categories.
+  weapons, systems, custom tags, and full .lcp export/import — plus the
+  shared mechanical builders (bonuses, synergies, counters, deployables)
+  that Foundry's automation reads.
 
   Schema references: https://github.com/massif-press/lancer-data/wiki
 -->
@@ -36,19 +37,21 @@
     background: var(--bg);
     color: var(--text);
     font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     flex-direction: column;
   }
-  #lcp-forge h1, #lcp-forge h2, #lcp-forge h3 { margin: 0 0 .5rem; font-weight: 650; }
+  #lcp-forge h1, #lcp-forge h2, #lcp-forge h3, #lcp-forge h4 { margin: 0 0 .5rem; font-weight: 650; }
   #lcp-forge h1 { font-size: 1.15rem; }
   #lcp-forge h2 { font-size: 1.05rem; border-bottom: 1px solid var(--line); padding-bottom: .4rem; margin-bottom: 1rem; }
   #lcp-forge h3 { font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  #lcp-forge h4 { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: .3rem; }
   #lcp-forge a { color: var(--accent); }
 
   .lf-top {
     display: flex; align-items: center; gap: 1rem;
     padding: .7rem 1rem; background: var(--panel); border-bottom: 1px solid var(--line);
+    flex-shrink: 0;
   }
   .lf-top .brand { font-weight: 700; letter-spacing: .02em; }
   .lf-top .spacer { flex: 1; }
@@ -56,6 +59,7 @@
   .lf-nav {
     width: 190px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--line);
     padding: .6rem; display: flex; flex-direction: column; gap: 2px;
+    overflow-y: auto;
   }
   .lf-nav button {
     text-align: left; background: none; border: 0; color: var(--muted);
@@ -66,8 +70,8 @@
   .lf-nav button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
   .lf-nav .count { font-size: .75rem; opacity: .8; }
   .lf-nav button.active .count { color: var(--accent-ink); }
-  .lf-main { flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem 4rem; }
-  .lf-main-inner { max-width: 880px; }
+  .lf-main { flex: 1; min-width: 0; overflow-y: auto; padding: 1.25rem 1.5rem 4rem; }
+  .lf-main-inner { max-width: 900px; }
 
   .lf-field { margin-bottom: 1rem; }
   .lf-field > label { display: flex; align-items: center; gap: .35rem; font-weight: 600; margin-bottom: .3rem; font-size: .9rem; }
@@ -79,10 +83,10 @@
   textarea { min-height: 70px; resize: vertical; }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
   .lf-row { display: flex; gap: .8rem; flex-wrap: wrap; }
-  .lf-row > .lf-field { flex: 1; min-width: 160px; }
+  .lf-row > .lf-field { flex: 1; min-width: 150px; }
   .lf-inline { display: flex; align-items: center; gap: .4rem; }
   .lf-checks { display: flex; flex-wrap: wrap; gap: .5rem .9rem; }
-  .lf-checks label { display: flex; align-items: center; gap: .35rem; font-weight: 400; font-size: .9rem; }
+  .lf-checks label { display: flex; align-items: center; gap: .35rem; font-weight: 400; font-size: .88rem; }
   .lf-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .6rem; }
   .lf-stats .lf-field { margin-bottom: 0; }
 
@@ -109,6 +113,18 @@
   }
   .lf-sub > .head { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
   .lf-sub > .head .title { font-weight: 600; flex: 1; font-size: .88rem; color: var(--muted); }
+  .lf-block { border: 1px solid var(--line); border-radius: 6px; padding: .7rem .8rem; margin: .6rem 0; }
+  .lf-block > summary { cursor: pointer; font-size: .82rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 650; }
+  .lf-block[open] > summary { margin-bottom: .6rem; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: .3rem; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: .2rem .6rem; font-size: .82rem;
+  }
+  .chip.click { cursor: pointer; }
+  .chip.click:hover { border-color: var(--danger); color: var(--danger); }
+  .chip .x { opacity: .6; }
 
   .help { position: relative; display: inline-flex; }
   .help .dot {
@@ -287,14 +303,21 @@
               <label>License ID <span class="req">*</span><help t="Required for variants. Must match the id of the parent license frame."/></label>
               <input type="text" v-model="f.license_id" />
             </div>
+
             <div class="lf-field">
-              <label>Mounts <span class="req">*</span><help t="The weapon mounts this frame provides. Tick one or more."/></label>
-              <div class="lf-checks">
-                <label v-for="mt in mountTypes" :key="mt">
-                  <input type="checkbox" :value="mt" v-model="f.mounts" /> {{ mt }}
-                </label>
+              <label>Mounts <span class="req">*</span><help t="The weapon mounts this frame provides. A frame can have several of the same type — add one per mount. Click a mount to remove it."/></label>
+              <div class="chips">
+                <span v-for="(mt,mi) in f.mounts" :key="mi" class="chip click" @click="f.mounts.splice(mi,1)">{{ mt }} <span class="x">✕</span></span>
+                <span v-if="!f.mounts.length" class="mono" style="color:var(--muted)">none</span>
+              </div>
+              <div class="lf-inline" style="margin-top:.5rem">
+                <select v-model="f._mountToAdd" style="max-width:180px">
+                  <option v-for="mt in mountTypes" :key="mt" :value="mt">{{ mt }}</option>
+                </select>
+                <button class="btn tiny" @click="f.mounts.push(f._mountToAdd)">+ Add mount</button>
               </div>
             </div>
+
             <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the Compendium and expanded cards. HTML allowed."/></label><textarea v-model="f.description"></textarea></div>
 
             <h3>Stats <help t="All positive integers, except size which may also be 0.5 (renders as ½)."/></h3>
@@ -305,7 +328,7 @@
               </div>
             </div>
 
-            <h3 style="margin-top:1.2rem">Traits <help t="Frame abilities. Zero or more. Each has a name + description; add Actions for anything with an explicit activation type."/></h3>
+            <h3 style="margin-top:1.2rem">Traits <help t="Frame abilities. Zero or more. Each has a name + description; attach Actions / Bonuses / Synergies for the mechanical parts."/></h3>
             <div v-for="(tr,ti) in f.traits" :key="ti" class="lf-sub">
               <div class="head">
                 <span class="title">{{ tr.name || 'Trait' }}</span>
@@ -314,8 +337,12 @@
               <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="tr.name" /></div>
               <div class="lf-field"><label>Description <span class="req">*</span><help t="Rules + flavor. HTML allowed."/></label><textarea v-model="tr.description"></textarea></div>
               <action-list v-model="tr.actions" label="Trait actions"></action-list>
+              <bonus-list v-model="tr.bonuses"></bonus-list>
+              <synergy-list v-model="tr.synergies"></synergy-list>
+              <counter-list v-model="tr.counters"></counter-list>
+              <deployable-list v-model="tr.deployables"></deployable-list>
             </div>
-            <button class="btn tiny" @click="f.traits.push({name:'',description:'',actions:[]})">+ Trait</button>
+            <button class="btn tiny" @click="f.traits.push(blankTrait())">+ Trait</button>
 
             <h3 style="margin-top:1.2rem">Core system <help t="Every frame has exactly one. The unique CORE Power."/></h3>
             <div class="lf-sub">
@@ -349,11 +376,38 @@
               </div>
               <div class="lf-field"><label>Passive name <help t="Optional. If the CORE system has an always-on passive."/></label><input type="text" v-model="f.core_system.passive_name" /></div>
               <div class="lf-field" v-if="f.core_system.passive_name"><label>Passive effect <help t="Rules text for the passive. HTML allowed."/></label><textarea v-model="f.core_system.passive_effect"></textarea></div>
+
+              <h4>Active — added while the CORE Power is on</h4>
               <action-list v-model="f.core_system.active_actions" label="Active actions"></action-list>
+              <bonus-list v-model="f.core_system.active_bonuses"></bonus-list>
+              <synergy-list v-model="f.core_system.active_synergies"></synergy-list>
+              <h4>Passive — always on</h4>
               <action-list v-model="f.core_system.passive_actions" label="Passive actions"></action-list>
+              <bonus-list v-model="f.core_system.passive_bonuses"></bonus-list>
+              <synergy-list v-model="f.core_system.passive_synergies"></synergy-list>
+              <h4>Either way</h4>
+              <deployable-list v-model="f.core_system.deployables"></deployable-list>
+              <counter-list v-model="f.core_system.counters"></counter-list>
+              <tag-list v-model="f.core_system.tags" :local-tags="lcp.tags"></tag-list>
             </div>
 
-            <div class="lf-field" style="margin-top:1rem"><label>Frame image URL <help t="Optional. Default frame artwork, remotely hosted."/></label><input type="url" v-model="f.image_url" /></div>
+            <details class="lf-block" style="margin-top:1rem">
+              <summary>Advanced frame options</summary>
+              <div class="lf-field"><label>Frame image URL <help t="Optional. Default frame artwork, remotely hosted."/></label><input type="url" v-model="f.image_url" /></div>
+              <div class="lf-row">
+                <div class="lf-field">
+                  <label>y-position <help t="Optional. Vertical % offset for the frame art in COMP/CON's banner UI. 0–100."/></label>
+                  <input type="number" v-model.number="f.y_pos" />
+                </div>
+                <div class="lf-field">
+                  <label class="lf-inline" style="margin-top:1.6rem">
+                    <input type="checkbox" v-model="f.specialty" />
+                    Specialty license
+                    <help t="Marks this as a nonstandard / frameless license. Hides the frame and flags the license as 'Specialty'."/>
+                  </label>
+                </div>
+              </div>
+            </details>
           </div>
           <button class="btn primary" @click="addFrame">+ Frame</button>
         </section>
@@ -375,7 +429,7 @@
             </div>
             <div class="lf-row">
               <div class="lf-field">
-                <label>Source <span class="req">*</span><help t="Manufacturer ID. Not required if the weapon ships in a License Collection, but this tool uses the standard flat format."/></label>
+                <label>Source <span class="req">*</span><help t="Manufacturer ID."/></label>
                 <select v-model="w.source">
                   <option value="" disabled>— select —</option>
                   <option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }}</option>
@@ -416,11 +470,33 @@
             <range-list v-model="w.range"></range-list>
             <tag-list v-model="w.tags" :local-tags="lcp.tags"></tag-list>
             <action-list v-model="w.actions" label="Actions (reactions, protocols, etc.)"></action-list>
+            <bonus-list v-model="w.bonuses"></bonus-list>
+            <synergy-list v-model="w.synergies"></synergy-list>
+            <deployable-list v-model="w.deployables"></deployable-list>
+            <counter-list v-model="w.counters"></counter-list>
 
-            <div class="lf-field"><label>On attack <help t="Effect that applies when you make an attack with this weapon, before hit/damage rolls. Plain text; HTML allowed."/></label><input type="text" v-model="w.on_attack" /></div>
-            <div class="lf-field"><label>On hit <help t="Applies after a successful hit, before damage."/></label><input type="text" v-model="w.on_hit" /></div>
-            <div class="lf-field"><label>On crit <help t="Applies only on a critical hit."/></label><input type="text" v-model="w.on_crit" /></div>
-            <div class="lf-field"><label>On miss <help t="Applies on a miss (e.g. Reliable)."/></label><input type="text" v-model="w.on_miss" /></div>
+            <details class="lf-block">
+              <summary>On-attack / on-hit effects</summary>
+              <div class="lf-field"><label>On attack <help t="Effect that applies when you make an attack with this weapon, before hit/damage rolls. Plain text; HTML allowed."/></label><input type="text" v-model="w.on_attack" /></div>
+              <div class="lf-field"><label>On hit <help t="Applies after a successful hit, before damage."/></label><input type="text" v-model="w.on_hit" /></div>
+              <div class="lf-field"><label>On crit <help t="Applies only on a critical hit."/></label><input type="text" v-model="w.on_crit" /></div>
+              <div class="lf-field"><label>On miss <help t="Applies on a miss (e.g. Reliable)."/></label><input type="text" v-model="w.on_miss" /></div>
+            </details>
+
+            <details class="lf-block">
+              <summary>Flags</summary>
+              <div class="lf-checks">
+                <label><input type="checkbox" v-model="w.skirmish" /> Skirmish only <help t="Restrict this weapon to the Skirmish action. Overrides barrage."/></label>
+                <label><input type="checkbox" v-model="w.barrage" /> Barrage only <help t="Restrict this weapon to the Barrage action."/></label>
+                <label><input type="checkbox" v-model="w.no_attack" /> Prohibit attack action <help t="Suppresses Skirmish/Barrage entirely — for weapon-mounted systems (e.g. the Goblin's Autopod)."/></label>
+                <label><input type="checkbox" v-model="w.no_mods" /> Prohibit mods <help t="No weapon mods can be attached."/></label>
+                <label><input type="checkbox" v-model="w.no_core_bonus" /> Ignore mount core bonuses <help t="Mount-sensitive core bonuses do not apply to attacks with this weapon."/></label>
+                <label><input type="checkbox" v-model="w.no_bonus" /> Ignore bonuses <help t="This weapon neither registers nor receives Bonuses."/></label>
+                <label><input type="checkbox" v-model="w.no_synergy" /> Ignore synergies <help t="This weapon neither contributes to nor is marked by Synergies."/></label>
+              </div>
+            </details>
+
+            <p class="lf-note" style="margin-top:.6rem; font-size:.82rem">Multi-mode weapons (<span class="mono">profiles</span>) and ammo lists aren't in the UI yet — load an existing .lcp with profiles and they'll round-trip untouched.</p>
           </div>
           <button class="btn primary" @click="addWeapon">+ Weapon</button>
         </section>
@@ -471,6 +547,18 @@
 
             <tag-list v-model="s.tags" :local-tags="lcp.tags"></tag-list>
             <action-list v-model="s.actions" label="Actions"></action-list>
+            <bonus-list v-model="s.bonuses"></bonus-list>
+            <synergy-list v-model="s.synergies"></synergy-list>
+            <deployable-list v-model="s.deployables"></deployable-list>
+            <counter-list v-model="s.counters"></counter-list>
+
+            <details class="lf-block">
+              <summary>Flags</summary>
+              <div class="lf-checks">
+                <label><input type="checkbox" v-model="s.no_bonus" /> Ignore bonuses</label>
+                <label><input type="checkbox" v-model="s.no_synergy" /> Ignore synergies</label>
+              </div>
+            </details>
           </div>
           <button class="btn primary" @click="addSystem">+ System</button>
         </section>
@@ -532,98 +620,68 @@
 <script>
 const { createApp } = Vue;
 
-/* ---------- shared sub-editors ---------- */
+/* =========================================================================
+   Enum data
+   ========================================================================= */
 
-const HELP_DMG_TYPE = "Kinetic, Energy, Explosive, Heat, Burn, or Variable.";
-const HELP_DMG_VAL  = "A number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens are allowed.";
+const ACTIVATIONS = ['Free','Protocol','Quick','Full','Reaction','Quick Tech','Full Tech','Invade'];
+const FREQUENCIES = ['unlimited','1/round','1/turn','1/scene','1/mission'];
+const DAMAGE_TYPES = ['Kinetic','Energy','Explosive','Heat','Burn','Variable'];
+const RANGE_TYPES  = ['Threat','Range','Burst','Blast','Cone','Line'];
+const WEAPON_TYPES = ['Rifle','Cannon','Launcher','CQB','Nexus','Melee'];
+const WEAPON_SIZES = ['Auxiliary','Main','Heavy','Superheavy'];
 
-const ActionList = {
-  name: 'action-list',
-  props: { modelValue: { type: Array, default: () => [] }, label: { type: String, default: 'Actions' } },
-  emits: ['update:modelValue'],
-  data: () => ({ activationTypes: ['Free','Protocol','Quick','Full','Reaction','Quick Tech','Full Tech','Invade'],
-                 frequencies: ['unlimited','1/round','1/turn','1/scene','1/mission'] }),
-  computed: { list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } } },
-  methods: {
-    add() { this.list = [...this.list, { name:'', activation:'Quick', detail:'', frequency:'', trigger:'' }]; },
-    remove(i) { const c = [...this.list]; c.splice(i,1); this.list = c; }
-  },
-  template: `
-    <div style="margin:.6rem 0">
-      <h3>{{ label }}</h3>
-      <div v-for="(a,i) in list" :key="i" class="lf-sub">
-        <div class="head">
-          <span class="title">{{ a.name || a.activation }}</span>
-          <button class="btn tiny danger" @click="remove(i)">Remove</button>
-        </div>
-        <div class="lf-row">
-          <div class="lf-field"><label>Name <help t="Best practice: always name it. Systems fall back to the parent name if omitted."/></label><input type="text" v-model="a.name" /></div>
-          <div class="lf-field">
-            <label>Activation <span class="req">*</span></label>
-            <select v-model="a.activation"><option v-for="x in activationTypes" :key="x" :value="x">{{ x }}</option></select>
-          </div>
-        </div>
-        <div class="lf-field"><label>Detail <span class="req">*</span><help t="Second person, present tense. HTML allowed; prefer <br> over paragraphs. Do NOT restate activation/frequency here."/></label><textarea v-model="a.detail"></textarea></div>
-        <div class="lf-row">
-          <div class="lf-field">
-            <label>Frequency <help t="Leave blank for unlimited / normal action economy."/></label>
-            <select v-model="a.frequency"><option value="">(unlimited)</option><option v-for="x in frequencies" :key="x" :value="x">{{ x }}</option></select>
-          </div>
-          <div class="lf-field"><label>Trigger <help t="Required for Reactions — the condition that lets you take it. Displayed, not enforced."/></label><input type="text" v-model="a.trigger" /></div>
-        </div>
-      </div>
-      <button class="btn tiny" @click="add">+ {{ label }}</button>
-    </div>`
-};
+/* Bonus IDs, grouped for the <select>. Source: lancer-data wiki Bonus List. */
+const BONUS_GROUPS = [
+  ['Weapons / attacks', [
+    ['range','Add range (incl. Threat)'], ['damage','Add damage'], ['attack_roll','Add to attack rolls'],
+    ['accuracy','Add Accuracy'], ['threat','Add Threat'], ['thrown','Add Thrown'],
+    ['tech_attack','Add tech attack'],
+  ]],
+  ['Mech stats', [
+    ['hp','HP'], ['armor','Armor'], ['armor_max','Max armor cap'], ['structure','Structure'],
+    ['stress','Reactor stress'], ['heatcap','Heat cap'], ['repcap','Repair cap'], ['speed','Speed'],
+    ['boost','Boost speed'], ['evasion','Evasion'], ['edef','E-Defense'], ['sensor','Sensor range'],
+    ['attack','Attack bonus'], ['grapple','Grapple'], ['ram','Ram'], ['save','Save target'],
+    ['sp','System Points'], ['size','Size'],
+  ]],
+  ['HASE checks & saves', [
+    ['hull','Hull checks + saves'], ['agility','Agility checks + saves'], ['engineering','Engineering checks + saves'], ['systems','Systems checks + saves'],
+    ['hull_check','Hull checks'], ['agility_check','Agility checks'], ['engineering_check','Engineering checks'], ['systems_check','Systems checks'],
+    ['hull_save','Hull saves'], ['agility_save','Agility saves'], ['engineering_save','Engineering saves'], ['systems_save','Systems saves'],
+  ]],
+  ['Deployables / drones', [
+    ['deployable_hp','Deployable HP'], ['deployable_armor','Deployable armor'], ['deployable_evasion','Deployable evasion'],
+    ['deployable_edef','Deployable edef'], ['deployable_size','Deployable size'], ['deployable_charges','Deployable charges'],
+    ['deployable_heatcap','Deployable heatcap'], ['deployable_repcap','Deployable repcap'], ['deployable_sensor_range','Deployable sensors'],
+    ['deployable_tech_attack','Deployable tech attack'], ['deployable_save','Deployable save'], ['deployable_speed','Deployable speed'],
+    ['drone_hp','Drone HP'], ['drone_armor','Drone armor'], ['drone_evasion','Drone evasion'], ['drone_edef','Drone edef'],
+    ['drone_size','Drone size'], ['drone_charges','Drone charges'], ['drone_heatcap','Drone heatcap'], ['drone_repcap','Drone repcap'],
+    ['drone_sensor_range','Drone sensors'], ['drone_tech_attack','Drone tech attack'], ['drone_save','Drone save'], ['drone_speed','Drone speed'],
+    ['deploy_count','Extra deploy action'],
+  ]],
+  ['Pilot', [
+    ['pilot_hp','Pilot HP'], ['pilot_armor','Pilot armor'], ['pilot_evasion','Pilot evasion'], ['pilot_edef','Pilot edef'],
+    ['pilot_speed','Pilot speed'], ['pilot_armor_slots','Pilot armor slots'], ['pilot_gear_slots','Pilot gear slots'],
+    ['pilot_weapon_slots','Pilot weapon slots'], ['ai_cap','AI capacity'], ['limited_bonus','Limited uses'],
+    ['skill_point','Skill trigger point'], ['mech_skill_point','Mech skill (HASE) point'], ['talent_point','Talent point'],
+    ['license_point','License point'], ['cb_point','CORE bonus point'],
+    ['cheap_struct','Half-cost structure repairs (bool)'], ['cheap_stress','Half-cost stress repairs (bool)'],
+    ['mount_accuracy','All mounts: +accuracy'], ['mount_range','All mounts: +range'], ['mount_damage','All mounts: +damage'],
+    ['mount_damage_type','All mounts: override damage type'], ['mount_range_type','All mounts: override range type'],
+    ['mount_weapon_type','All mounts: override weapon type'], ['add_mount','Gain a mount (type:max)'],
+  ]],
+  ['NPC', [
+    ['sizes','NPC size choices'], ['activations','Activations / round'], ['activations_pct','Extra activation per X PCs'],
+    ['no_mods','Cannot equip mods (bool)'],
+  ]],
+];
+const ALL_BONUS_IDS = BONUS_GROUPS.flatMap(g => g[1].map(b => b[0]));
 
-const DamageList = {
-  name: 'damage-list',
-  props: { modelValue: { type: Array, default: () => [] } },
-  emits: ['update:modelValue'],
-  data: () => ({ types: ['Kinetic','Energy','Explosive','Heat','Burn','Variable'] }),
-  computed: { list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } } },
-  methods: {
-    add() { this.list = [...this.list, { type:'Kinetic', val: 0 }]; },
-    remove(i) { const c=[...this.list]; c.splice(i,1); this.list=c; }
-  },
-  template: `
-    <div style="margin:.6rem 0">
-      <h3>Damage <help t="${HELP_DMG_VAL}"/></h3>
-      <div v-for="(d,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
-        <div class="lf-field" style="max-width:150px"><label>Type <help t="${HELP_DMG_TYPE}"/></label>
-          <select v-model="d.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
-        <div class="lf-field"><label>Value</label><input type="text" v-model="d.val" placeholder="4 or 2d6+2" /></div>
-        <div class="lf-field" style="max-width:110px"><label>AP <help t="Armor-piercing — ignores armor."/></label>
-          <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
-        <button class="btn tiny danger" @click="remove(i)">✕</button>
-      </div>
-      <button class="btn tiny" @click="add">+ Damage</button>
-    </div>`
-};
-
-const RangeList = {
-  name: 'range-list',
-  props: { modelValue: { type: Array, default: () => [] } },
-  emits: ['update:modelValue'],
-  data: () => ({ types: ['Threat','Range','Burst','Blast','Cone','Line'] }),
-  computed: { list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } } },
-  methods: {
-    add() { this.list = [...this.list, { type:'Range', val: 0 }]; },
-    remove(i) { const c=[...this.list]; c.splice(i,1); this.list=c; }
-  },
-  template: `
-    <div style="margin:.6rem 0">
-      <h3>Range</h3>
-      <div v-for="(r,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
-        <div class="lf-field" style="max-width:150px"><label>Type <help t="Range = standard ranged attack. Threat = melee reach."/></label>
-          <select v-model="r.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
-        <div class="lf-field"><label>Value</label><input type="text" v-model="r.val" placeholder="10" /></div>
-        <div class="lf-field"><label>Min <help t="Optional minimum range — weapon can't fire closer than this."/></label><input type="text" v-model="r.min" /></div>
-        <button class="btn tiny danger" @click="remove(i)">✕</button>
-      </div>
-      <button class="btn tiny" @click="add">+ Range</button>
-    </div>`
-};
+const SYNERGY_LOCATIONS = [
+  'rest','weapon','system','deployable','drone','move','boost','structure','armor','hp','overshield',
+  'stress','heat','repair','core_power','overcharge','hull','agility','systems','engineering','pilot_weapon','cascade'
+];
 
 const CORE_TAGS = [
   'tg_accurate','tg_inaccurate','tg_ai','tg_arcing','tg_armament','tg_ap','tg_burst','tg_blast','tg_cone','tg_line',
@@ -633,31 +691,9 @@ const CORE_TAGS = [
   'tg_smart','tg_thrown','tg_unique','tg_set_max_uses','tg_set_damage_type','tg_set_damage_value'
 ];
 
-const TagList = {
-  name: 'tag-list',
-  props: { modelValue: { type: Array, default: () => [] }, localTags: { type: Array, default: () => [] } },
-  emits: ['update:modelValue'],
-  data: () => ({ coreTags: CORE_TAGS }),
-  computed: {
-    list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } },
-    allIds() { return [...this.coreTags, ...this.localTags.map(t => t.id).filter(Boolean)]; }
-  },
-  methods: {
-    add() { this.list = [...this.list, { id:'', val:'' }]; },
-    remove(i) { const c=[...this.list]; c.splice(i,1); this.list=c; }
-  },
-  template: `
-    <div style="margin:.6rem 0">
-      <h3>Tags <help t="Reference tags by id. Core tags like tg_loading / tg_reliable / tg_limited are built in. Value fills the tag's {VAL} token (e.g. Reliable 2, Limited 3)."/></h3>
-      <datalist id="taglist"><option v-for="t in allIds" :key="t" :value="t"></option></datalist>
-      <div v-for="(t,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
-        <div class="lf-field"><label>Tag ID</label><input type="text" list="taglist" v-model="t.id" placeholder="tg_loading" /></div>
-        <div class="lf-field" style="max-width:130px"><label>Value <help t="Optional. Numeric or text passed to {VAL}."/></label><input type="text" v-model="t.val" /></div>
-        <button class="btn tiny danger" @click="remove(i)">✕</button>
-      </div>
-      <button class="btn tiny" @click="add">+ Tag</button>
-    </div>`
-};
+/* =========================================================================
+   Shared sub-editors (registered globally near the bottom)
+   ========================================================================= */
 
 const HelpTip = {
   name: 'help',
@@ -665,10 +701,279 @@ const HelpTip = {
   template: `<span class="help" tabindex="0"><span class="dot">i</span><span class="bubble" v-html="t"></span></span>`
 };
 
-/* Shared components are registered globally (below) so they also work
-   inside the nested list editors, not just the root template. */
+/* generic v-model helper for list editors */
+const listModel = {
+  computed: { list: {
+    get() { return this.modelValue || []; },
+    set(v) { this.$emit('update:modelValue', v); }
+  } },
+  methods: {
+    _add(obj) { this.list = [...this.list, obj]; },
+    _rm(i) { const c = [...this.list]; c.splice(i, 1); this.list = c; }
+  }
+};
 
-/* ---------- factories ---------- */
+const ActionList = {
+  name: 'action-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] }, label: { type: String, default: 'Actions' } },
+  emits: ['update:modelValue'],
+  data: () => ({ activationTypes: ACTIVATIONS, frequencies: FREQUENCIES }),
+  methods: {
+    add() { this._add({ name:'', activation:'Quick', detail:'', frequency:'', trigger:'' }); }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>{{ label }} <span v-if="list.length" class="pill">{{ list.length }}</span></summary>
+      <div v-for="(a,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ a.name || a.activation }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Name <help t="Best practice: always name it. Systems fall back to the parent name if omitted."/></label><input type="text" v-model="a.name" /></div>
+          <div class="lf-field"><label>Activation <span class="req">*</span></label>
+            <select v-model="a.activation"><option v-for="x in activationTypes" :key="x" :value="x">{{ x }}</option></select></div>
+        </div>
+        <div class="lf-field"><label>Detail <span class="req">*</span><help t="Second person, present tense. HTML allowed; prefer &lt;br&gt; over paragraphs. Do NOT restate activation/frequency here."/></label><textarea v-model="a.detail"></textarea></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Frequency <help t="Leave blank for unlimited / normal action economy."/></label>
+            <select v-model="a.frequency"><option value="">(unlimited)</option><option v-for="x in frequencies" :key="x" :value="x">{{ x }}</option></select></div>
+          <div class="lf-field"><label>Trigger <help t="Required for Reactions — the condition that lets you take it. Displayed, not enforced."/></label><input type="text" v-model="a.trigger" /></div>
+        </div>
+        <details class="lf-block">
+          <summary>More</summary>
+          <div class="lf-row">
+            <div class="lf-field"><label>Cost <help t="Charges deducted from a Limited parent when used. Defaults to 1 on limited items."/></label><input type="number" v-model.number="a.cost" /></div>
+            <div class="lf-field"><label>Bonus damage <help t="A dice string (e.g. 1d6) added to the origin item's damage."/></label><input type="text" v-model="a.bonus_damage" /></div>
+          </div>
+          <div class="lf-checks">
+            <label><input type="checkbox" v-model="a.pilot" /> Pilot only (unmounted)</label>
+            <label><input type="checkbox" v-model="a.mech" /> Mech only (mounted)</label>
+          </div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ {{ label }}</button>
+    </details>`
+};
+
+const DamageList = {
+  name: 'damage-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: DAMAGE_TYPES }),
+  methods: { add() { this._add({ type:'Kinetic', val: 0 }); } },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Damage <help t="A number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens are allowed."/></h3>
+      <div v-for="(d,i) in list" :key="i" class="lf-sub">
+        <div class="lf-row" style="align-items:flex-end">
+          <div class="lf-field" style="max-width:150px"><label>Type <help t="Kinetic, Energy, Explosive, Heat, Burn, or Variable."/></label>
+            <select v-model="d.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+          <div class="lf-field"><label>Value</label><input type="text" v-model="d.val" placeholder="4 or 2d6+2" /></div>
+          <div class="lf-field" style="max-width:110px"><label>AP <help t="Armor-piercing — ignores armor. 'auto' lets COMP/CON infer it from tags."/></label>
+            <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
+          <button class="btn tiny danger" @click="_rm(i)">✕</button>
+        </div>
+        <details class="lf-block">
+          <summary>Save / AoE</summary>
+          <div class="lf-row">
+            <div class="lf-field"><label>Save stat <help t="e.g. hull, agi, sys, eng. Leave blank for no save."/></label><input type="text" v-model="d.save" placeholder="agi" /></div>
+            <div class="lf-field"><label>AoE <help t="true, or a shape string like 'burst 2'. Only affects the multi-target UI."/></label><input type="text" v-model="d.aoe" /></div>
+            <div class="lf-field"><label>Target <help t="Ordering hint for Active Mode: self, ally, or enemy."/></label>
+              <select v-model="d.target"><option :value="undefined">(enemy)</option><option value="self">self</option><option value="ally">ally</option><option value="enemy">enemy</option></select></div>
+          </div>
+          <div class="lf-checks"><label><input type="checkbox" v-model="d.save_half" /> Half damage on a successful save</label></div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ Damage</button>
+    </div>`
+};
+
+const RangeList = {
+  name: 'range-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: RANGE_TYPES }),
+  methods: { add() { this._add({ type:'Range', val: 0 }); } },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Range</h3>
+      <div v-for="(r,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
+        <div class="lf-field" style="max-width:150px"><label>Type <help t="Range = standard ranged attack. Threat = melee reach."/></label>
+          <select v-model="r.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+        <div class="lf-field"><label>Value</label><input type="text" v-model="r.val" placeholder="10" /></div>
+        <div class="lf-field"><label>Min <help t="Optional minimum range — weapon can't fire closer than this."/></label><input type="text" v-model="r.min" /></div>
+        <button class="btn tiny danger" @click="_rm(i)">✕</button>
+      </div>
+      <button class="btn tiny" @click="add">+ Range</button>
+    </div>`
+};
+
+const TagList = {
+  name: 'tag-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] }, localTags: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ coreTags: CORE_TAGS }),
+  computed: { allIds() { return [...this.coreTags, ...this.localTags.map(t => t.id).filter(Boolean)]; } },
+  methods: { add() { this._add({ id:'', val:'' }); } },
+  template: `
+    <details class="lf-block">
+      <summary>Tags <span v-if="list.length" class="pill">{{ list.length }}</span> <help t="Reference tags by id. Core tags like tg_loading / tg_reliable / tg_limited are built in. Value fills the tag's {VAL} token (e.g. Reliable 2, Limited 3)."/></summary>
+      <datalist id="taglist"><option v-for="t in allIds" :key="t" :value="t"></option></datalist>
+      <div v-for="(t,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
+        <div class="lf-field"><label>Tag ID</label><input type="text" list="taglist" v-model="t.id" placeholder="tg_loading" /></div>
+        <div class="lf-field" style="max-width:130px"><label>Value <help t="Optional. Numeric or text passed to {VAL}."/></label><input type="text" v-model="t.val" /></div>
+        <button class="btn tiny danger" @click="_rm(i)">✕</button>
+      </div>
+      <button class="btn tiny" @click="add">+ Tag</button>
+    </details>`
+};
+
+const BonusList = {
+  name: 'bonus-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ groups: BONUS_GROUPS }),
+  methods: {
+    add() { this._add({ id:'hp', val:'1', _damage:'', _range:'', _wtype:'', _wsize:'', accuracy:null, overwrite:false, replace:false }); }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>Bonuses <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Mechanical value modifiers COMP/CON (and Foundry) apply automatically — +2 Hull, +1 SP, extra HP, etc. Use these instead of prose whenever a rule can be expressed as a number."/></summary>
+      <div v-for="(b,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ b.id }} = {{ b.val }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Bonus <span class="req">*</span></label>
+            <select v-model="b.id">
+              <optgroup v-for="g in groups" :key="g[0]" :label="g[0]">
+                <option v-for="opt in g[1]" :key="opt[0]" :value="opt[0]">{{ opt[1] }} ({{ opt[0] }})</option>
+              </optgroup>
+            </select></div>
+          <div class="lf-field" style="max-width:160px"><label>Value <span class="req">*</span><help t="A number, or a special string in braces like {ll}, {grit}, {tier}. Expressions such as 2 + {ll} work too."/></label><input type="text" v-model="b.val" /></div>
+          <div class="lf-field" style="max-width:120px"><label>Accuracy <help t="Optional. Adds Accuracy (+) or Difficulty (−) dice to the bonus."/></label><input type="number" v-model.number="b.accuracy" /></div>
+        </div>
+        <details class="lf-block">
+          <summary>Restrict / flags</summary>
+          <p class="lf-note" style="font-size:.8rem">Filters are ANDed — an item must match every filter set to receive the bonus. Comma-separated. Leave blank for "any".</p>
+          <div class="lf-row">
+            <div class="lf-field"><label>Damage types <help t="Kinetic, Energy, Explosive, Heat, Burn"/></label><input type="text" v-model="b._damage" placeholder="Explosive" /></div>
+            <div class="lf-field"><label>Range types <help t="Melee, Threat, Range, Line, Burst, Blast, Cone"/></label><input type="text" v-model="b._range" /></div>
+          </div>
+          <div class="lf-row">
+            <div class="lf-field"><label>Weapon types <help t="Melee, CQC, Rifle, Nexus, Cannon, Launcher, Improvised, any"/></label><input type="text" v-model="b._wtype" placeholder="Rifle, Cannon" /></div>
+            <div class="lf-field"><label>Weapon sizes <help t="Auxiliary, Main, Heavy, Superheavy, any"/></label><input type="text" v-model="b._wsize" /></div>
+          </div>
+          <div class="lf-checks">
+            <label><input type="checkbox" v-model="b.overwrite" /> Overwrite <help t="Keep only the single highest overwrite-flagged bonus of this id, discarding all others."/></label>
+            <label><input type="checkbox" v-model="b.replace" /> Replace <help t="Replace the base value entirely with the summed replace bonuses (e.g. set HP to a flat number)."/></label>
+          </div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ Bonus</button>
+    </details>`
+};
+
+const SynergyList = {
+  name: 'synergy-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ locations: SYNERGY_LOCATIONS }),
+  methods: { add() { this._add({ _locations:'weapon', detail:'', _wtype:'', _wsize:'', _stype:'' }); } },
+  template: `
+    <details class="lf-block">
+      <summary>Synergies <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Context hint text shown in a specific spot in COMP/CON. Use only for interactions/context that no other field (bonus, action, damage) can express."/></summary>
+      <datalist id="synloc"><option v-for="l in locations" :key="l" :value="l"></option></datalist>
+      <div v-for="(s,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ s._locations || 'synergy' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="lf-field"><label>Locations <span class="req">*</span><help t="Where the hint appears. Comma-separated. e.g. weapon, system, hull, move, boost, core_power."/></label><input type="text" list="synloc" v-model="s._locations" placeholder="weapon, system" /></div>
+        <div class="lf-field"><label>Detail <span class="req">*</span><help t="The hint text. HTML allowed."/></label><textarea v-model="s.detail"></textarea></div>
+        <details class="lf-block">
+          <summary>Filters (weapon/system only)</summary>
+          <div class="lf-row">
+            <div class="lf-field"><label>Weapon types</label><input type="text" v-model="s._wtype" /></div>
+            <div class="lf-field"><label>Weapon sizes</label><input type="text" v-model="s._wsize" /></div>
+            <div class="lf-field"><label>System types</label><input type="text" v-model="s._stype" placeholder="Drone" /></div>
+          </div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ Synergy</button>
+    </details>`
+};
+
+const CounterList = {
+  name: 'counter-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  methods: { add() { this._add({ id:'', name:'', default_value:0, min:0, max:null }); } },
+  template: `
+    <details class="lf-block">
+      <summary>Counters <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="A tick / clock / track shown in Active Mode — e.g. a charge meter. The value persists in save data, so the id must be unique."/></summary>
+      <div v-for="(c,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ c.name || c.id || 'counter' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>ID <span class="req">*</span><help t="Unique, e.g. ctr_myco_charge."/></label><input type="text" v-model="c.id" placeholder="ctr_..." /></div>
+          <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
+        </div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Default <help t="Starting value. Defaults to 0."/></label><input type="number" v-model.number="c.default_value" /></div>
+          <div class="lf-field"><label>Min</label><input type="number" v-model.number="c.min" /></div>
+          <div class="lf-field"><label>Max</label><input type="number" v-model.number="c.max" /></div>
+        </div>
+      </div>
+      <button class="btn tiny" @click="add">+ Counter</button>
+    </details>`
+};
+
+const DeployableList = {
+  name: 'deployable-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ activationTypes: ACTIVATIONS,
+    statFields: [['size','Size'],['hp','HP'],['armor','Armor'],['evasion','Evasion'],['edef','E-Def'],
+                 ['heatcap','Heat cap'],['repcap','Rep cap'],['sensor_range','Sensors'],['tech_attack','Tech atk'],
+                 ['save','Save'],['speed','Speed']] }),
+  methods: {
+    add() { this._add({ name:'', type:'Deployable', detail:'', activation:'Quick', deactivation:'', recall:'', redeploy:'',
+                        instances:null, size:null, hp:null, armor:null, evasion:null, edef:null, heatcap:null, repcap:null,
+                        sensor_range:null, tech_attack:null, save:null, speed:null,
+                        damage:[], range:[], actions:[], bonuses:[], synergies:[], tags:[] }); }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>Deployables <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Drones, turrets, mines, snares — anything tracked as its own object on the battlefield with its own stats."/></summary>
+      <div v-for="(d,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ d.name || 'deployable' }}</span><button class="btn tiny danger" @click="_rm(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="d.name" /></div>
+          <div class="lf-field"><label>Type <span class="req">*</span><help t="Free text, but Drone and Mine get special defaults/handling. Defaults to Deployable."/></label><input type="text" v-model="d.type" placeholder="Deployable / Drone / Mine" /></div>
+        </div>
+        <div class="lf-field"><label>Detail <span class="req">*</span><help t="Short description shown in Active Mode. HTML allowed."/></label><textarea v-model="d.detail"></textarea></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Deploy <help t="Action type of the Deploy action on the parent. Defaults to Quick."/></label>
+            <select v-model="d.activation"><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Deactivate</label><select v-model="d.deactivation"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Recall</label><select v-model="d.recall"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Redeploy</label><select v-model="d.redeploy"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+        </div>
+        <h4>Stats <help t="All optional — leave blank to use COMP/CON's type/size-based defaults. Special value strings like {grit} are allowed."/></h4>
+        <div class="lf-stats">
+          <div class="lf-field" v-for="sf in statFields" :key="sf[0]"><label style="font-size:.78rem">{{ sf[1] }}</label><input type="text" v-model="d[sf[0]]" /></div>
+          <div class="lf-field"><label style="font-size:.78rem">Instances</label><input type="number" v-model.number="d.instances" /></div>
+        </div>
+        <damage-list v-model="d.damage"></damage-list>
+        <range-list v-model="d.range"></range-list>
+        <action-list v-model="d.actions" label="Deployable actions"></action-list>
+        <bonus-list v-model="d.bonuses"></bonus-list>
+        <synergy-list v-model="d.synergies"></synergy-list>
+      </div>
+      <button class="btn tiny" @click="add">+ Deployable</button>
+    </details>`
+};
+
+/* =========================================================================
+   Factories
+   ========================================================================= */
 
 const blankManifest = () => ({
   name: '', author: '', description: '', version: '1.0.0',
@@ -676,33 +981,110 @@ const blankManifest = () => ({
   dependencies: [], version_history: []
 });
 
+const blankTrait = () => ({ name:'', description:'', actions:[], bonuses:[], synergies:[], counters:[], deployables:[] });
+
+const blankCore = () => ({
+  name:'', description:'', active_name:'', active_effect:'', activation:'Quick',
+  deactivation:'', use:'', passive_name:'', passive_effect:'',
+  active_actions:[], active_bonuses:[], active_synergies:[],
+  passive_actions:[], passive_bonuses:[], passive_synergies:[],
+  deployables:[], counters:[], tags:[]
+});
+
 const blankFrame = () => ({
   id: '', name: '', source: '', license_id: '', license_level: 0,
-  _mechtypeText: '', mounts: [], description: '', variant: '',
+  _mechtypeText: '', _mountToAdd: 'Main', mounts: [], description: '', variant: '',
   stats: { size:1, structure:4, stress:4, armor:0, hp:8, evasion:8, edef:8,
            heatcap:6, repcap:4, sensor_range:10, tech_attack:0, save:10, speed:4, sp:6 },
   traits: [],
-  core_system: { name:'', description:'', active_name:'', active_effect:'', activation:'Quick',
-                 deactivation:'', use:'', passive_name:'', passive_effect:'',
-                 active_actions: [], passive_actions: [] },
-  image_url: ''
+  core_system: blankCore(),
+  image_url: '', y_pos: 0, specialty: false
 });
 
 const blankWeapon = () => ({
   id:'', name:'', source:'', license:'', license_id:'', license_level:0,
   mount:'Main', _typeArr:['Rifle'], effect:'', description:'',
   sp: 0, cost: null,
-  damage: [], range: [], tags: [], actions: [],
-  on_attack:'', on_hit:'', on_crit:'', on_miss:''
+  damage: [], range: [], tags: [], actions: [], bonuses: [], synergies: [], deployables: [], counters: [],
+  on_attack:'', on_hit:'', on_crit:'', on_miss:'',
+  skirmish:false, barrage:false, no_attack:false, no_mods:false, no_core_bonus:false, no_bonus:false, no_synergy:false
 });
 
 const blankSystem = () => ({
   id:'', name:'', source:'', license:'', license_id:'', license_level:0,
   type:'System', sp:0, effect:'', description:'',
-  tags: [], actions: []
+  tags: [], actions: [], bonuses: [], synergies: [], deployables: [], counters: [],
+  no_bonus:false, no_synergy:false
 });
 
-/* ---------- app ---------- */
+/* =========================================================================
+   Export shaping
+   ========================================================================= */
+
+/* strip editor-only (_prefixed) keys, empty strings, null/undefined, empty
+   arrays, and false booleans (false === "use the default" for every optional
+   flag in the schema). */
+const clean = obj => {
+  if (Array.isArray(obj)) return obj.map(clean);
+  if (obj && typeof obj === 'object') {
+    const o = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (k.startsWith('_')) continue;
+      if (v === '' || v === null || v === undefined || v === false) continue;
+      if (Array.isArray(v) && v.length === 0) continue;
+      o[k] = clean(v);
+    }
+    return o;
+  }
+  return obj;
+};
+
+const csv = s => (s || '').split(',').map(x => x.trim()).filter(Boolean);
+
+const shapeBonus = b => {
+  const o = { id: b.id, val: isNaN(b.val) || b.val === '' ? b.val : Number(b.val) };
+  if (b.accuracy) o.accuracy = Number(b.accuracy);
+  if (csv(b._damage).length) o.damage_types = csv(b._damage);
+  if (csv(b._range).length) o.range_types = csv(b._range);
+  if (csv(b._wtype).length) o.weapon_types = csv(b._wtype);
+  if (csv(b._wsize).length) o.weapon_sizes = csv(b._wsize);
+  if (b.overwrite) o.overwrite = true;
+  if (b.replace) o.replace = true;
+  return o;
+};
+const shapeSynergy = s => {
+  const o = { locations: csv(s._locations), detail: s.detail };
+  if (csv(s._wtype).length) o.weapon_types = csv(s._wtype);
+  if (csv(s._wsize).length) o.weapon_sizes = csv(s._wsize);
+  if (csv(s._stype).length) o.system_types = csv(s._stype);
+  return o;
+};
+const numish = v => (typeof v === 'string' && v.trim() !== '' && !isNaN(v)) ? Number(v) : v;
+const DEP_STATS = ['size','hp','armor','evasion','edef','heatcap','repcap','sensor_range','tech_attack','save','speed'];
+const shapeDeployable = d => {
+  const s = { ...d };
+  DEP_STATS.forEach(k => { if (s[k] !== null && s[k] !== undefined && s[k] !== '') s[k] = numish(s[k]); });
+  return clean({
+  ...s,
+  instances: d.instances || undefined,
+  damage: (d.damage || []).map(clean),
+  range: (d.range || []).map(clean),
+  actions: (d.actions || []).map(clean),
+  bonuses: (d.bonuses || []).map(shapeBonus),
+  synergies: (d.synergies || []).map(shapeSynergy)
+  });
+};
+const mechBundle = x => ({
+  actions: (x.actions || []).map(clean),
+  bonuses: (x.bonuses || []).map(shapeBonus),
+  synergies: (x.synergies || []).map(shapeSynergy),
+  counters: (x.counters || []).map(clean),
+  deployables: (x.deployables || []).map(shapeDeployable)
+});
+
+/* =========================================================================
+   App
+   ========================================================================= */
 
 const app = createApp({
   data() {
@@ -711,11 +1093,7 @@ const app = createApp({
       previewJson: false,
       lcp: {
         lcp_manifest: blankManifest(),
-        manufacturers: [],
-        frames: [],
-        weapons: [],
-        systems: [],
-        tags: []
+        manufacturers: [], frames: [], weapons: [], systems: [], tags: []
       },
       tabs: [
         { id:'manifest', label:'Manifest' },
@@ -728,9 +1106,9 @@ const app = createApp({
       ],
       mountTypes: ['Main','Heavy','Aux/Aux','Aux','Main/Aux','Flex','Integrated'],
       weaponMounts: ['Main','Heavy','Aux','Superheavy'],
-      weaponTypes: ['Rifle','Cannon','Launcher','CQB','Nexus','Melee'],
+      weaponTypes: WEAPON_TYPES,
       systemTypes: ['System','AI','Deployable','Drone','Flight System','Shield','Tech'],
-      activationTypes: ['Free','Protocol','Quick','Full','Reaction','Quick Tech','Full Tech','Invade'],
+      activationTypes: ACTIVATIONS,
       coreUseTypes: ['Round','Next Round','Scene','Encounter','Mission'],
       frameStats: [
         { k:'size', label:'Size', help:'1, 2, 3… or 0.5 (½). No other fractions.' },
@@ -812,6 +1190,21 @@ const app = createApp({
         if (!x.name || !x.description) p.push(`Tag ${x.id||'?'}: name and description required.`);
       });
 
+      // nested bonus / synergy sanity
+      const scanMech = (scope, x) => {
+        (x.bonuses||[]).forEach(b => { if (!ALL_BONUS_IDS.includes(b.id)) p.push(`${scope}: unknown bonus id "${b.id}".`); if (b.val === '' || b.val === null) p.push(`${scope}: a bonus is missing its value.`); });
+        (x.synergies||[]).forEach(s => { if (!s._locations || !s._locations.trim()) p.push(`${scope}: a synergy has no location.`); if (!s.detail) p.push(`${scope}: a synergy has no detail text.`); });
+        (x.counters||[]).forEach(c => { if (!c.id || !c.name) p.push(`${scope}: a counter needs an id and name.`); });
+        (x.deployables||[]).forEach(d => { if (!d.name || !d.detail) p.push(`${scope}: a deployable needs a name and detail.`); });
+      };
+      this.lcp.weapons.forEach(x => scanMech(`Weapon ${x.id||'?'}`, x));
+      this.lcp.systems.forEach(x => scanMech(`System ${x.id||'?'}`, x));
+      this.lcp.frames.forEach(f => {
+        (f.traits||[]).forEach((t,ti) => scanMech(`Frame ${f.id||'?'} trait ${ti+1}`, t));
+        const c = f.core_system;
+        scanMech(`Frame ${f.id||'?'} core`, { bonuses:[...(c.active_bonuses||[]),...(c.passive_bonuses||[])], synergies:[...(c.active_synergies||[]),...(c.passive_synergies||[])], counters:c.counters, deployables:c.deployables });
+      });
+
       Object.entries(ids).forEach(([id, n]) => { if (n > 1) p.push(`Duplicate id "${id}" used ${n} times — ids must be globally unique.`); });
       return p;
     },
@@ -825,6 +1218,7 @@ const app = createApp({
   },
   methods: {
     go(t) { this.tab = t; },
+    blankTrait,
     frameName(id) { const f = this.lcp.frames.find(x => x.id === id); return f ? f.name : ''; },
     addManufacturer() { this.lcp.manufacturers.push({ id:'', name:'', description:'', quote:'', light:'#888888', dark:'#aaaaaa', icon_url:'' }); this.tab='manufacturers'; },
     addFrame() { this.lcp.frames.push(blankFrame()); },
@@ -837,27 +1231,9 @@ const app = createApp({
       this.tab = 'manifest';
     },
 
-    /* Convert the editor model into clean export-shaped JSON. */
     buildOutput() {
-      const clean = obj => {
-        if (Array.isArray(obj)) return obj.map(clean);
-        if (obj && typeof obj === 'object') {
-          const o = {};
-          for (const [k, v] of Object.entries(obj)) {
-            if (k.startsWith('_')) continue;
-            if (v === '' || v === null || v === undefined) continue;
-            if (Array.isArray(v) && v.length === 0) continue;
-            o[k] = clean(v);
-          }
-          return o;
-        }
-        return obj;
-      };
-
       const m = this.lcp.lcp_manifest;
-      const manifest = {
-        name: m.name, author: m.author, description: m.description, version: m.version
-      };
+      const manifest = { name: m.name, author: m.author, description: m.description, version: m.version };
       if (m.image_url) manifest.image_url = m.image_url;
       if (m.website) manifest.website = m.website;
       if (m.v3) manifest.v3 = true;
@@ -870,28 +1246,64 @@ const app = createApp({
       if (vh.length) manifest.version_history = vh;
 
       const frames = this.lcp.frames.map(f => {
+        const c = f.core_system;
+        const core = clean({
+          name: c.name, description: c.description,
+          active_name: c.active_name, active_effect: c.active_effect,
+          activation: c.activation, deactivation: c.deactivation, use: c.use,
+          passive_name: c.passive_name, passive_effect: c.passive_effect,
+          active_actions: (c.active_actions||[]).map(clean),
+          active_bonuses: (c.active_bonuses||[]).map(shapeBonus),
+          active_synergies: (c.active_synergies||[]).map(shapeSynergy),
+          passive_actions: (c.passive_actions||[]).map(clean),
+          passive_bonuses: (c.passive_bonuses||[]).map(shapeBonus),
+          passive_synergies: (c.passive_synergies||[]).map(shapeSynergy),
+          deployables: (c.deployables||[]).map(shapeDeployable),
+          counters: (c.counters||[]).map(clean),
+          tags: (c.tags||[]).map(clean)
+        });
         const out = clean({
           id: f.id, name: f.name, source: f.source,
           license_level: f.license_level || 0,
-          mechtype: (f._mechtypeText || '').split(',').map(s => s.trim()).filter(Boolean),
+          mechtype: csv(f._mechtypeText),
           description: f.description,
           mounts: f.mounts,
           stats: f.stats,
-          traits: f.traits,
-          core_system: f.core_system,
+          traits: (f.traits||[]).map(t => clean({ name: t.name, description: t.description, ...mechBundle(t) })),
+          core_system: core,
           variant: f.variant,
-          image_url: f.image_url
+          image_url: f.image_url,
+          y_pos: f.y_pos || undefined,
+          specialty: f.specialty || undefined
         });
         if (f.variant && f.license_id) out.license_id = f.license_id;
         return out;
       });
 
       const weapons = this.lcp.weapons.map(w => clean({
-        ...w,
-        type: (w._typeArr && w._typeArr.length === 1) ? w._typeArr[0] : (w._typeArr || [])
+        id: w.id, name: w.name, source: w.source, license: w.license, license_id: w.license_id,
+        license_level: w.license_level || 0,
+        mount: w.mount,
+        type: (w._typeArr && w._typeArr.length === 1) ? w._typeArr[0] : (w._typeArr || []),
+        effect: w.effect, description: w.description,
+        sp: w.sp || undefined, cost: w.cost || undefined,
+        damage: (w.damage||[]).map(clean), range: (w.range||[]).map(clean), tags: (w.tags||[]).map(clean),
+        ...mechBundle(w),
+        on_attack: w.on_attack, on_hit: w.on_hit, on_crit: w.on_crit, on_miss: w.on_miss,
+        skirmish: w.skirmish || undefined, barrage: w.barrage || undefined,
+        no_attack: w.no_attack || undefined, no_mods: w.no_mods || undefined,
+        no_core_bonus: w.no_core_bonus || undefined, no_bonus: w.no_bonus || undefined, no_synergy: w.no_synergy || undefined
       }));
 
-      const systems = this.lcp.systems.map(s => clean(s));
+      const systems = this.lcp.systems.map(s => clean({
+        id: s.id, name: s.name, source: s.source, license: s.license, license_id: s.license_id,
+        license_level: s.license_level || 0,
+        type: s.type, sp: s.sp || undefined, effect: s.effect, description: s.description,
+        tags: (s.tags||[]).map(clean),
+        ...mechBundle(s),
+        no_bonus: s.no_bonus || undefined, no_synergy: s.no_synergy || undefined
+      }));
+
       const manufacturers = this.lcp.manufacturers.map(x => clean(x));
       const tags = this.lcp.tags.map(x => clean(x));
 
@@ -933,25 +1345,62 @@ const app = createApp({
         }
         fresh.manufacturers = (await read('manufacturers.json')) || [];
         fresh.tags = (await read('tags.json')) || [];
+
+        const inBonus = b => ({ id:b.id, val:String(b.val ?? ''), accuracy:b.accuracy ?? null,
+          _damage:(b.damage_types||[]).join(', '), _range:(b.range_types||[]).join(', '),
+          _wtype:(b.weapon_types||[]).join(', '), _wsize:(b.weapon_sizes||[]).join(', '),
+          overwrite:!!b.overwrite, replace:!!b.replace });
+        const inSyn = s => ({ _locations:(s.locations||[]).join(', '), detail:s.detail||'',
+          _wtype:(s.weapon_types||[]).join(', '), _wsize:(s.weapon_sizes||[]).join(', '), _stype:(s.system_types||[]).join(', ') });
+        const inDep = d => ({ name:'', type:'Deployable', detail:'', activation:'Quick', deactivation:'', recall:'', redeploy:'',
+          instances:null, size:null, hp:null, armor:null, evasion:null, edef:null, heatcap:null, repcap:null,
+          sensor_range:null, tech_attack:null, save:null, speed:null, damage:[], range:[], actions:[], bonuses:[], synergies:[], tags:[],
+          ...d, bonuses:(d.bonuses||[]).map(inBonus), synergies:(d.synergies||[]).map(inSyn) });
+        const inBundle = x => ({
+          actions: x.actions || [],
+          bonuses: (x.bonuses||[]).map(inBonus),
+          synergies: (x.synergies||[]).map(inSyn),
+          counters: x.counters || [],
+          deployables: (x.deployables||[]).map(inDep)
+        });
+
         fresh.frames = ((await read('frames.json')) || []).map(f => {
           const b = blankFrame();
-          Object.assign(b, f);
-          b._mechtypeText = (f.mechtype || []).join(', ');
-          b.mounts = f.mounts || [];
-          b.stats = Object.assign(blankFrame().stats, f.stats || {});
-          b.traits = (f.traits || []).map(t => ({ name:'', description:'', actions:[], ...t }));
-          b.core_system = Object.assign(blankFrame().core_system, f.core_system || {});
+          b.id=f.id; b.name=f.name; b.source=f.source; b.license_id=f.license_id||''; b.license_level=f.license_level||0;
+          b.variant=f.variant||''; b.description=f.description||''; b.image_url=f.image_url||''; b.y_pos=Number(f.y_pos)||0;
+          b.specialty=!!f.specialty;
+          b._mechtypeText=(f.mechtype||[]).join(', ');
+          b.mounts=f.mounts||[];
+          b.stats=Object.assign(blankFrame().stats, f.stats||{});
+          b.traits=(f.traits||[]).map(t => ({ name:t.name||'', description:t.description||'', ...inBundle(t) }));
+          const c=f.core_system||{}; const bc=blankCore();
+          Object.assign(bc, { name:c.name||'', description:c.description||'', active_name:c.active_name||'',
+            active_effect:c.active_effect||'', activation:c.activation||'Quick', deactivation:c.deactivation||'',
+            use:c.use||'', passive_name:c.passive_name||'', passive_effect:c.passive_effect||'' });
+          bc.active_actions=c.active_actions||[]; bc.passive_actions=c.passive_actions||[];
+          bc.active_bonuses=(c.active_bonuses||[]).map(inBonus); bc.passive_bonuses=(c.passive_bonuses||[]).map(inBonus);
+          bc.active_synergies=(c.active_synergies||[]).map(inSyn); bc.passive_synergies=(c.passive_synergies||[]).map(inSyn);
+          bc.deployables=(c.deployables||[]).map(inDep); bc.counters=c.counters||[]; bc.tags=c.tags||[];
+          b.core_system=bc;
           return b;
         });
-        const impEq = (arr, blank) => (arr || []).map(x => { const b = blank(); Object.assign(b, x); return b; });
-        fresh.weapons = impEq(await read('weapons.json'), blankWeapon).map(w => {
-          w._typeArr = Array.isArray(w.type) ? w.type : (w.type ? [w.type] : []);
-          w.damage = w.damage || []; w.range = w.range || []; w.tags = w.tags || []; w.actions = w.actions || [];
-          return w;
+
+        fresh.weapons = ((await read('weapons.json')) || []).map(w => {
+          const b = blankWeapon();
+          Object.assign(b, w);
+          b._typeArr = Array.isArray(w.type) ? w.type : (w.type ? [w.type] : []);
+          b.damage=w.damage||[]; b.range=w.range||[]; b.tags=w.tags||[];
+          Object.assign(b, inBundle(w));
+          ['skirmish','barrage','no_attack','no_mods','no_core_bonus','no_bonus','no_synergy'].forEach(k => b[k]=!!w[k]);
+          return b;
         });
-        fresh.systems = impEq(await read('systems.json'), blankSystem).map(s => {
-          s.tags = s.tags || []; s.actions = s.actions || [];
-          return s;
+        fresh.systems = ((await read('systems.json')) || []).map(s => {
+          const b = blankSystem();
+          Object.assign(b, s);
+          b.tags=s.tags||[];
+          Object.assign(b, inBundle(s));
+          b.no_bonus=!!s.no_bonus; b.no_synergy=!!s.no_synergy;
+          return b;
         });
         this.lcp = fresh;
         this.tab = 'manifest';
@@ -971,6 +1420,10 @@ app.component('action-list', ActionList);
 app.component('damage-list', DamageList);
 app.component('range-list', RangeList);
 app.component('tag-list', TagList);
+app.component('bonus-list', BonusList);
+app.component('synergy-list', SynergyList);
+app.component('counter-list', CounterList);
+app.component('deployable-list', DeployableList);
 
 app.mount('#lcp-forge');
 </script>

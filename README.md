@@ -22,22 +22,38 @@ Vue 3 and JSZip load from unpkg CDN; everything else is inline. No build step.
 
 Done:
 
-- **Manifest** editor — name/author/description/version, image/website, v3 flag,
-  dependencies, version history.
+- **Manifest** — name/author/description/version, image/website, v3 flag, dependencies, version history.
 - **Manufacturers** — id, name, description, quote, light/dark colors, icon URL.
-- **Frames** — full stat block (14 fields), mech types, mounts, traits (with actions),
-  core system (active/passive, actions), variant handling.
-- **Weapons** — mount/type, damage, range, tags, actions, on-attack/hit/crit/miss, SP, cost.
-- **Systems** — type, SP, effect, tags, actions.
+- **Frames** — 14-field stat block, mech types, add/remove mount list (repeats allowed),
+  variant handling, `y_pos` + `specialty`; traits and core system each with the full
+  mechanical builder set below.
+- **Weapons** — mount/type, damage (+ save/AoE/AP), range, tags, on-attack/hit/crit/miss,
+  SP, cost, all seven flags (skirmish/barrage/no_attack/no_mods/no_core_bonus/no_bonus/no_synergy).
+- **Systems** — type, SP, effect, no_bonus/no_synergy flags.
+- **Shared mechanical builders** on weapons / systems / frame traits / core system:
+  **Actions** (+ cost/pilot/mech/bonus_damage), **Bonuses** (full bonus-id list, value +
+  special strings, damage/range/weapon-type/size filters, overwrite/replace — this is what
+  Foundry reads for automation), **Synergies** (locations + detail + filters),
+  **Counters**, **Deployables** (drones/turrets/mines: stats + nested damage/range/actions/bonuses).
 - **Custom tags** — id, name (with `{VAL}`), description, filter_ignore.
-- **Export** — assembles a flat `.lcp` zip (`lcp_manifest.json` + one file per non-empty
-  category) via JSZip; live validation blocks broken exports.
-- **Import** — load an existing `.lcp`/`.zip` back into the editor.
+- **Export** — flat `.lcp` zip (`lcp_manifest.json` + one file per non-empty category) via
+  JSZip; live validation (required fields, unique ids, source/license cross-refs, known bonus ids).
+- **Import** — load an existing `.lcp`/`.zip` back in; unknown fields (e.g. weapon `profiles`,
+  `ammo`) round-trip untouched.
 
-Validated: export produces a flat zip with the correct file names; export → import
-round-trips without data loss; generated JSON matches the lancer-data wiki schemas.
+Validated in-browser: flat zip with correct names; export → import round-trips byte-stable;
+generated JSON matches the lancer-data wiki schemas.
 
 Not yet verified: import into a live COMP/CON instance (the real end-to-end check).
+
+### Known gaps vs. the official editor (deferred)
+
+- Weapon **profiles** (multi-mode weapons) and **ammo** lists — round-trip but no UI yet.
+- **Integrated / special equipment** ID selectors.
+- **Active Effects** objects (the richer status/resist/effect blocks).
+- **Weapon Mods** (`weapon-mods.json`) — Phase 2, with the rest of licensed data.
+- `deprecated` flag; manufacturer inline SVG icons.
+- Layout is `height: 100vh` app-shell — fine standalone, needs tuning for the WP embed.
 
 ## Next
 
