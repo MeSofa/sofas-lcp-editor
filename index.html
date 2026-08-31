@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LCP Forge — Lancer Content Pack Editor</title>
+<!--
+  LCP Forge — a client-side .lcp generator for Lancer / COMP/CON.
+  Single self-contained file: Vue 3 + JSZip from CDN, everything else inline,
+  so it drops straight into a WordPress Code Snippet shortcode.
+
+  PHASE 1 scope: manifest, manufacturers, frames (traits + core system),
+  weapons, systems, custom tags, and full .lcp export/import.
+  Later phases add the remaining pilot / licensed / NPC / misc categories.
+
+  Schema references: https://github.com/massif-press/lancer-data/wiki
+-->
+<script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #14161c;
+    --panel: #1c1f28;
+    --panel-2: #232734;
+    --line: #333849;
+    --text: #e6e8ef;
+    --muted: #9aa0b4;
+    --accent: #4db6ac;
+    --accent-ink: #08110f;
+    --danger: #e06c75;
+    --warn: #e5c07b;
+    --radius: 8px;
+  }
+  * { box-sizing: border-box; }
+  #lcp-forge {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #lcp-forge h1, #lcp-forge h2, #lcp-forge h3 { margin: 0 0 .5rem; font-weight: 650; }
+  #lcp-forge h1 { font-size: 1.15rem; }
+  #lcp-forge h2 { font-size: 1.05rem; border-bottom: 1px solid var(--line); padding-bottom: .4rem; margin-bottom: 1rem; }
+  #lcp-forge h3 { font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  #lcp-forge a { color: var(--accent); }
+
+  .lf-top {
+    display: flex; align-items: center; gap: 1rem;
+    padding: .7rem 1rem; background: var(--panel); border-bottom: 1px solid var(--line);
+  }
+  .lf-top .brand { font-weight: 700; letter-spacing: .02em; }
+  .lf-top .spacer { flex: 1; }
+  .lf-body { flex: 1; display: flex; min-height: 0; }
+  .lf-nav {
+    width: 190px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--line);
+    padding: .6rem; display: flex; flex-direction: column; gap: 2px;
+  }
+  .lf-nav button {
+    text-align: left; background: none; border: 0; color: var(--muted);
+    padding: .5rem .6rem; border-radius: 6px; cursor: pointer; font-size: .92rem; width: 100%;
+    display: flex; justify-content: space-between; align-items: center; gap: .4rem;
+  }
+  .lf-nav button:hover { background: var(--panel-2); color: var(--text); }
+  .lf-nav button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .lf-nav .count { font-size: .75rem; opacity: .8; }
+  .lf-nav button.active .count { color: var(--accent-ink); }
+  .lf-main { flex: 1; overflow-y: auto; padding: 1.25rem 1.5rem 4rem; }
+  .lf-main-inner { max-width: 880px; }
+
+  .lf-field { margin-bottom: 1rem; }
+  .lf-field > label { display: flex; align-items: center; gap: .35rem; font-weight: 600; margin-bottom: .3rem; font-size: .9rem; }
+  .lf-field .req { color: var(--danger); }
+  input[type=text], input[type=number], input[type=url], select, textarea {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 6px; padding: .5rem .6rem; font: inherit;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .lf-row { display: flex; gap: .8rem; flex-wrap: wrap; }
+  .lf-row > .lf-field { flex: 1; min-width: 160px; }
+  .lf-inline { display: flex; align-items: center; gap: .4rem; }
+  .lf-checks { display: flex; flex-wrap: wrap; gap: .5rem .9rem; }
+  .lf-checks label { display: flex; align-items: center; gap: .35rem; font-weight: 400; font-size: .9rem; }
+  .lf-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .6rem; }
+  .lf-stats .lf-field { margin-bottom: 0; }
+
+  .btn {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: .45rem .8rem; cursor: pointer; font: inherit;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.ghost { background: none; }
+  .btn.tiny { padding: .2rem .5rem; font-size: .8rem; }
+  .btn.danger { color: var(--danger); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .lf-list-item {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 1rem; margin-bottom: 1rem;
+  }
+  .lf-list-item > .head { display: flex; align-items: center; gap: .6rem; margin-bottom: .8rem; }
+  .lf-list-item > .head .title { font-weight: 650; flex: 1; }
+  .lf-sub {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: .8rem; margin-bottom: .7rem;
+  }
+  .lf-sub > .head { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
+  .lf-sub > .head .title { font-weight: 600; flex: 1; font-size: .88rem; color: var(--muted); }
+
+  .help { position: relative; display: inline-flex; }
+  .help .dot {
+    width: 15px; height: 15px; border-radius: 50%; background: var(--line); color: var(--text);
+    font-size: 11px; line-height: 15px; text-align: center; cursor: help; font-weight: 700;
+  }
+  .help .bubble {
+    display: none; position: absolute; z-index: 50; left: 20px; top: -4px; width: 300px;
+    background: #0c0e13; border: 1px solid var(--accent); border-radius: 6px; padding: .6rem .7rem;
+    font-size: .82rem; font-weight: 400; line-height: 1.45; color: var(--text); box-shadow: 0 6px 24px rgba(0,0,0,.5);
+  }
+  .help:hover .bubble, .help:focus-within .bubble { display: block; }
+  .help .bubble code { background: var(--panel-2); padding: 0 .25rem; border-radius: 3px; }
+
+  .empty { color: var(--muted); font-style: italic; padding: 1rem 0; }
+  .pill { font-size: .72rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: .1rem .5rem; color: var(--muted); }
+  .lf-note { background: var(--panel); border-left: 3px solid var(--accent); padding: .7rem .9rem; border-radius: 4px; color: var(--muted); font-size: .88rem; margin-bottom: 1rem; }
+  .lf-warn { border-left-color: var(--warn); }
+  .lf-danger { border-left-color: var(--danger); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+  .val-list { margin: 0; padding-left: 1.1rem; }
+  .val-list li { margin: .15rem 0; }
+</style>
+</head>
+<body>
+<div id="lcp-forge">
+  <div class="lf-top">
+    <span class="brand">⬢ LCP&nbsp;Forge</span>
+    <span class="pill">Phase 1</span>
+    <span class="spacer"></span>
+    <input ref="importFile" type="file" accept=".lcp,.zip" style="display:none" @change="importLcp" />
+    <button class="btn ghost" @click="$refs.importFile.click()">Load .lcp</button>
+    <button class="btn" @click="resetAll">New</button>
+    <button class="btn primary" @click="go('export')">Export .lcp</button>
+  </div>
+
+  <div class="lf-body">
+    <nav class="lf-nav">
+      <button v-for="t in tabs" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
+        <span>{{ t.label }}</span>
+        <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
+      </button>
+    </nav>
+
+    <main class="lf-main">
+      <div class="lf-main-inner">
+
+        <!-- ============ MANIFEST ============ -->
+        <section v-show="tab==='manifest'">
+          <h2>LCP Manifest <span class="pill">lcp_manifest.json</span></h2>
+          <p class="lf-note">Every .lcp needs this. It is the only required file in the archive.</p>
+
+          <div class="lf-field">
+            <label>Name <span class="req">*</span><help t="The display name of the content pack, shown in COMP/CON's Content Pack Manager. Also used to match dependencies, so keep it stable across versions."/></label>
+            <input type="text" v-model="lcp.lcp_manifest.name" placeholder="My Homebrew Pack" />
+          </div>
+          <div class="lf-row">
+            <div class="lf-field">
+              <label>Author <span class="req">*</span><help t="Who made the pack. Free text."/></label>
+              <input type="text" v-model="lcp.lcp_manifest.author" />
+            </div>
+            <div class="lf-field">
+              <label>Version <span class="req">*</span><help t="Semantic version, X.Y.Z (e.g. 1.0.0). Breaking semver rules can break dependency resolution in COMP/CON."/></label>
+              <input type="text" v-model="lcp.lcp_manifest.version" placeholder="1.0.0" />
+            </div>
+          </div>
+          <div class="lf-field">
+            <label>Description <span class="req">*</span><help t="Shown on the pack's page in COMP/CON. HTML is allowed."/></label>
+            <textarea v-model="lcp.lcp_manifest.description"></textarea>
+          </div>
+          <div class="lf-row">
+            <div class="lf-field">
+              <label>Website <help t="Optional. Required only for Community Content Directory submissions, where it must be an itch.io page."/></label>
+              <input type="url" v-model="lcp.lcp_manifest.website" placeholder="https://..." />
+            </div>
+            <div class="lf-field">
+              <label>Image URL <help t="Optional. A cover image for the pack — typically a book cover. Must be a remotely hosted URL."/></label>
+              <input type="url" v-model="lcp.lcp_manifest.image_url" placeholder="https://..." />
+            </div>
+          </div>
+          <div class="lf-field">
+            <label class="lf-inline">
+              <input type="checkbox" v-model="lcp.lcp_manifest.v3" />
+              Mark as COMP/CON v3 compatible
+              <help t="Strongly recommended for all new packs. Does not block loading, but v3 packs are highlighted in the Content Pack Manager and Active Mode."/>
+            </label>
+          </div>
+
+          <h3 style="margin-top:1.5rem">Dependencies</h3>
+          <p class="lf-note">Other packs that must be installed for this one to work. COMP/CON loads dependencies first and refuses to load this pack if one is missing.</p>
+          <div v-for="(d,i) in lcp.lcp_manifest.dependencies" :key="i" class="lf-sub">
+            <div class="head">
+              <span class="title">Dependency {{ i+1 }}</span>
+              <button class="btn tiny danger" @click="lcp.lcp_manifest.dependencies.splice(i,1)">Remove</button>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="Must exactly match the name field in the dependency's own manifest."/></label><input type="text" v-model="d.name" /></div>
+              <div class="lf-field"><label>Version <span class="req">*</span><help t="A semver string. COMP/CON treats it as 'this version or later'. Use * for any version, or =X.Y.Z for an exact match."/></label><input type="text" v-model="d.version" placeholder="1.0.0 | * | =1.0.0" /></div>
+              <div class="lf-field"><label>Link <help t="Optional but recommended — where users can download the dependency."/></label><input type="url" v-model="d.link" /></div>
+            </div>
+          </div>
+          <button class="btn" @click="lcp.lcp_manifest.dependencies.push({name:'',version:'*',link:''})">+ Dependency</button>
+
+          <h3 style="margin-top:1.5rem">Version history</h3>
+          <div v-for="(v,i) in lcp.lcp_manifest.version_history" :key="i" class="lf-sub">
+            <div class="head">
+              <span class="title">Entry {{ i+1 }}</span>
+              <button class="btn tiny danger" @click="lcp.lcp_manifest.version_history.splice(i,1)">Remove</button>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Version <help t="semver x.y.z"/></label><input type="text" v-model="v.version" placeholder="1.1.0" /></div>
+              <div class="lf-field"><label>Date <help t="ISO date: YYYY-MM-DD"/></label><input type="text" v-model="v.date" placeholder="2026-08-31" /></div>
+            </div>
+            <div class="lf-field"><label>Changes <help t="One change per line. Rendered as a bullet list in COMP/CON."/></label><textarea v-model="v._changesText" placeholder="Added the Foobar frame&#10;Fixed Baz weapon damage"></textarea></div>
+          </div>
+          <button class="btn" @click="lcp.lcp_manifest.version_history.push({version:'',date:'',_changesText:''})">+ Version entry</button>
+        </section>
+
+        <!-- ============ MANUFACTURERS ============ -->
+        <section v-show="tab==='manufacturers'">
+          <h2>Manufacturers <span class="pill">manufacturers.json</span></h2>
+          <p class="lf-note">Define these first — frames, weapons and systems reference a manufacturer by its <span class="mono">id</span> via their <span class="mono">source</span> field.</p>
+          <p v-if="!lcp.manufacturers.length" class="empty">No manufacturers yet.</p>
+
+          <div v-for="(m,i) in lcp.manufacturers" :key="i" class="lf-list-item">
+            <div class="head">
+              <span class="title">{{ m.name || m.id || 'Untitled manufacturer' }}</span>
+              <button class="btn tiny danger" @click="removeItem('manufacturers', i)">Delete</button>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Convention: a short acronym, e.g. GMS, HA, IPS-N. Referenced by source on equipment."/></label><input type="text" v-model="m.id" placeholder="MYCO" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name, usually all caps, e.g. HARRISON ARMORY."/></label><input type="text" v-model="m.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the Compendium manufacturer page. HTML allowed."/></label><textarea v-model="m.description"></textarea></div>
+            <div class="lf-field"><label>Quote <span class="req">*</span><help t="A short additional flavor line for the manufacturer page. HTML allowed. Can be empty string but the field should be present."/></label><input type="text" v-model="m.quote" /></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Light color <span class="req">*</span><help t="Hex color (#RRGGBB) used for this manufacturer in COMP/CON's light theme."/></label><input type="text" v-model="m.light" placeholder="#6e4373" /></div>
+              <div class="lf-field"><label>Dark color <span class="req">*</span><help t="Hex color (#RRGGBB) used in COMP/CON's dark theme."/></label><input type="text" v-model="m.dark" placeholder="#a15ea8" /></div>
+            </div>
+            <div class="lf-field"><label>Icon URL <help t="Optional fallback logo image. Inline SVG (icon_svg) is preferred by Massif but not exposed here yet."/></label><input type="url" v-model="m.icon_url" /></div>
+          </div>
+          <button class="btn primary" @click="addManufacturer">+ Manufacturer</button>
+        </section>
+
+        <!-- ============ FRAMES ============ -->
+        <section v-show="tab==='frames'">
+          <h2>Frames <span class="pill">frames.json</span></h2>
+          <p v-if="!lcp.manufacturers.length" class="lf-note lf-warn">Add a manufacturer first — a frame's <span class="mono">source</span> must match one.</p>
+          <p v-if="!lcp.frames.length" class="empty">No frames yet.</p>
+
+          <div v-for="(f,i) in lcp.frames" :key="i" class="lf-list-item">
+            <div class="head">
+              <span class="title">{{ f.name || 'Untitled frame' }}</span>
+              <button class="btn tiny danger" @click="removeItem('frames', i)">Delete</button>
+            </div>
+
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Convention: {prefix}_{type}_{name}, e.g. myco_frame_wyvern. Changing it later breaks user data that references it."/></label><input type="text" v-model="f.id" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="f.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Source (manufacturer) <span class="req">*</span><help t="Must match a Manufacturer ID."/></label>
+                <select v-model="f.source">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }} — {{ m.name }}</option>
+                </select>
+              </div>
+              <div class="lf-field"><label>License level <span class="req">*</span><help t="0–3. The license rank at which this frame unlocks. 0 = available to everyone at LL0."/></label><input type="number" min="0" max="3" v-model.number="f.license_level" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Mech types <span class="req">*</span><help t="One or more, comma separated. A player-facing hint with no mechanical effect (e.g. Striker, Artillery, Support). At least one required."/></label><input type="text" v-model="f._mechtypeText" placeholder="Striker, Artillery" /></div>
+              <div class="lf-field"><label>Variant of <help t="Optional. The id of the frame this is a variant of. If set, License ID becomes required."/></label><input type="text" v-model="f.variant" /></div>
+            </div>
+            <div class="lf-field" v-if="f.variant">
+              <label>License ID <span class="req">*</span><help t="Required for variants. Must match the id of the parent license frame."/></label>
+              <input type="text" v-model="f.license_id" />
+            </div>
+            <div class="lf-field">
+              <label>Mounts <span class="req">*</span><help t="The weapon mounts this frame provides. Tick one or more."/></label>
+              <div class="lf-checks">
+                <label v-for="mt in mountTypes" :key="mt">
+                  <input type="checkbox" :value="mt" v-model="f.mounts" /> {{ mt }}
+                </label>
+              </div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the Compendium and expanded cards. HTML allowed."/></label><textarea v-model="f.description"></textarea></div>
+
+            <h3>Stats <help t="All positive integers, except size which may also be 0.5 (renders as ½)."/></h3>
+            <div class="lf-stats">
+              <div class="lf-field" v-for="s in frameStats" :key="s.k">
+                <label style="font-size:.8rem">{{ s.label }} <help :t="s.help"/></label>
+                <input type="number" :step="s.k==='size' ? 0.5 : 1" v-model.number="f.stats[s.k]" />
+              </div>
+            </div>
+
+            <h3 style="margin-top:1.2rem">Traits <help t="Frame abilities. Zero or more. Each has a name + description; add Actions for anything with an explicit activation type."/></h3>
+            <div v-for="(tr,ti) in f.traits" :key="ti" class="lf-sub">
+              <div class="head">
+                <span class="title">{{ tr.name || 'Trait' }}</span>
+                <button class="btn tiny danger" @click="f.traits.splice(ti,1)">Remove</button>
+              </div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="tr.name" /></div>
+              <div class="lf-field"><label>Description <span class="req">*</span><help t="Rules + flavor. HTML allowed."/></label><textarea v-model="tr.description"></textarea></div>
+              <action-list v-model="tr.actions" label="Trait actions"></action-list>
+            </div>
+            <button class="btn tiny" @click="f.traits.push({name:'',description:'',actions:[]})">+ Trait</button>
+
+            <h3 style="margin-top:1.2rem">Core system <help t="Every frame has exactly one. The unique CORE Power."/></h3>
+            <div class="lf-sub">
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="f.core_system.name" /></div>
+              <div class="lf-field"><label>Description <help t="Flavor text. Optional but recommended. HTML allowed."/></label><textarea v-model="f.core_system.description"></textarea></div>
+              <div class="lf-row">
+                <div class="lf-field"><label>Active name <span class="req">*</span><help t="Name of the CORE Power's active effect."/></label><input type="text" v-model="f.core_system.active_name" /></div>
+                <div class="lf-field">
+                  <label>Activation <span class="req">*</span><help t="Action type needed to activate."/></label>
+                  <select v-model="f.core_system.activation">
+                    <option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="lf-field"><label>Active effect <span class="req">*</span><help t="Rules text for the active effect. HTML allowed."/></label><textarea v-model="f.core_system.active_effect"></textarea></div>
+              <div class="lf-row">
+                <div class="lf-field">
+                  <label>Use / duration <help t="How long it stays active after activation. Leave blank for 'until deactivated or mission end'."/></label>
+                  <select v-model="f.core_system.use">
+                    <option value="">(none)</option>
+                    <option v-for="u in coreUseTypes" :key="u" :value="u">{{ u }}</option>
+                  </select>
+                </div>
+                <div class="lf-field">
+                  <label>Deactivation <help t="Optional. Action type to turn it off early."/></label>
+                  <select v-model="f.core_system.deactivation">
+                    <option value="">(none)</option>
+                    <option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="lf-field"><label>Passive name <help t="Optional. If the CORE system has an always-on passive."/></label><input type="text" v-model="f.core_system.passive_name" /></div>
+              <div class="lf-field" v-if="f.core_system.passive_name"><label>Passive effect <help t="Rules text for the passive. HTML allowed."/></label><textarea v-model="f.core_system.passive_effect"></textarea></div>
+              <action-list v-model="f.core_system.active_actions" label="Active actions"></action-list>
+              <action-list v-model="f.core_system.passive_actions" label="Passive actions"></action-list>
+            </div>
+
+            <div class="lf-field" style="margin-top:1rem"><label>Frame image URL <help t="Optional. Default frame artwork, remotely hosted."/></label><input type="url" v-model="f.image_url" /></div>
+          </div>
+          <button class="btn primary" @click="addFrame">+ Frame</button>
+        </section>
+
+        <!-- ============ WEAPONS ============ -->
+        <section v-show="tab==='weapons'">
+          <h2>Weapons <span class="pill">weapons.json</span></h2>
+          <p v-if="!lcp.frames.length" class="lf-note lf-warn">Weapons attach to a license — usually a frame. Add a frame first so you can pick its License ID.</p>
+          <p v-if="!lcp.weapons.length" class="empty">No weapons yet.</p>
+
+          <div v-for="(w,i) in lcp.weapons" :key="i" class="lf-list-item">
+            <div class="head">
+              <span class="title">{{ w.name || 'Untitled weapon' }}</span>
+              <button class="btn tiny danger" @click="removeItem('weapons', i)">Delete</button>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. e.g. myco_weapon_railgun."/></label><input type="text" v-model="w.id" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="w.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Source <span class="req">*</span><help t="Manufacturer ID. Not required if the weapon ships in a License Collection, but this tool uses the standard flat format."/></label>
+                <select v-model="w.source">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }}</option>
+                </select>
+              </div>
+              <div class="lf-field">
+                <label>License ID <span class="req">*</span><help t="Must match a Frame ID — the frame whose license grants this weapon."/></label>
+                <select v-model="w.license_id" @change="w.license = frameName(w.license_id) || w.license">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="fr in lcp.frames" :key="fr.id" :value="fr.id">{{ fr.name }} ({{ fr.id }})</option>
+                </select>
+              </div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>License (display) <span class="req">*</span><help t="Display name of the containing license — usually the frame's name."/></label><input type="text" v-model="w.license" /></div>
+              <div class="lf-field"><label>License level <span class="req">*</span><help t="0–3."/></label><input type="number" min="0" max="3" v-model.number="w.license_level" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Mount <span class="req">*</span><help t="Required mount size for this weapon."/></label>
+                <select v-model="w.mount"><option v-for="x in weaponMounts" :key="x" :value="x">{{ x }}</option></select>
+              </div>
+              <div class="lf-field">
+                <label>Weapon type(s) <span class="req">*</span><help t="One or more. Tick all that apply — most weapons have exactly one."/></label>
+                <div class="lf-checks">
+                  <label v-for="wt in weaponTypes" :key="wt"><input type="checkbox" :value="wt" v-model="w._typeArr" /> {{ wt }}</label>
+                </div>
+              </div>
+            </div>
+            <div class="lf-field"><label>Effect <help t="Rules text — what the weapon does beyond plain damage. HTML allowed. Optional but usually present."/></label><textarea v-model="w.effect"></textarea></div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text. HTML allowed."/></label><textarea v-model="w.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>SP <help t="System Point cost. Integer, defaults to 0."/></label><input type="number" v-model.number="w.sp" /></div>
+              <div class="lf-field"><label>Cost <help t="Usage cost per attack. Only meaningful with the Limited tag. Defaults to 1."/></label><input type="number" v-model.number="w.cost" /></div>
+            </div>
+
+            <damage-list v-model="w.damage"></damage-list>
+            <range-list v-model="w.range"></range-list>
+            <tag-list v-model="w.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="w.actions" label="Actions (reactions, protocols, etc.)"></action-list>
+
+            <div class="lf-field"><label>On attack <help t="Effect that applies when you make an attack with this weapon, before hit/damage rolls. Plain text; HTML allowed."/></label><input type="text" v-model="w.on_attack" /></div>
+            <div class="lf-field"><label>On hit <help t="Applies after a successful hit, before damage."/></label><input type="text" v-model="w.on_hit" /></div>
+            <div class="lf-field"><label>On crit <help t="Applies only on a critical hit."/></label><input type="text" v-model="w.on_crit" /></div>
+            <div class="lf-field"><label>On miss <help t="Applies on a miss (e.g. Reliable)."/></label><input type="text" v-model="w.on_miss" /></div>
+          </div>
+          <button class="btn primary" @click="addWeapon">+ Weapon</button>
+        </section>
+
+        <!-- ============ SYSTEMS ============ -->
+        <section v-show="tab==='systems'">
+          <h2>Systems <span class="pill">systems.json</span></h2>
+          <p v-if="!lcp.systems.length" class="empty">No systems yet.</p>
+
+          <div v-for="(s,i) in lcp.systems" :key="i" class="lf-list-item">
+            <div class="head">
+              <span class="title">{{ s.name || 'Untitled system' }}</span>
+              <button class="btn tiny danger" @click="removeItem('systems', i)">Delete</button>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span></label><input type="text" v-model="s.id" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="s.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Source <span class="req">*</span><help t="Manufacturer ID."/></label>
+                <select v-model="s.source">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }}</option>
+                </select>
+              </div>
+              <div class="lf-field">
+                <label>License ID <span class="req">*</span><help t="Frame ID whose license grants this system."/></label>
+                <select v-model="s.license_id" @change="s.license = frameName(s.license_id) || s.license">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="fr in lcp.frames" :key="fr.id" :value="fr.id">{{ fr.name }} ({{ fr.id }})</option>
+                </select>
+              </div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>License (display) <span class="req">*</span></label><input type="text" v-model="s.license" /></div>
+              <div class="lf-field"><label>License level <span class="req">*</span></label><input type="number" min="0" max="3" v-model.number="s.license_level" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Type <help t="Defaults to System if omitted."/></label>
+                <select v-model="s.type"><option v-for="x in systemTypes" :key="x" :value="x">{{ x }}</option></select>
+              </div>
+              <div class="lf-field"><label>SP <help t="System Point cost. Integer, defaults to 0."/></label><input type="number" v-model.number="s.sp" /></div>
+            </div>
+            <div class="lf-field"><label>Effect <help t="Rules text. HTML allowed."/></label><textarea v-model="s.effect"></textarea></div>
+            <div class="lf-field"><label>Description <help t="Flavor text. HTML allowed."/></label><textarea v-model="s.description"></textarea></div>
+
+            <tag-list v-model="s.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="s.actions" label="Actions"></action-list>
+          </div>
+          <button class="btn primary" @click="addSystem">+ System</button>
+        </section>
+
+        <!-- ============ TAGS ============ -->
+        <section v-show="tab==='tags'">
+          <h2>Custom Tags <span class="pill">tags.json</span></h2>
+          <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. Core tags (Accurate, Loading, Reliable X, …) are already available — reference them by id without defining them here.</p>
+          <p v-if="!lcp.tags.length" class="empty">No custom tags.</p>
+
+          <div v-for="(t,i) in lcp.tags" :key="i" class="lf-list-item">
+            <div class="head">
+              <span class="title">{{ t.name || t.id || 'Untitled tag' }}</span>
+              <button class="btn tiny danger" @click="removeItem('tags', i)">Delete</button>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally prefixed tg_ , e.g. tg_myco_overcharge."/></label><input type="text" v-model="t.id" placeholder="tg_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name. May contain the {VAL} token, replaced by the value passed where the tag is used."/></label><input type="text" v-model="t.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Rule text. HTML allowed. May contain {VAL}. If {VAL} appears but no value is given, it renders as 1."/></label><textarea v-model="t.description"></textarea></div>
+            <div class="lf-checks">
+              <label><input type="checkbox" v-model="t.filter_ignore" /> Hide from equipment filters <help t="Use for redundant tags (e.g. range-type tags) so the filter menu stays clean."/></label>
+            </div>
+          </div>
+          <button class="btn primary" @click="lcp.tags.push({id:'tag',name:'',description:'',filter_ignore:false})">+ Tag</button>
+        </section>
+
+        <!-- ============ EXPORT ============ -->
+        <section v-show="tab==='export'">
+          <h2>Export</h2>
+          <p class="lf-note">Builds a flat <span class="mono">.lcp</span> zip: <span class="mono">lcp_manifest.json</span> plus one file per non-empty category. Import it into COMP/CON via <em>Content Pack Manager → Install Pack</em>.</p>
+
+          <div v-if="problems.length" class="lf-note lf-danger">
+            <strong>{{ problems.length }} issue(s) to fix:</strong>
+            <ul class="val-list">
+              <li v-for="(p,i) in problems" :key="i">{{ p }}</li>
+            </ul>
+          </div>
+          <div v-else class="lf-note">Validation passed. No blocking issues found.</div>
+
+          <h3>Contents</h3>
+          <ul class="val-list mono">
+            <li>lcp_manifest.json</li>
+            <li v-for="c in nonEmptyCategories" :key="c">{{ c }}.json — {{ lcp[c].length }} item(s)</li>
+          </ul>
+
+          <p style="margin-top:1.5rem">
+            <button class="btn primary" @click="exportLcp" :disabled="problems.length>0">Download {{ exportFilename }}</button>
+            <button class="btn ghost" @click="previewJson=!previewJson">{{ previewJson ? 'Hide' : 'Show' }} JSON preview</button>
+          </p>
+          <pre v-if="previewJson" class="mono lf-sub" style="white-space:pre-wrap; max-height:420px; overflow:auto">{{ jsonPreview }}</pre>
+        </section>
+
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+const { createApp } = Vue;
+
+/* ---------- shared sub-editors ---------- */
+
+const HELP_DMG_TYPE = "Kinetic, Energy, Explosive, Heat, Burn, or Variable.";
+const HELP_DMG_VAL  = "A number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens are allowed.";
+
+const ActionList = {
+  name: 'action-list',
+  props: { modelValue: { type: Array, default: () => [] }, label: { type: String, default: 'Actions' } },
+  emits: ['update:modelValue'],
+  data: () => ({ activationTypes: ['Free','Protocol','Quick','Full','Reaction','Quick Tech','Full Tech','Invade'],
+                 frequencies: ['unlimited','1/round','1/turn','1/scene','1/mission'] }),
+  computed: { list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } } },
+  methods: {
+    add() { this.list = [...this.list, { name:'', activation:'Quick', detail:'', frequency:'', trigger:'' }]; },
+    remove(i) { const c = [...this.list]; c.splice(i,1); this.list = c; }
+  },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>{{ label }}</h3>
+      <div v-for="(a,i) in list" :key="i" class="lf-sub">
+        <div class="head">
+          <span class="title">{{ a.name || a.activation }}</span>
+          <button class="btn tiny danger" @click="remove(i)">Remove</button>
+        </div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Name <help t="Best practice: always name it. Systems fall back to the parent name if omitted."/></label><input type="text" v-model="a.name" /></div>
+          <div class="lf-field">
+            <label>Activation <span class="req">*</span></label>
+            <select v-model="a.activation"><option v-for="x in activationTypes" :key="x" :value="x">{{ x }}</option></select>
+          </div>
+        </div>
+        <div class="lf-field"><label>Detail <span class="req">*</span><help t="Second person, present tense. HTML allowed; prefer <br> over paragraphs. Do NOT restate activation/frequency here."/></label><textarea v-model="a.detail"></textarea></div>
+        <div class="lf-row">
+          <div class="lf-field">
+            <label>Frequency <help t="Leave blank for unlimited / normal action economy."/></label>
+            <select v-model="a.frequency"><option value="">(unlimited)</option><option v-for="x in frequencies" :key="x" :value="x">{{ x }}</option></select>
+          </div>
+          <div class="lf-field"><label>Trigger <help t="Required for Reactions — the condition that lets you take it. Displayed, not enforced."/></label><input type="text" v-model="a.trigger" /></div>
+        </div>
+      </div>
+      <button class="btn tiny" @click="add">+ {{ label }}</button>
+    </div>`
+};
+
+const DamageList = {
+  name: 'damage-list',
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: ['Kinetic','Energy','Explosive','Heat','Burn','Variable'] }),
+  computed: { list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } } },
+  methods: {
+    add() { this.list = [...this.list, { type:'Kinetic', val: 0 }]; },
+    remove(i) { const c=[...this.list]; c.splice(i,1); this.list=c; }
+  },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Damage <help t="${HELP_DMG_VAL}"/></h3>
+      <div v-for="(d,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
+        <div class="lf-field" style="max-width:150px"><label>Type <help t="${HELP_DMG_TYPE}"/></label>
+          <select v-model="d.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+        <div class="lf-field"><label>Value</label><input type="text" v-model="d.val" placeholder="4 or 2d6+2" /></div>
+        <div class="lf-field" style="max-width:110px"><label>AP <help t="Armor-piercing — ignores armor."/></label>
+          <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
+        <button class="btn tiny danger" @click="remove(i)">✕</button>
+      </div>
+      <button class="btn tiny" @click="add">+ Damage</button>
+    </div>`
+};
+
+const RangeList = {
+  name: 'range-list',
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: ['Threat','Range','Burst','Blast','Cone','Line'] }),
+  computed: { list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } } },
+  methods: {
+    add() { this.list = [...this.list, { type:'Range', val: 0 }]; },
+    remove(i) { const c=[...this.list]; c.splice(i,1); this.list=c; }
+  },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Range</h3>
+      <div v-for="(r,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
+        <div class="lf-field" style="max-width:150px"><label>Type <help t="Range = standard ranged attack. Threat = melee reach."/></label>
+          <select v-model="r.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+        <div class="lf-field"><label>Value</label><input type="text" v-model="r.val" placeholder="10" /></div>
+        <div class="lf-field"><label>Min <help t="Optional minimum range — weapon can't fire closer than this."/></label><input type="text" v-model="r.min" /></div>
+        <button class="btn tiny danger" @click="remove(i)">✕</button>
+      </div>
+      <button class="btn tiny" @click="add">+ Range</button>
+    </div>`
+};
+
+const CORE_TAGS = [
+  'tg_accurate','tg_inaccurate','tg_ai','tg_arcing','tg_armament','tg_ap','tg_burst','tg_blast','tg_cone','tg_line',
+  'tg_danger_zone','tg_deployable','tg_drone','tg_grenade','tg_heat_self','tg_indestructible','tg_invade','tg_knockback',
+  'tg_limited','tg_loading','tg_mine','tg_mod','tg_ordnance','tg_overkill','tg_overshield','tg_protocol','tg_quick_action',
+  'tg_full_action','tg_free_action','tg_reaction','tg_recharge','tg_reliable','tg_seeking','tg_self_destruct','tg_shield',
+  'tg_smart','tg_thrown','tg_unique','tg_set_max_uses','tg_set_damage_type','tg_set_damage_value'
+];
+
+const TagList = {
+  name: 'tag-list',
+  props: { modelValue: { type: Array, default: () => [] }, localTags: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ coreTags: CORE_TAGS }),
+  computed: {
+    list: { get() { return this.modelValue || []; }, set(v) { this.$emit('update:modelValue', v); } },
+    allIds() { return [...this.coreTags, ...this.localTags.map(t => t.id).filter(Boolean)]; }
+  },
+  methods: {
+    add() { this.list = [...this.list, { id:'', val:'' }]; },
+    remove(i) { const c=[...this.list]; c.splice(i,1); this.list=c; }
+  },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Tags <help t="Reference tags by id. Core tags like tg_loading / tg_reliable / tg_limited are built in. Value fills the tag's {VAL} token (e.g. Reliable 2, Limited 3)."/></h3>
+      <datalist id="taglist"><option v-for="t in allIds" :key="t" :value="t"></option></datalist>
+      <div v-for="(t,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
+        <div class="lf-field"><label>Tag ID</label><input type="text" list="taglist" v-model="t.id" placeholder="tg_loading" /></div>
+        <div class="lf-field" style="max-width:130px"><label>Value <help t="Optional. Numeric or text passed to {VAL}."/></label><input type="text" v-model="t.val" /></div>
+        <button class="btn tiny danger" @click="remove(i)">✕</button>
+      </div>
+      <button class="btn tiny" @click="add">+ Tag</button>
+    </div>`
+};
+
+const HelpTip = {
+  name: 'help',
+  props: { t: { type: String, required: true } },
+  template: `<span class="help" tabindex="0"><span class="dot">i</span><span class="bubble" v-html="t"></span></span>`
+};
+
+/* ---------- factories ---------- */
+
+const blankManifest = () => ({
+  name: '', author: '', description: '', version: '1.0.0',
+  image_url: '', website: '', v3: true,
+  dependencies: [], version_history: []
+});
+
+const blankFrame = () => ({
+  id: '', name: '', source: '', license_id: '', license_level: 0,
+  _mechtypeText: '', mounts: [], description: '', variant: '',
+  stats: { size:1, structure:4, stress:4, armor:0, hp:8, evasion:8, edef:8,
+           heatcap:6, repcap:4, sensor_range:10, tech_attack:0, save:10, speed:4, sp:6 },
+  traits: [],
+  core_system: { name:'', description:'', active_name:'', active_effect:'', activation:'Quick',
+                 deactivation:'', use:'', passive_name:'', passive_effect:'',
+                 active_actions: [], passive_actions: [] },
+  image_url: ''
+});
+
+const blankWeapon = () => ({
+  id:'', name:'', source:'', license:'', license_id:'', license_level:0,
+  mount:'Main', _typeArr:['Rifle'], effect:'', description:'',
+  sp: 0, cost: null,
+  damage: [], range: [], tags: [], actions: [],
+  on_attack:'', on_hit:'', on_crit:'', on_miss:''
+});
+
+const blankSystem = () => ({
+  id:'', name:'', source:'', license:'', license_id:'', license_level:0,
+  type:'System', sp:0, effect:'', description:'',
+  tags: [], actions: []
+});
+
+/* ---------- app ---------- */
+
+const app = createApp({
+  components: { HelpTip, ActionList, DamageList, RangeList, TagList },
+  data() {
+    return {
+      tab: 'manifest',
+      previewJson: false,
+      lcp: {
+        lcp_manifest: blankManifest(),
+        manufacturers: [],
+        frames: [],
+        weapons: [],
+        systems: [],
+        tags: []
+      },
+      tabs: [
+        { id:'manifest', label:'Manifest' },
+        { id:'manufacturers', label:'Manufacturers', key:'manufacturers' },
+        { id:'frames', label:'Frames', key:'frames' },
+        { id:'weapons', label:'Weapons', key:'weapons' },
+        { id:'systems', label:'Systems', key:'systems' },
+        { id:'tags', label:'Tags', key:'tags' },
+        { id:'export', label:'Export' }
+      ],
+      mountTypes: ['Main','Heavy','Aux/Aux','Aux','Main/Aux','Flex','Integrated'],
+      weaponMounts: ['Main','Heavy','Aux','Superheavy'],
+      weaponTypes: ['Rifle','Cannon','Launcher','CQB','Nexus','Melee'],
+      systemTypes: ['System','AI','Deployable','Drone','Flight System','Shield','Tech'],
+      activationTypes: ['Free','Protocol','Quick','Full','Reaction','Quick Tech','Full Tech','Invade'],
+      coreUseTypes: ['Round','Next Round','Scene','Encounter','Mission'],
+      frameStats: [
+        { k:'size', label:'Size', help:'1, 2, 3… or 0.5 (½). No other fractions.' },
+        { k:'structure', label:'Structure', help:'Structure damage track, usually 4.' },
+        { k:'stress', label:'Stress', help:'Reactor stress track, usually 4.' },
+        { k:'armor', label:'Armor', help:'Flat damage reduction. 0–4 typical.' },
+        { k:'hp', label:'HP', help:'Hit points at LL0 before GRIT.' },
+        { k:'evasion', label:'Evasion', help:'Defense vs attack rolls.' },
+        { k:'edef', label:'E-Defense', help:'Defense vs tech attacks.' },
+        { k:'heatcap', label:'Heat Cap', help:'Heat capacity before Overheating.' },
+        { k:'repcap', label:'Repair Cap', help:'Repair capacity.' },
+        { k:'sensor_range', label:'Sensors', help:'Sensor range in spaces.' },
+        { k:'tech_attack', label:'Tech Attack', help:'Bonus to tech attacks.' },
+        { k:'save', label:'Save Target', help:'Save target others roll against this mech. Usually 10.' },
+        { k:'speed', label:'Speed', help:'Standard movement in spaces.' },
+        { k:'sp', label:'System Points', help:'SP available for systems/weapons at LL0.' }
+      ]
+    };
+  },
+  computed: {
+    nonEmptyCategories() {
+      return ['manufacturers','frames','weapons','systems','tags'].filter(c => (this.lcp[c] || []).length);
+    },
+    exportFilename() {
+      const n = (this.lcp.lcp_manifest.name || 'untitled').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
+      return `${n}_${this.lcp.lcp_manifest.version || '0.0.0'}.lcp`;
+    },
+    problems() {
+      const p = [];
+      const m = this.lcp.lcp_manifest;
+      if (!m.name) p.push('Manifest: name is required.');
+      if (!m.author) p.push('Manifest: author is required.');
+      if (!m.description) p.push('Manifest: description is required.');
+      if (!/^\d+\.\d+\.\d+/.test(m.version || '')) p.push('Manifest: version must be semver (X.Y.Z).');
+
+      const ids = {};
+      const track = (scope, id) => {
+        if (!id) { p.push(`${scope}: an item is missing its id.`); return; }
+        ids[id] = (ids[id] || 0) + 1;
+      };
+      const manIds = new Set(this.lcp.manufacturers.map(x => x.id));
+      const frameIds = new Set(this.lcp.frames.map(x => x.id));
+
+      this.lcp.manufacturers.forEach(x => {
+        track('Manufacturer', x.id);
+        if (!x.name) p.push(`Manufacturer ${x.id||'?'}: name is required.`);
+        ['description','quote','light','dark'].forEach(f => { if (!x[f]) p.push(`Manufacturer ${x.id||'?'}: ${f} is required.`); });
+      });
+      this.lcp.frames.forEach(x => {
+        track('Frame', x.id);
+        if (!x.name) p.push(`Frame ${x.id||'?'}: name is required.`);
+        if (!x.source) p.push(`Frame ${x.id||'?'}: source is required.`);
+        else if (!manIds.has(x.source)) p.push(`Frame ${x.id||'?'}: source "${x.source}" is not a defined manufacturer.`);
+        if (!x._mechtypeText || !x._mechtypeText.trim()) p.push(`Frame ${x.id||'?'}: at least one mech type is required.`);
+        if (!x.mounts || !x.mounts.length) p.push(`Frame ${x.id||'?'}: at least one mount is required.`);
+        if (!x.description) p.push(`Frame ${x.id||'?'}: description is required.`);
+        if (x.variant && !x.license_id) p.push(`Frame ${x.id||'?'}: variants require a license_id.`);
+        if (!x.core_system.name || !x.core_system.active_name || !x.core_system.active_effect)
+          p.push(`Frame ${x.id||'?'}: core system needs name, active name, and active effect.`);
+        (x.traits||[]).forEach((t,ti) => { if (!t.name || !t.description) p.push(`Frame ${x.id||'?'} trait ${ti+1}: name and description required.`); });
+      });
+      const eq = (scope, x) => {
+        track(scope, x.id);
+        if (!x.name) p.push(`${scope} ${x.id||'?'}: name is required.`);
+        if (!x.source) p.push(`${scope} ${x.id||'?'}: source is required.`);
+        else if (!manIds.has(x.source)) p.push(`${scope} ${x.id||'?'}: source "${x.source}" is not a defined manufacturer.`);
+        if (!x.license_id) p.push(`${scope} ${x.id||'?'}: license_id is required.`);
+        else if (!frameIds.has(x.license_id)) p.push(`${scope} ${x.id||'?'}: license_id "${x.license_id}" is not a defined frame.`);
+        if (!x.license) p.push(`${scope} ${x.id||'?'}: license display name is required.`);
+      };
+      this.lcp.weapons.forEach(x => {
+        eq('Weapon', x);
+        if (!x.description) p.push(`Weapon ${x.id||'?'}: description is required.`);
+        if (!x._typeArr || !x._typeArr.length) p.push(`Weapon ${x.id||'?'}: at least one weapon type is required.`);
+      });
+      this.lcp.systems.forEach(x => eq('System', x));
+      this.lcp.tags.forEach(x => {
+        track('Tag', x.id);
+        if (!x.name || !x.description) p.push(`Tag ${x.id||'?'}: name and description required.`);
+      });
+
+      Object.entries(ids).forEach(([id, n]) => { if (n > 1) p.push(`Duplicate id "${id}" used ${n} times — ids must be globally unique.`); });
+      return p;
+    },
+    builtLcp() { return this.buildOutput(); },
+    jsonPreview() {
+      const o = this.builtLcp;
+      const out = { 'lcp_manifest.json': o.lcp_manifest };
+      this.nonEmptyCategories.forEach(c => { out[`${c}.json`] = o[c]; });
+      return JSON.stringify(out, null, 2);
+    }
+  },
+  methods: {
+    go(t) { this.tab = t; },
+    frameName(id) { const f = this.lcp.frames.find(x => x.id === id); return f ? f.name : ''; },
+    addManufacturer() { this.lcp.manufacturers.push({ id:'', name:'', description:'', quote:'', light:'#888888', dark:'#aaaaaa', icon_url:'' }); this.tab='manufacturers'; },
+    addFrame() { this.lcp.frames.push(blankFrame()); },
+    addWeapon() { this.lcp.weapons.push(blankWeapon()); },
+    addSystem() { this.lcp.systems.push(blankSystem()); },
+    removeItem(key, i) { this.lcp[key].splice(i, 1); },
+    resetAll() {
+      if (!confirm('Discard everything and start a new pack?')) return;
+      this.lcp = { lcp_manifest: blankManifest(), manufacturers: [], frames: [], weapons: [], systems: [], tags: [] };
+      this.tab = 'manifest';
+    },
+
+    /* Convert the editor model into clean export-shaped JSON. */
+    buildOutput() {
+      const clean = obj => {
+        if (Array.isArray(obj)) return obj.map(clean);
+        if (obj && typeof obj === 'object') {
+          const o = {};
+          for (const [k, v] of Object.entries(obj)) {
+            if (k.startsWith('_')) continue;
+            if (v === '' || v === null || v === undefined) continue;
+            if (Array.isArray(v) && v.length === 0) continue;
+            o[k] = clean(v);
+          }
+          return o;
+        }
+        return obj;
+      };
+
+      const m = this.lcp.lcp_manifest;
+      const manifest = {
+        name: m.name, author: m.author, description: m.description, version: m.version
+      };
+      if (m.image_url) manifest.image_url = m.image_url;
+      if (m.website) manifest.website = m.website;
+      if (m.v3) manifest.v3 = true;
+      const deps = (m.dependencies || []).filter(d => d.name).map(d => clean(d));
+      if (deps.length) manifest.dependencies = deps;
+      const vh = (m.version_history || []).filter(v => v.version).map(v => ({
+        version: v.version, date: v.date,
+        changes: (v._changesText || '').split('\n').map(s => s.trim()).filter(Boolean)
+      }));
+      if (vh.length) manifest.version_history = vh;
+
+      const frames = this.lcp.frames.map(f => {
+        const out = clean({
+          id: f.id, name: f.name, source: f.source,
+          license_level: f.license_level || 0,
+          mechtype: (f._mechtypeText || '').split(',').map(s => s.trim()).filter(Boolean),
+          description: f.description,
+          mounts: f.mounts,
+          stats: f.stats,
+          traits: f.traits,
+          core_system: f.core_system,
+          variant: f.variant,
+          image_url: f.image_url
+        });
+        if (f.variant && f.license_id) out.license_id = f.license_id;
+        return out;
+      });
+
+      const weapons = this.lcp.weapons.map(w => clean({
+        ...w,
+        type: (w._typeArr && w._typeArr.length === 1) ? w._typeArr[0] : (w._typeArr || [])
+      }));
+
+      const systems = this.lcp.systems.map(s => clean(s));
+      const manufacturers = this.lcp.manufacturers.map(x => clean(x));
+      const tags = this.lcp.tags.map(x => clean(x));
+
+      return { lcp_manifest: manifest, manufacturers, frames, weapons, systems, tags };
+    },
+
+    async exportLcp() {
+      if (this.problems.length) { alert('Fix validation issues first.'); return; }
+      const o = this.buildOutput();
+      const zip = new JSZip();
+      zip.file('lcp_manifest.json', JSON.stringify(o.lcp_manifest, null, 2));
+      this.nonEmptyCategories.forEach(c => zip.file(`${c}.json`, JSON.stringify(o[c], null, 2)));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = this.exportFilename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    },
+
+    async importLcp(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const read = async name => {
+          const f = zip.file(name);
+          return f ? JSON.parse(await f.async('string')) : null;
+        };
+        const man = await read('lcp_manifest.json');
+        const fresh = { lcp_manifest: blankManifest(), manufacturers: [], frames: [], weapons: [], systems: [], tags: [] };
+        if (man) {
+          Object.assign(fresh.lcp_manifest, man);
+          fresh.lcp_manifest.v3 = !!man.v3;
+          fresh.lcp_manifest.dependencies = man.dependencies || [];
+          fresh.lcp_manifest.version_history = (man.version_history || []).map(v => ({
+            version: v.version, date: v.date, _changesText: (v.changes || []).join('\n')
+          }));
+        }
+        fresh.manufacturers = (await read('manufacturers.json')) || [];
+        fresh.tags = (await read('tags.json')) || [];
+        fresh.frames = ((await read('frames.json')) || []).map(f => {
+          const b = blankFrame();
+          Object.assign(b, f);
+          b._mechtypeText = (f.mechtype || []).join(', ');
+          b.mounts = f.mounts || [];
+          b.stats = Object.assign(blankFrame().stats, f.stats || {});
+          b.traits = (f.traits || []).map(t => ({ name:'', description:'', actions:[], ...t }));
+          b.core_system = Object.assign(blankFrame().core_system, f.core_system || {});
+          return b;
+        });
+        const impEq = (arr, blank) => (arr || []).map(x => { const b = blank(); Object.assign(b, x); return b; });
+        fresh.weapons = impEq(await read('weapons.json'), blankWeapon).map(w => {
+          w._typeArr = Array.isArray(w.type) ? w.type : (w.type ? [w.type] : []);
+          w.damage = w.damage || []; w.range = w.range || []; w.tags = w.tags || []; w.actions = w.actions || [];
+          return w;
+        });
+        fresh.systems = impEq(await read('systems.json'), blankSystem).map(s => {
+          s.tags = s.tags || []; s.actions = s.actions || [];
+          return s;
+        });
+        this.lcp = fresh;
+        this.tab = 'manifest';
+        alert('Loaded ' + file.name);
+      } catch (err) {
+        console.error(err);
+        alert('Could not read that file: ' + err.message);
+      } finally {
+        e.target.value = '';
+      }
+    }
+  }
+});
+
+app.mount('#lcp-forge');
+</script>
+</body>
+</html>
