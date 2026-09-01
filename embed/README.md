@@ -30,3 +30,10 @@ python3 embed/make-snippet.py
 ```
 
 then paste the regenerated `lcp-editor.snippet.php` over the existing snippet.
+
+## Deployed
+
+Live at **https://sofadoesstuff.com/lcp-editor**.
+Code Snippet **id 10** ("Sofa's LCP Editor"), Page **id 144** (nav only).
+Update: regenerate, then PUT the code (minus the leading `<?php`) to
+`/wp-json/code-snippets/v1/snippets/10`.
