@@ -1,27 +1,36 @@
 <?php
 /**
- * Sofa's LCP Editor -- front-end embed.
+ * Sofa's LCP Editor -- standalone full-page app.
  * Generated from index.html on 2026-09-01.
  *
  * 1. Snippets -> Add New. Title: "Sofa's LCP Editor". Paste this whole file.
- * 2. Scope: "Run snippet everywhere". Save & Activate.
- * 3. On any page, add a *Custom HTML* block containing:  [lcp_editor]
- *    Optional height:  [lcp_editor height="1000px"]   (default 88vh)
+ * 2. Scope: "Run snippet everywhere". Save Changes and Activate.
+ * 3. Visit  yoursite.com/lcp-editor
+ *
+ * Serves index.html verbatim -- no theme, no header/footer -- for the request
+ * path /lcp-editor (and for a Page with that slug, if one exists, so it can show in
+ * the nav). No rewrite rules, so no need to flush permalinks.
  *
  * Re-run embed/make-snippet.py and re-paste after any index.html change.
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
-/* Serve the app itself at /?lcp_editor_app=1 (no rewrite rules, no flush needed). */
 add_action( 'template_redirect', function () {
-	if ( ! isset( $_GET['lcp_editor_app'] ) ) {
+
+	$path  = trim( wp_parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ) ?? '', '/' );
+	$last  = strtolower( substr( strrchr( '/' . $path, '/' ), 1 ) );
+	$match = ( 'lcp-editor' === $last ) || ( function_exists( 'is_page' ) && is_page( 'lcp-editor' ) );
+
+	if ( ! $match ) {
 		return;
 	}
+
 	nocache_headers();
 	status_header( 200 );
 	header( 'Content-Type: text/html; charset=utf-8' );
 	header( 'X-Frame-Options: SAMEORIGIN' );
+
 	echo <<<'LCPEDITORAPPHTML'
 <!DOCTYPE html>
 <html lang="en">
@@ -3213,20 +3222,4 @@ app.mount('#lcp-forge');
 
 LCPEDITORAPPHTML;
 	exit;
-} );
-
-/* [lcp_editor] -> a same-origin iframe of the app. */
-add_shortcode( 'lcp_editor', function ( $atts ) {
-	$a   = shortcode_atts( array( 'height' => '88vh' ), $atts, 'lcp_editor' );
-	$src = esc_url( add_query_arg( 'lcp_editor_app', '1', home_url( '/' ) ) );
-	$h   = preg_replace( '/[^0-9a-z%.]/i', '', (string) $a['height'] );
-	if ( '' === $h ) {
-		$h = '88vh';
-	}
-	return sprintf(
-		'<iframe src="%s" title="Sofa&#039;s LCP Editor" loading="lazy" '
-		. 'style="display:block;width:100%%;height:%s;min-height:600px;border:0;border-radius:8px;background:#14161c"></iframe>',
-		$src,
-		esc_attr( $h )
-	);
-} );
+}, 0 );

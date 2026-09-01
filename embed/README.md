@@ -1,28 +1,25 @@
-# Embedding on WordPress
+# Deploying to WordPress (standalone page)
 
-`index.html` is self-contained, so the embed is just an iframe of it served
-from your own domain.
+`index.html` is served **as-is** at `/lcp-editor` — no theme header, footer or
+nav, exactly like opening the file directly.
 
 ## One-time setup
 
-1. **Snippets → Add New** (Code Snippets plugin). Title it `Sofa's LCP Editor`.
+1. **Snippets → Add New** (Code Snippets plugin). Title: `Sofa's LCP Editor`.
 2. Paste the entire contents of **`lcp-editor.snippet.php`**.
-3. Scope: **Run snippet everywhere**. **Save Changes and Activate**.
-4. On the page where you want the editor, add a **Custom HTML** block:
+3. Scope: **Run snippet everywhere**. **Save Changes and Activate.**
+4. Visit `yoursite.com/lcp-editor`.
 
-   ```
-   [lcp_editor]
-   ```
-
-   Optional height: `[lcp_editor height="1000px"]` (default `88vh`).
+Optionally create a published **Page** with slug `lcp-editor` (any title, content
+ignored) so it shows up in the auto-generated nav — the snippet intercepts that
+slug and serves the raw app instead of the themed page.
 
 ## How it works
 
-- The snippet serves `index.html` verbatim at `/?lcp_editor_app=1` (a query
-  param, so no rewrite-rule flush needed).
-- `[lcp_editor]` renders a same-origin `<iframe>` pointing at that URL, so the
-  app runs fully isolated — its own CSS/JS, its own `localStorage` (settings
-  persist per visitor), no theme conflicts, downloads work.
+The snippet hooks `template_redirect`; when the request path ends in `lcp-editor`
+(or a Page with that slug is being viewed) it prints `index.html` verbatim and
+`exit`s before the theme loads. It matches on the request path, not a rewrite
+rule, so there's no permalink flush.
 
 ## Updating
 
