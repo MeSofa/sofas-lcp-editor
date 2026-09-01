@@ -37,3 +37,15 @@ Live at **https://sofadoesstuff.com/lcp-editor**.
 Code Snippet **id 10** ("Sofa's LCP Editor"), Page **id 144** (nav only).
 Update: regenerate, then PUT the code (minus the leading `<?php`) to
 `/wp-json/code-snippets/v1/snippets/10`.
+
+---
+
+## GitHub-hosted variant (update by `git push`)
+
+`embed/make-snippet-remote.py USER/REPO` generates a ~15-line snippet
+(`lcp-editor.remote.snippet.php`) that fetches `index.html` from a **public**
+GitHub repo at request time, caching it 5 min (`/lcp-editor?refresh=1` busts the
+cache; last good copy is served if GitHub is down).
+
+Once the repo is pushed: paste that snippet over Code Snippet #10. Then the only
+step to update the live site is `git push`.
