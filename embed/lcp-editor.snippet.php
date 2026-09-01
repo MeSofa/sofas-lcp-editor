@@ -1,0 +1,3232 @@
+<?php
+/**
+ * Sofa's LCP Editor -- front-end embed.
+ * Generated from index.html on 2026-09-01.
+ *
+ * 1. Snippets -> Add New. Title: "Sofa's LCP Editor". Paste this whole file.
+ * 2. Scope: "Run snippet everywhere". Save & Activate.
+ * 3. On any page, add a *Custom HTML* block containing:  [lcp_editor]
+ *    Optional height:  [lcp_editor height="1000px"]   (default 88vh)
+ *
+ * Re-run embed/make-snippet.py and re-paste after any index.html change.
+ */
+
+if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+/* Serve the app itself at /?lcp_editor_app=1 (no rewrite rules, no flush needed). */
+add_action( 'template_redirect', function () {
+	if ( ! isset( $_GET['lcp_editor_app'] ) ) {
+		return;
+	}
+	nocache_headers();
+	status_header( 200 );
+	header( 'Content-Type: text/html; charset=utf-8' );
+	header( 'X-Frame-Options: SAMEORIGIN' );
+	echo <<<'LCPEDITORAPPHTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sofa's LCP Editor</title>
+<!--
+  Sofa's LCP Editor — a client-side .lcp generator for Lancer / COMP/CON.
+  Single self-contained file: Vue 3 + JSZip from CDN, everything else inline,
+  so it drops straight into a WordPress Code Snippet shortcode.
+
+  Covers: manifest; licensed data (manufacturers, frames + traits + core
+  systems, weapons, systems); pilot data (CORE bonuses, talents, skill
+  triggers, backgrounds, reserves, pilot gear); NPC data (classes,
+  templates, features); custom tags; and full flat .lcp export/import.
+  Shared builders (bonuses, synergies, counters, deployables) are what
+  Foundry's automation reads.
+
+  UI: each category is a compact list; clicking a row opens a modal editor.
+  The left nav toggles from the ☰ button. Not yet in the UI: weapon profiles /
+  ammo, integrated & special-equipment selectors, Active Effects objects,
+  license collections, base actions, eidolons.
+
+  Schema references: https://github.com/massif-press/lancer-data/wiki
+-->
+<script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
+<script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
+<style>
+  :root {
+    --bg: #14161c; --panel: #1c1f28; --panel-2: #232734; --line: #333849;
+    --text: #e6e8ef; --muted: #9aa0b4; --accent: #4db6ac; --accent-ink: #06110f;
+    --danger: #e06c75; --warn: #e5c07b; --radius: 8px;
+  }
+  /* ---- dark theme variants (data-theme on #lcp-forge) ---- */
+  #lcp-forge[data-theme="horus"] {
+    --bg:#0d0a12; --panel:#161120; --panel-2:#1f1830; --line:#3a2f52;
+    --text:#ece3fb; --muted:#9a8cbb; --accent:#b072e6; --accent-ink:#120520; --danger:#ff6f9e; --warn:#e6b3ff;
+  }
+  #lcp-forge[data-theme="harrison"] {
+    --bg:#15120d; --panel:#1e1913; --panel-2:#29221a; --line:#463824;
+    --text:#f2e9db; --muted:#b3a488; --accent:#e0a63c; --accent-ink:#1c1305; --danger:#e0685a; --warn:#f0d68a;
+  }
+  #lcp-forge[data-theme="ipsn"] {
+    --bg:#0f1319; --panel:#161c26; --panel-2:#1e2634; --line:#2f3d4f;
+    --text:#e4ecf5; --muted:#8fa0b3; --accent:#5b95d6; --accent-ink:#061019; --danger:#e0766a; --warn:#e8b562;
+  }
+  #lcp-forge[data-theme="ssc"] {
+    --bg:#121016; --panel:#1b1720; --panel-2:#241e2c; --line:#3d3348;
+    --text:#f3e8f0; --muted:#a996ad; --accent:#ea6ba8; --accent-ink:#1c0713; --danger:#ff7a6b; --warn:#ffcf7a;
+  }
+  #lcp-forge[data-theme="union"] {
+    --bg:#101318; --panel:#181c23; --panel-2:#20252e; --line:#333c48;
+    --text:#e8edf3; --muted:#93a1b2; --accent:#4a90d9; --accent-ink:#04101d; --danger:#e07066; --warn:#e6c06a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); }
+  #lcp-forge {
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+  #lcp-forge button { font-family: inherit; }
+  #lcp-forge h1, #lcp-forge h2, #lcp-forge h3, #lcp-forge h4 { margin: 0 0 .5rem; font-weight: 650; }
+  #lcp-forge h1 { font-size: 1.15rem; }
+  #lcp-forge h2 { font-size: 1.05rem; border-bottom: 1px solid var(--line); padding-bottom: .4rem; margin-bottom: 1rem; }
+  #lcp-forge h3 { font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  #lcp-forge h4 { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: .3rem; }
+  #lcp-forge a { color: var(--accent); }
+
+  .lf-top {
+    display: flex; align-items: center; gap: 1rem;
+    padding: .7rem 1rem; background: var(--panel); border-bottom: 1px solid var(--line);
+    flex-shrink: 0; position: relative; z-index: 3;
+  }
+  .lf-top .brand { font-weight: 700; letter-spacing: .02em; }
+  .lf-top .spacer { flex: 1; }
+  .lf-top .nav-toggle {
+    background: none; border: 1px solid var(--line); color: var(--text); border-radius: 6px;
+    width: 34px; height: 30px; cursor: pointer; font-size: 1rem; line-height: 1; flex-shrink: 0;
+  }
+  .lf-top .nav-toggle:hover { border-color: var(--accent); }
+  .lf-body { flex: 1; display: flex; min-height: 0; }
+  .lf-nav {
+    width: 190px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--line);
+    padding: .6rem; display: flex; flex-direction: column; gap: 2px;
+    overflow-y: auto; position: relative; z-index: 3;
+  }
+  .lf-nav button {
+    text-align: left; background: none; border: 0; color: var(--muted);
+    padding: .5rem .6rem; border-radius: 6px; cursor: pointer; font-size: .92rem; width: 100%;
+    display: flex; justify-content: space-between; align-items: center; gap: .4rem;
+  }
+  .lf-nav button:hover { background: var(--panel-2); color: var(--text); }
+  .lf-nav button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .lf-nav .count { font-size: .75rem; opacity: .8; }
+  .lf-nav button.active .count { color: var(--accent-ink); }
+  .lf-nav .nav-group {
+    font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
+    opacity: .8; padding: .7rem .6rem .3rem; cursor: pointer; display: flex; align-items: center; gap: .35rem;
+  }
+  .lf-nav .nav-group:hover { color: var(--text); }
+  .lf-nav .nav-group:first-child { padding-top: .2rem; }
+  .lf-nav .nav-group .g-chev { font-size: .6rem; }
+  .lf-main { flex: 1; min-width: 0; overflow-y: auto; padding: 1.25rem 1.5rem 4rem; }
+  .lf-main-inner { max-width: 980px; margin: 0 auto; }
+
+  /* compact item rows */
+  .rowlist { display: flex; flex-direction: column; gap: 4px; margin-bottom: 1rem; }
+  .row {
+    display: flex; align-items: center; gap: .6rem; padding: .55rem .8rem; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
+    border-left: 3px solid var(--line); transition: border-color .12s, background .12s;
+  }
+  .row:hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--panel-2); }
+  .row .title { font-weight: 600; }
+  .row .grow { flex: 1; }
+
+  /* empty state */
+  .emptybox {
+    text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px;
+    padding: 2rem 1rem; margin-bottom: 1rem; font-size: .9rem;
+  }
+
+  /* bottom hotbar (always visible) */
+  .hotbar {
+    flex-shrink: 0; min-height: 30px; background: var(--panel); border-top: 1px solid var(--line);
+    display: flex; align-items: center; gap: .8rem; padding: .2rem .8rem;
+    font-size: .78rem; color: var(--muted); position: relative; z-index: 3;
+  }
+  .hotbar .hb-btn {
+    background: none; border: 1px solid var(--line); color: var(--text); border-radius: 5px;
+    padding: .18rem .55rem; cursor: pointer; font: inherit; font-size: .78rem;
+    display: inline-flex; align-items: center; gap: .35rem;
+  }
+  .hotbar .hb-btn:hover, .hotbar .hb-btn.on { border-color: var(--accent); color: var(--accent); }
+  .hotbar .grow { flex: 1; }
+  .hotbar .ok { color: var(--accent); }
+  .hotbar .bad { color: var(--warn); }
+
+  .pop-backdrop { position: fixed; inset: 0; z-index: 118; }
+  .settings-pop {
+    position: fixed; right: .6rem; bottom: 38px; z-index: 120; width: 350px; max-width: calc(100vw - 1.2rem);
+    background: var(--panel); border: 1px solid var(--accent); border-radius: 9px; padding: 1rem;
+    box-shadow: 0 16px 44px rgba(0,0,0,.55);
+  }
+  .settings-pop h3 { margin: 0 0 .7rem; }
+
+  /* home background chatter — typed out terminal-style (COMP/CON) */
+  .home { position: relative; }
+  .home-bg {
+    position: fixed; left: 0; right: 0; top: 49px; bottom: 30px;
+    overflow: hidden; z-index: 0; pointer-events: none;
+    display: flex; align-items: flex-end;
+  }
+  .home-bg-inner {
+    width: 100%; padding: 0 7%; opacity: .18;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .82rem; line-height: 1.9; color: var(--accent);
+    white-space: pre-wrap; word-break: break-word;
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 90%);
+    mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 90%);
+  }
+  .home-bg-inner .cursor { animation: blink 1.05s step-end infinite; }
+  @keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+  #lcp-forge[data-motion="off"] .home-bg-inner .cursor { animation: none; opacity: .6; }
+  .home-content { position: relative; z-index: 1; }
+
+  /* modal transition */
+  .m-enter-active, .m-leave-active { transition: opacity .14s ease; }
+  .m-enter-active .modal, .m-leave-active .modal { transition: transform .14s ease; }
+  .m-enter-from, .m-leave-to { opacity: 0; }
+  .m-enter-from .modal, .m-leave-to .modal { transform: translateY(-12px) scale(.98); }
+  #lcp-forge[data-motion="off"] .m-enter-active, #lcp-forge[data-motion="off"] .m-leave-active { transition: none; }
+
+  /* theme swatches */
+  .themes { display: flex; flex-wrap: wrap; gap: .5rem; }
+  .themes button {
+    border: 2px solid var(--line); border-radius: 8px; padding: .5rem .7rem; cursor: pointer;
+    background: var(--sw-bg); color: var(--sw-text); font: inherit; font-size: .85rem; font-weight: 600;
+    display: flex; align-items: center; gap: .45rem;
+  }
+  .themes button.on { border-color: var(--sw-accent); }
+  .themes button .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--sw-accent); }
+
+  /* modal editor */
+  .modal-overlay {
+    position: fixed; inset: 0; z-index: 100; background: rgba(6,8,12,.66);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 2.5rem 1.5rem; overflow-y: auto;
+  }
+  .modal {
+    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    width: 100%; max-width: 1000px; display: flex; flex-direction: column;
+    max-height: calc(100vh - 5rem); box-shadow: 0 24px 70px rgba(0,0,0,.55);
+  }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+    padding: .8rem 1.1rem; background: var(--accent); color: var(--accent-ink);
+    font-weight: 700; border-radius: 10px 10px 0 0; flex-shrink: 0;
+  }
+  .modal-x { background: none; border: 0; color: inherit; font-size: 1.05rem; cursor: pointer; line-height: 1; }
+  .modal-body { padding: 1.2rem 1.3rem; overflow-y: auto; }
+  .modal-foot {
+    padding: .7rem 1.1rem; border-top: 1px solid var(--line); display: flex; justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  .lf-field { margin-bottom: 1rem; }
+  .lf-field > label { display: flex; align-items: center; gap: .35rem; font-weight: 600; margin-bottom: .3rem; font-size: .9rem; }
+  .lf-field .req { color: var(--danger); }
+  input[type=text], input[type=number], input[type=url], select, textarea {
+    width: 100%; background: var(--panel-2); border: 1px solid var(--line); color: var(--text);
+    border-radius: 6px; padding: .5rem .6rem; font: inherit;
+  }
+  textarea { min-height: 70px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  .lf-row { display: flex; gap: .8rem; flex-wrap: wrap; }
+  .lf-row > .lf-field { flex: 1; min-width: 150px; }
+  .lf-inline { display: flex; align-items: center; gap: .4rem; }
+  .lf-checks { display: flex; flex-wrap: wrap; gap: .5rem .9rem; }
+  .lf-checks label { display: flex; align-items: center; gap: .35rem; font-weight: 400; font-size: .88rem; }
+  .lf-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: .6rem; }
+  .lf-stats .lf-field { margin-bottom: 0; }
+
+  .btn {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 6px; padding: .45rem .8rem; cursor: pointer; font: inherit;
+  }
+  .btn:hover { border-color: var(--accent); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.ghost { background: none; }
+  .btn.tiny { padding: .2rem .5rem; font-size: .8rem; }
+  .btn.danger { color: var(--danger); }
+  .btn:disabled { opacity: .45; cursor: not-allowed; }
+
+  .lf-list-item {
+    background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+    margin-bottom: .6rem; overflow: hidden;
+  }
+  .lf-list-item > .head {
+    display: flex; align-items: center; gap: .6rem; padding: .6rem .8rem; cursor: pointer;
+    user-select: none;
+  }
+  .lf-list-item > .head:hover { background: var(--panel-2); }
+  .lf-list-item.open > .head { border-bottom: 1px solid var(--line); }
+  .lf-list-item > .head .chev { color: var(--muted); font-size: .8rem; width: .9rem; }
+  .lf-list-item > .head .title { font-weight: 650; flex: 1; }
+  .lf-list-item > .head .subtle { color: var(--muted); font-weight: 400; font-size: .85rem; }
+  .lf-list-item > .body { padding: 1rem; }
+
+  .toolbar { display: flex; align-items: center; gap: .5rem; margin: 0 0 1rem; flex-wrap: wrap; }
+  .toolbar .grow { flex: 1; }
+
+  .togglebtn {
+    background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+    border-radius: 6px; padding: .35rem .7rem; cursor: pointer; font: inherit; font-size: .85rem;
+  }
+  .togglebtn:hover { color: var(--text); border-color: var(--accent); }
+  .togglebtn.on { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .addbtns { display: flex; flex-wrap: wrap; gap: .35rem; }
+  .addbtns .btn { padding: .3rem .6rem; font-size: .82rem; }
+
+  .overview { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
+  .overview button {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: .7rem .8rem;
+    text-align: left; cursor: pointer; color: var(--text); font: inherit;
+    display: flex; justify-content: space-between; align-items: baseline; gap: .5rem;
+  }
+  .overview button:hover { border-color: var(--accent); }
+  .overview button .n { font-weight: 700; font-size: 1.1rem; }
+  .overview button.zero { color: var(--muted); }
+  .overview button.zero .n { color: var(--line); }
+  .lf-sub {
+    background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px;
+    padding: .8rem; margin-bottom: .7rem;
+  }
+  .lf-sub > .head { display: flex; align-items: center; gap: .5rem; margin-bottom: .6rem; }
+  .lf-sub > .head .title { font-weight: 600; flex: 1; font-size: .88rem; color: var(--muted); }
+  .lf-block { border: 1px solid var(--line); border-radius: 6px; padding: .7rem .8rem; margin: .6rem 0; }
+  .lf-block > summary { cursor: pointer; font-size: .82rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; font-weight: 650; }
+  .lf-block[open] > summary { margin-bottom: .6rem; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+  .chip {
+    display: inline-flex; align-items: center; gap: .3rem; background: var(--panel-2);
+    border: 1px solid var(--line); border-radius: 999px; padding: .2rem .6rem; font-size: .82rem;
+  }
+  .chip.click { cursor: pointer; }
+  .chip.click:hover { border-color: var(--danger); color: var(--danger); }
+  .chip .x { opacity: .6; }
+
+  .help { position: relative; display: inline-flex; }
+  .help .dot {
+    width: 15px; height: 15px; border-radius: 50%; background: var(--line); color: var(--text);
+    font-size: 11px; line-height: 15px; text-align: center; cursor: help; font-weight: 700;
+  }
+  .help .bubble {
+    display: none; position: absolute; z-index: 50; left: 20px; top: -4px; width: 300px;
+    background: #0c0e13; border: 1px solid var(--accent); border-radius: 6px; padding: .6rem .7rem;
+    font-size: .82rem; font-weight: 400; line-height: 1.45; color: var(--text); box-shadow: 0 6px 24px rgba(0,0,0,.5);
+  }
+  .help:hover .bubble, .help:focus-within .bubble { display: block; }
+  .help .bubble code { background: var(--panel-2); padding: 0 .25rem; border-radius: 3px; }
+
+  .empty { color: var(--muted); font-style: italic; padding: 1rem 0; }
+  .pill { font-size: .72rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: .1rem .5rem; color: var(--muted); }
+  .lf-note { background: var(--panel); border-left: 3px solid var(--accent); padding: .7rem .9rem; border-radius: 4px; color: var(--muted); font-size: .88rem; margin-bottom: 1rem; }
+  .lf-warn { border-left-color: var(--warn); }
+  .lf-danger { border-left-color: var(--danger); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .82rem; }
+  .val-list { margin: 0; padding-left: 1.1rem; }
+  .val-list li { margin: .15rem 0; }
+</style>
+</head>
+<body>
+<div id="lcp-forge">
+  <div class="lf-top">
+    <button class="nav-toggle" @click="toggleNav" :title="navOpen ? 'Hide sidebar' : 'Show sidebar'">☰</button>
+    <span class="brand">{{ factionGlyph }} Sofa's&nbsp;LCP&nbsp;Editor</span>
+    <span class="pill">{{ lcp.lcp_manifest.name || 'untitled pack' }}</span>
+    <span class="spacer"></span>
+    <input ref="importFile" type="file" accept=".lcp,.zip" style="display:none" @change="importLcp" />
+    <button class="btn ghost" @click="$refs.importFile.click()">Load .lcp</button>
+    <button class="btn" @click="resetAll">New</button>
+    <button class="btn primary" @click="go('export')">Export .lcp</button>
+  </div>
+
+  <div class="lf-body">
+    <nav class="lf-nav" v-show="navOpen">
+      <template v-for="g in navGroups" :key="g">
+        <div class="nav-group" @click="toggleNavGroup(g)">
+          <span class="g-chev">{{ collapsedNav[g] ? '▶' : '▼' }}</span> {{ g }}
+        </div>
+        <template v-if="!collapsedNav[g]">
+          <button v-for="t in tabs.filter(x => x.group===g)" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
+            <span>{{ t.label }}</span>
+            <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
+          </button>
+        </template>
+      </template>
+    </nav>
+
+    <main class="lf-main">
+      <div class="lf-main-inner">
+
+        <!-- ============ HOME ============ -->
+        <section v-show="tab==='home'" class="home">
+          <div class="home-bg" v-if="settings.chatter" aria-hidden="true"><div class="home-bg-inner">{{ chatterText }}<span class="cursor">▊</span></div></div>
+          <div class="home-content">
+          <div class="toolbar">
+            <h2 style="border:0;margin:0;flex:0 0 auto">{{ lcp.lcp_manifest.name || 'Untitled pack' }}</h2>
+            <span class="pill" v-if="lcp.lcp_manifest.version">v{{ lcp.lcp_manifest.version }}</span>
+            <span class="grow"></span>
+            <button class="btn ghost" @click="$refs.importFile.click()">Load .lcp</button>
+            <button class="btn" @click="resetAll">New pack</button>
+            <button class="btn primary" @click="go('export')">Export .lcp</button>
+          </div>
+
+          <div :class="['lf-note', problems.length ? 'lf-danger' : '']">
+            <template v-if="problems.length">{{ problems.length }} issue(s) to resolve before export — see the <a href="#" @click.prevent="go('export')">Export</a> tab.</template>
+            <template v-else>Ready to export. {{ nonEmptyCategories.length }} content file(s) + the manifest.</template>
+          </div>
+
+          <details class="lf-block" open>
+            <summary>Pack manifest <span class="pill">lcp_manifest.json</span></summary>
+
+          <div class="lf-field">
+            <label>Name <span class="req">*</span><help t="The display name of the content pack, shown in COMP/CON's Content Pack Manager. Also used to match dependencies, so keep it stable across versions."/></label>
+            <input type="text" v-model="lcp.lcp_manifest.name" placeholder="My Homebrew Pack" />
+          </div>
+          <div class="lf-row">
+            <div class="lf-field">
+              <label>Author <span class="req">*</span><help t="Who made the pack. Free text."/></label>
+              <input type="text" v-model="lcp.lcp_manifest.author" />
+            </div>
+            <div class="lf-field">
+              <label>Version <span class="req">*</span><help t="Semantic version, X.Y.Z (e.g. 1.0.0). Breaking semver rules can break dependency resolution in COMP/CON."/></label>
+              <input type="text" v-model="lcp.lcp_manifest.version" placeholder="1.0.0" />
+            </div>
+          </div>
+          <div class="lf-field">
+            <label>Description <span class="req">*</span><help t="Shown on the pack's page in COMP/CON. HTML is allowed."/></label>
+            <textarea v-model="lcp.lcp_manifest.description"></textarea>
+          </div>
+          <div class="lf-row">
+            <div class="lf-field">
+              <label>Website <help t="Optional. Required only for Community Content Directory submissions, where it must be an itch.io page."/></label>
+              <input type="url" v-model="lcp.lcp_manifest.website" placeholder="https://..." />
+            </div>
+            <div class="lf-field">
+              <label>Image URL <help t="Optional. A cover image for the pack — typically a book cover. Must be a remotely hosted URL."/></label>
+              <input type="url" v-model="lcp.lcp_manifest.image_url" placeholder="https://..." />
+            </div>
+          </div>
+          <div class="lf-field">
+            <label class="lf-inline">
+              <input type="checkbox" v-model="lcp.lcp_manifest.v3" />
+              Mark as COMP/CON v3 compatible
+              <help t="Strongly recommended for all new packs. Does not block loading, but v3 packs are highlighted in the Content Pack Manager and Active Mode."/>
+            </label>
+          </div>
+
+          <details class="lf-block">
+            <summary>Dependencies <span v-if="lcp.lcp_manifest.dependencies.length" class="pill">{{ lcp.lcp_manifest.dependencies.length }}</span></summary>
+            <p class="lf-note">Other packs that must be installed for this one to work. COMP/CON loads dependencies first and refuses to load this pack if one is missing.</p>
+            <div v-for="(d,i) in lcp.lcp_manifest.dependencies" :key="i" class="lf-sub">
+              <div class="head">
+                <span class="title">Dependency {{ i+1 }}</span>
+                <button class="btn tiny danger" @click="lcp.lcp_manifest.dependencies.splice(i,1)">Remove</button>
+              </div>
+              <div class="lf-row">
+                <div class="lf-field"><label>Name <span class="req">*</span><help t="Must exactly match the name field in the dependency's own manifest."/></label><input type="text" v-model="d.name" /></div>
+                <div class="lf-field"><label>Version <span class="req">*</span><help t="A semver string. COMP/CON treats it as 'this version or later'. Use * for any version, or =X.Y.Z for an exact match."/></label><input type="text" v-model="d.version" placeholder="1.0.0 | * | =1.0.0" /></div>
+                <div class="lf-field"><label>Link <help t="Optional but recommended — where users can download the dependency."/></label><input type="url" v-model="d.link" /></div>
+              </div>
+            </div>
+            <button class="btn tiny" @click="lcp.lcp_manifest.dependencies.push({name:'',version:'*',link:''})">+ Dependency</button>
+          </details>
+
+          <details class="lf-block">
+            <summary>Version history <span v-if="lcp.lcp_manifest.version_history.length" class="pill">{{ lcp.lcp_manifest.version_history.length }}</span></summary>
+            <div v-for="(v,i) in lcp.lcp_manifest.version_history" :key="i" class="lf-sub">
+              <div class="head">
+                <span class="title">Entry {{ i+1 }}</span>
+                <button class="btn tiny danger" @click="lcp.lcp_manifest.version_history.splice(i,1)">Remove</button>
+              </div>
+              <div class="lf-row">
+                <div class="lf-field"><label>Version <help t="semver x.y.z"/></label><input type="text" v-model="v.version" placeholder="1.1.0" /></div>
+                <div class="lf-field"><label>Date <help t="ISO date: YYYY-MM-DD"/></label><input type="text" v-model="v.date" placeholder="2026-08-31" /></div>
+              </div>
+              <div class="lf-field"><label>Changes <help t="One change per line. Rendered as a bullet list in COMP/CON."/></label><textarea v-model="v._changesText" placeholder="Added the Foobar frame&#10;Fixed Baz weapon damage"></textarea></div>
+            </div>
+            <button class="btn tiny" @click="lcp.lcp_manifest.version_history.push({version:'',date:'',_changesText:''})">+ Version entry</button>
+          </details>
+          </details>
+
+          <h3 style="margin-top:1.5rem">Contents</h3>
+          <div class="overview">
+            <button v-for="t in tabs.filter(x => x.key)" :key="t.id" :class="{zero: !(lcp[t.key]||[]).length}" @click="tab=t.id">
+              <span>{{ t.label }}</span><span class="n">{{ (lcp[t.key]||[]).length }}</span>
+            </button>
+          </div>
+          </div>
+        </section>
+
+        <!-- ============ MANUFACTURERS ============ -->
+        <section v-show="tab==='manufacturers'">
+          <h2>Manufacturers <span class="pill">manufacturers.json</span></h2>
+          <p class="lf-note">Define these first — frames, weapons and systems reference a manufacturer by its <span class="mono">id</span> via their <span class="mono">source</span> field.</p>
+          <p v-if="!lcp.manufacturers.length" class="empty">No manufacturers yet.</p>
+
+          <div class="toolbar">
+            <button class="btn primary" @click="addManufacturer">+ Manufacturer</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.manufacturers.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(m,i) in lcp.manufacturers" :key="i" @click="openEdit('manufacturers', i)">
+              <span class="title">{{ m.name || m.id || 'Untitled manufacturer' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('manufacturers', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ FRAMES ============ -->
+        <section v-show="tab==='frames'">
+          <h2>Frames <span class="pill">frames.json</span></h2>
+          <p v-if="!lcp.manufacturers.length" class="lf-note lf-warn">Add a manufacturer first — a frame's <span class="mono">source</span> must match one.</p>
+          <p v-if="!lcp.frames.length" class="empty">No frames yet.</p>
+
+          <div class="toolbar">
+            <button class="btn primary" @click="addFrame">+ Frame</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.frames.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(f,i) in lcp.frames" :key="i" @click="openEdit('frames', i)">
+              <span class="title">{{ f.name || 'Untitled frame' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('frames', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ WEAPONS ============ -->
+        <section v-show="tab==='weapons'">
+          <h2>Weapons <span class="pill">weapons.json</span></h2>
+          <p v-if="!lcp.frames.length" class="lf-note lf-warn">Weapons attach to a license — usually a frame. Add a frame first so you can pick its License ID.</p>
+          <p v-if="!lcp.weapons.length" class="empty">No weapons yet.</p>
+
+          <div class="toolbar">
+            <button class="btn primary" @click="addWeapon">+ Weapon</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.weapons.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(w,i) in lcp.weapons" :key="i" @click="openEdit('weapons', i)">
+              <span class="title">{{ w.name || 'Untitled weapon' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('weapons', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ SYSTEMS ============ -->
+        <section v-show="tab==='systems'">
+          <h2>Systems <span class="pill">systems.json</span></h2>
+          <p v-if="!lcp.systems.length" class="empty">No systems yet.</p>
+
+          <div class="toolbar">
+            <button class="btn primary" @click="addSystem">+ System</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.systems.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(s,i) in lcp.systems" :key="i" @click="openEdit('systems', i)">
+              <span class="title">{{ s.name || 'Untitled system' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('systems', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ WEAPON MODS ============ -->
+        <section v-show="tab==='mods'">
+          <h2>Weapon Mods <span class="pill">mods.json</span></h2>
+          <p class="lf-note">A mod is a system with extra fields for which weapons it can attach to and what it adds. Added tags / damage / range are applied to the host weapon while the mod is installed.</p>
+          <p v-if="!lcp.mods.length" class="empty">No weapon mods yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('mods', blankMod())">+ Weapon Mod</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.mods.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(w,i) in lcp.mods" :key="i" @click="openEdit('mods', i)">
+              <span class="title">{{ w.name || 'Untitled mod' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('mods', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CORE BONUSES ============ -->
+        <section v-show="tab==='core_bonuses'">
+          <h2>CORE Bonuses <span class="pill">core_bonuses.json</span></h2>
+          <p class="lf-note">Extra CORE Bonuses pilots can pick at LL0/LL5/LL10. Note that many CORE Bonus effects are special-cased in COMP/CON — if the Bonuses builder can't fully express the rule, spell it out in the effect text.</p>
+          <p v-if="!lcp.core_bonuses.length" class="empty">No CORE bonuses yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('core_bonuses', blankCoreBonus())">+ CORE Bonus</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.core_bonuses.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(c,i) in lcp.core_bonuses" :key="i" @click="openEdit('core_bonuses', i)">
+              <span class="title">{{ c.name || 'Untitled CORE bonus' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('core_bonuses', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ TALENTS ============ -->
+        <section v-show="tab==='talents'">
+          <h2>Talents <span class="pill">talents.json</span></h2>
+          <p class="lf-note">Every talent has exactly three ranks. Put the mechanical parts of each rank into its Actions / Bonuses / Synergies.</p>
+          <p v-if="!lcp.talents.length" class="empty">No talents yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('talents', blankTalent())">+ Talent</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.talents.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(t,i) in lcp.talents" :key="i" @click="openEdit('talents', i)">
+              <span class="title">{{ t.name || 'Untitled talent' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('talents', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ SKILL TRIGGERS ============ -->
+        <section v-show="tab==='skills'">
+          <h2>Skill Triggers <span class="pill">skills.json</span></h2>
+          <p class="lf-note">Purely narrative — no mechanical fields. <span class="mono">family</span> only decides where in the list the skill appears.</p>
+          <p v-if="!lcp.skills.length" class="empty">No skill triggers yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('skills', blankSkill())">+ Skill Trigger</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.skills.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(s,i) in lcp.skills" :key="i" @click="openEdit('skills', i)">
+              <span class="title">{{ s.name || 'Untitled skill' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('skills', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ BACKGROUNDS ============ -->
+        <section v-show="tab==='backgrounds'">
+          <h2>Backgrounds <span class="pill">backgrounds.json</span></h2>
+          <p v-if="!lcp.backgrounds.length" class="empty">No backgrounds yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('backgrounds', blankBackground())">+ Background</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.backgrounds.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(bg,i) in lcp.backgrounds" :key="i" @click="openEdit('backgrounds', i)">
+              <span class="title">{{ bg.name || 'Untitled background' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('backgrounds', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ RESERVES ============ -->
+        <section v-show="tab==='reserves'">
+          <h2>Reserves <span class="pill">reserves.json</span></h2>
+          <p v-if="!lcp.reserves.length" class="empty">No reserves yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('reserves', blankReserve())">+ Reserve</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.reserves.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(r,i) in lcp.reserves" :key="i" @click="openEdit('reserves', i)">
+              <span class="title">{{ r.name || 'Untitled reserve' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('reserves', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ PILOT GEAR ============ -->
+        <section v-show="tab==='pilot_gear'">
+          <h2>Pilot Gear <span class="pill">pilot_gear.json</span></h2>
+          <p class="lf-note">Pilot weapons, armor and equipment all live in one file, split by <span class="mono">type</span>. Pilot-scale — bonuses here apply to the pilot on foot, not the mech.</p>
+          <p v-if="!lcp.pilot_gear.length" class="empty">No pilot gear yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('pilot_gear', blankPilotGear())">+ Pilot Gear</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.pilot_gear.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(g,i) in lcp.pilot_gear" :key="i" @click="openEdit('pilot_gear', i)">
+              <span class="title">{{ g.name || 'Untitled gear' }}</span><span class="pill">{{ g.type }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('pilot_gear', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ BONDS ============ -->
+        <section v-show="tab==='bonds'">
+          <h2>Bonds <span class="pill">bonds.json</span></h2>
+          <p class="lf-note">Karrakin Trade Baronies narrative rules. The Bond UI only appears in COMP/CON if the KTB LCP is installed — add it as a dependency on the Manifest tab.</p>
+          <p v-if="!lcp.bonds.length" class="empty">No bonds yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('bonds', blankBond())">+ Bond</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.bonds.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(b,i) in lcp.bonds" :key="i" @click="openEdit('bonds', i)">
+              <span class="title">{{ b.name || 'Untitled bond' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('bonds', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ NPC CLASSES ============ -->
+        <section v-show="tab==='npc_classes'">
+          <h2>NPC Classes <span class="pill">npc_classes.json</span></h2>
+          <p class="lf-note">A class needs its stats and a list of feature ids. Build the features on the <strong>NPC Features</strong> tab first, then reference them here by id (comma-separated). Stats take a single number, or three comma-separated numbers for tier 1 / 2 / 3.</p>
+          <p v-if="!lcp.npc_classes.length" class="empty">No NPC classes yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('npc_classes', blankNpcClass())">+ NPC Class</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.npc_classes.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(c,i) in lcp.npc_classes" :key="i" @click="openEdit('npc_classes', i)">
+              <span class="title">{{ c.name || 'Untitled class' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('npc_classes', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ NPC TEMPLATES ============ -->
+        <section v-show="tab==='npc_templates'">
+          <h2>NPC Templates <span class="pill">npc_templates.json</span></h2>
+          <p class="lf-note">Templates (Grunt, Elite, Veteran…) layer features onto any class. <span class="mono">"template": true</span> is written automatically.</p>
+          <p v-if="!lcp.npc_templates.length" class="empty">No NPC templates yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('npc_templates', blankNpcTemplate())">+ NPC Template</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.npc_templates.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(t,i) in lcp.npc_templates" :key="i" @click="openEdit('npc_templates', i)">
+              <span class="title">{{ t.name || 'Untitled template' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('npc_templates', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ NPC FEATURES ============ -->
+        <section v-show="tab==='npc_features'">
+          <h2>NPC Features <span class="pill">npc_features.json</span></h2>
+          <p class="lf-note">Traits, systems, reactions, tech and weapons for NPCs. Tie a feature to its class/template with <strong>Origin</strong> + <strong>Base</strong>, or list its id under that class's base/optional features.</p>
+          <p v-if="!lcp.npc_features.length" class="empty">No NPC features yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('npc_features', blankNpcFeature())">+ NPC Feature</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.npc_features.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(f,i) in lcp.npc_features" :key="i" @click="openEdit('npc_features', i)">
+              <span class="title">{{ f.name || 'Untitled feature' }}</span><span class="pill">{{ f.type }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('npc_features', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ ENVIRONMENTS ============ -->
+        <section v-show="tab==='environments'">
+          <h2>Environments <span class="pill">environments.json</span></h2>
+          <p v-if="!lcp.environments.length" class="empty">No environments yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('environments', blankEnvironment())">+ Environment</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.environments.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(x,i) in lcp.environments" :key="i" @click="openEdit('environments', i)">
+              <span class="title">{{ x.name || 'Untitled environment' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('environments', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ SITREPS ============ -->
+        <section v-show="tab==='sitreps'">
+          <h2>SITREPs <span class="pill">sitreps.json</span></h2>
+          <p class="lf-note">Preset scenarios for the Encounter Builder.</p>
+          <p v-if="!lcp.sitreps.length" class="empty">No SITREPs yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('sitreps', blankSitrep())">+ SITREP</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.sitreps.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(x,i) in lcp.sitreps" :key="i" @click="openEdit('sitreps', i)">
+              <span class="title">{{ x.name || 'Untitled SITREP' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('sitreps', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ STATUSES ============ -->
+        <section v-show="tab==='statuses'">
+          <h2>Statuses &amp; Conditions <span class="pill">statuses.json</span></h2>
+          <p v-if="!lcp.statuses.length" class="empty">No statuses yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('statuses', blankStatus())">+ Status / Condition</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.statuses.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(x,i) in lcp.statuses" :key="i" @click="openEdit('statuses', i)">
+              <span class="title">{{ x.name || 'Untitled status' }}</span><span class="pill">{{ x.type }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('statuses', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ ROLLABLE TABLES ============ -->
+        <section v-show="tab==='tables'">
+          <h2>Rollable Tables <span class="pill">tables.json</span></h2>
+          <p class="lf-note">Dice tables usable from Active Mode's Roll Table tool. Every possible roll on the die must be covered by a result's min–max range. Use min = max = -1 for a "multiple 1s" row.</p>
+          <p v-if="!lcp.tables.length" class="empty">No tables yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('tables', blankTable())">+ Table</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.tables.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(x,i) in lcp.tables" :key="i" @click="openEdit('tables', i)">
+              <span class="title">{{ x.title || 'Untitled table' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('tables', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ NAME LISTS ============ -->
+        <section v-show="tab==='lists'">
+          <h2>Name Lists <span class="pill">lists.json</span></h2>
+          <p class="lf-note">Rollable name lists that add options to COMP/CON's pilot / mech creation screens. One entry per line. Only non-empty lists are exported.</p>
+          <div class="lf-field" v-for="lf in listFields" :key="lf[0]">
+            <label>{{ lf[1] }} <help t="One name per line."/></label>
+            <textarea v-model="lcp._lists[lf[0]]" style="min-height:120px"></textarea>
+          </div>
+        </section>
+
+        <!-- ============ CUSTOM STATS ============ -->
+        <section v-show="tab==='custom_stats'">
+          <h2>Custom Stats <span class="pill">custom_stats.json</span></h2>
+          <p class="lf-note lf-warn">Experimental in COMP/CON. A custom stat appears on <em>every</em> combat entity that has anything referencing it, and can't be shared across LCPs.</p>
+          <p v-if="!lcp.custom_stats.length" class="empty">No custom stats yet.</p>
+          <div class="toolbar">
+            <button class="btn primary" @click="push('custom_stats', blankCustomStat())">+ Custom Stat</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.custom_stats.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(x,i) in lcp.custom_stats" :key="i" @click="openEdit('custom_stats', i)">
+              <span class="title">{{ x.title || 'Untitled stat' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('custom_stats', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ TAGS ============ -->
+        <section v-show="tab==='tags'">
+          <h2>Custom Tags <span class="pill">tags.json</span></h2>
+          <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. The core tags (Accurate, Loading, Reliable X, …) are already in the tag picker on weapons and systems — you don't define those here. Note that a brand-new custom tag id is shown as text everywhere but isn't automated by COMP/CON or Foundry (they only automate a fixed list of known ids).</p>
+          <p v-if="!lcp.tags.length" class="empty">No custom tags.</p>
+
+          <div class="toolbar">
+            <button class="btn primary" @click="lcp.tags.push({id:'tag',name:'',description:'',filter_ignore:false})">+ Tag</button>
+            <span class="grow"></span>
+            <span class="subtle" style="color:var(--muted);font-size:.85rem">{{ lcp.tags.length }} item(s)</span>
+          </div>
+          <div class="rowlist">
+            <div class="row" v-for="(t,i) in lcp.tags" :key="i" @click="openEdit('tags', i)">
+              <span class="title">{{ t.name || t.id || 'Untitled tag' }}</span>
+              <span class="grow"></span>
+              <button class="btn tiny danger" @click.stop="removeItem('tags', i)">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ EXPORT ============ -->
+        <section v-show="tab==='export'">
+          <h2>Export</h2>
+          <p class="lf-note">Builds a flat <span class="mono">.lcp</span> zip: <span class="mono">lcp_manifest.json</span> plus one file per non-empty category. Import it into COMP/CON via <em>Content Pack Manager → Install Pack</em>.</p>
+
+          <div v-if="problems.length" class="lf-note lf-danger">
+            <strong>{{ problems.length }} issue(s) to fix:</strong>
+            <ul class="val-list">
+              <li v-for="(p,i) in problems" :key="i">{{ p }}</li>
+            </ul>
+          </div>
+          <div v-else class="lf-note">Validation passed. No blocking issues found.</div>
+
+          <h3>Contents</h3>
+          <ul class="val-list mono">
+            <li>lcp_manifest.json</li>
+            <li v-for="c in nonEmptyCategories" :key="c">{{ c }}.json — {{ lcp[c].length }} item(s)</li>
+          </ul>
+
+          <p style="margin-top:1.5rem">
+            <button class="btn primary" @click="exportLcp" :disabled="problems.length>0">Download {{ exportFilename }}</button>
+            <button class="btn ghost" @click="previewJson=!previewJson">{{ previewJson ? 'Hide' : 'Show' }} JSON preview</button>
+          </p>
+          <pre v-if="previewJson" class="mono lf-sub" style="white-space:pre-wrap; max-height:420px; overflow:auto">{{ jsonPreview }}</pre>
+        </section>
+
+      </div>
+
+      <transition name="m">
+      <div class="modal-overlay" v-if="edit.key" @click.self="closeEdit">
+        <div class="modal">
+          <div class="modal-head">
+            <span>{{ modalTitle }}</span>
+            <button class="modal-x" @click="closeEdit">✕</button>
+          </div>
+          <div class="modal-body" v-if="editTarget">
+          <template v-if="edit.key==='manufacturers'"><template v-for="m in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Convention: a short acronym, e.g. GMS, HA, IPS-N. Referenced by source on equipment."/></label><input type="text" v-model="m.id" placeholder="MYCO" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name, usually all caps, e.g. HARRISON ARMORY."/></label><input type="text" v-model="m.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the Compendium manufacturer page. HTML allowed."/></label><textarea v-model="m.description"></textarea></div>
+            <div class="lf-field"><label>Quote <span class="req">*</span><help t="A short additional flavor line for the manufacturer page. HTML allowed. Can be empty string but the field should be present."/></label><input type="text" v-model="m.quote" /></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Light color <span class="req">*</span><help t="Hex color (#RRGGBB) used for this manufacturer in COMP/CON's light theme."/></label><input type="text" v-model="m.light" placeholder="#6e4373" /></div>
+              <div class="lf-field"><label>Dark color <span class="req">*</span><help t="Hex color (#RRGGBB) used in COMP/CON's dark theme."/></label><input type="text" v-model="m.dark" placeholder="#a15ea8" /></div>
+            </div>
+            <div class="lf-field"><label>Icon URL <help t="Optional fallback logo image. Inline SVG (icon_svg) is preferred by Massif but not exposed here yet."/></label><input type="url" v-model="m.icon_url" /></div>
+          </template></template>
+          <template v-if="edit.key==='frames'"><template v-for="f in [editTarget]" :key="edit.idx">
+
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Convention: {prefix}_{type}_{name}, e.g. myco_frame_wyvern. Changing it later breaks user data that references it."/></label><input type="text" v-model="f.id" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The frame's display name, e.g. Everest, Blackbeard. Also the usual name of its license."/></label><input type="text" v-model="f.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Source (manufacturer) <span class="req">*</span><help t="Must match a Manufacturer ID."/></label>
+                <select v-model="f.source">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }} — {{ m.name }}</option>
+                </select>
+              </div>
+              <div class="lf-field"><label>License level <span class="req">*</span><help t="0–3. The license rank at which this frame unlocks. 0 = available to everyone at LL0."/></label><input type="number" min="0" max="3" v-model.number="f.license_level" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Variant of <help t="Optional. The id of the frame this is a variant of. If set, License ID becomes required."/></label><input type="text" v-model="f.variant" /></div>
+            </div>
+            <div class="lf-field">
+              <label>Mech types <span class="req">*</span><help t="One or more — a player-facing hint with no mechanical effect. Tap a preset or type your own, comma-separated."/></label>
+              <input type="text" v-model="f._mechtypeText" placeholder="Striker, Artillery" />
+              <div class="addbtns" style="margin-top:.4rem">
+                <button v-for="mt in mechTypeOptions" :key="mt" class="btn tiny" @click="addCsv(f, '_mechtypeText', mt)">+ {{ mt }}</button>
+              </div>
+            </div>
+            <div class="lf-field" v-if="f.variant">
+              <label>License ID <span class="req">*</span><help t="Required for variants. Must match the id of the parent license frame."/></label>
+              <input type="text" v-model="f.license_id" />
+            </div>
+
+            <div class="lf-field">
+              <label>Mounts <span class="req">*</span><help t="The weapon mounts this frame provides. A frame can have several of the same type — tap a button per mount. Click a mount chip to remove it."/></label>
+              <div class="chips" style="margin-bottom:.4rem">
+                <span v-for="(mt,mi) in f.mounts" :key="mi" class="chip click" @click="f.mounts.splice(mi,1)">{{ mt }} <span class="x">✕</span></span>
+                <span v-if="!f.mounts.length" class="mono" style="color:var(--muted)">none</span>
+              </div>
+              <div class="addbtns">
+                <button v-for="mt in mountTypes" :key="mt" class="btn tiny" @click="f.mounts.push(mt)">+ {{ mt }}</button>
+              </div>
+            </div>
+
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the Compendium and expanded cards. HTML allowed."/></label><textarea v-model="f.description"></textarea></div>
+
+            <h3>Stats <help t="All positive integers, except size which may also be 0.5 (renders as ½)."/></h3>
+            <div class="lf-stats">
+              <div class="lf-field" v-for="s in frameStats" :key="s.k">
+                <label style="font-size:.8rem">{{ s.label }} <help :t="s.help"/></label>
+                <input type="number" :step="s.k==='size' ? 0.5 : 1" v-model.number="f.stats[s.k]" />
+              </div>
+            </div>
+
+            <h3 style="margin-top:1.2rem">Traits <help t="Frame abilities. Zero or more. Each has a name + description; attach Actions / Bonuses / Synergies for the mechanical parts."/></h3>
+            <div v-for="(tr,ti) in f.traits" :key="ti" class="lf-sub">
+              <div class="head">
+                <span class="title">{{ tr.name || 'Trait' }}</span>
+                <button class="btn tiny danger" @click="f.traits.splice(ti,1)">Remove</button>
+              </div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The trait's name as shown on the frame, e.g. Ferocious, Nuclear Cavalier."/></label><input type="text" v-model="tr.name" /></div>
+              <div class="lf-field"><label>Description <span class="req">*</span><help t="Rules + flavor. HTML allowed."/></label><textarea v-model="tr.description"></textarea></div>
+              <action-list v-model="tr.actions" label="Trait actions"></action-list>
+              <bonus-list v-model="tr.bonuses"></bonus-list>
+              <synergy-list v-model="tr.synergies"></synergy-list>
+              <counter-list v-model="tr.counters"></counter-list>
+              <deployable-list v-model="tr.deployables"></deployable-list>
+            </div>
+            <button class="btn tiny" @click="f.traits.push(blankTrait())">+ Trait</button>
+
+            <h3 style="margin-top:1.2rem">Core system <help t="Every frame has exactly one. The unique CORE Power."/></h3>
+            <div class="lf-sub">
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The name of the CORE System itself (e.g. Ouraboros Device), distinct from the active/passive effect names below."/></label><input type="text" v-model="f.core_system.name" /></div>
+              <div class="lf-field"><label>Description <help t="Flavor text. Optional but recommended. HTML allowed."/></label><textarea v-model="f.core_system.description"></textarea></div>
+              <div class="lf-row">
+                <div class="lf-field"><label>Active name <span class="req">*</span><help t="Name of the CORE Power's active effect."/></label><input type="text" v-model="f.core_system.active_name" /></div>
+                <div class="lf-field">
+                  <label>Activation <span class="req">*</span><help t="Action type needed to activate."/></label>
+                  <select v-model="f.core_system.activation">
+                    <option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="lf-field"><label>Active effect <span class="req">*</span><help t="Rules text for the active effect. HTML allowed."/></label><textarea v-model="f.core_system.active_effect"></textarea></div>
+              <div class="lf-row">
+                <div class="lf-field">
+                  <label>Use / duration <help t="How long it stays active after activation. Leave blank for 'until deactivated or mission end'."/></label>
+                  <select v-model="f.core_system.use">
+                    <option value="">(none)</option>
+                    <option v-for="u in coreUseTypes" :key="u" :value="u">{{ u }}</option>
+                  </select>
+                </div>
+                <div class="lf-field">
+                  <label>Deactivation <help t="Optional. Action type to turn it off early."/></label>
+                  <select v-model="f.core_system.deactivation">
+                    <option value="">(none)</option>
+                    <option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option>
+                  </select>
+                </div>
+              </div>
+              <div class="lf-field"><label>Passive name <help t="Optional. If the CORE system has an always-on passive."/></label><input type="text" v-model="f.core_system.passive_name" /></div>
+              <div class="lf-field" v-if="f.core_system.passive_name"><label>Passive effect <help t="Rules text for the passive. HTML allowed."/></label><textarea v-model="f.core_system.passive_effect"></textarea></div>
+
+              <h4>Active — added while the CORE Power is on</h4>
+              <action-list v-model="f.core_system.active_actions" label="Active actions"></action-list>
+              <bonus-list v-model="f.core_system.active_bonuses"></bonus-list>
+              <synergy-list v-model="f.core_system.active_synergies"></synergy-list>
+              <h4>Passive — always on</h4>
+              <action-list v-model="f.core_system.passive_actions" label="Passive actions"></action-list>
+              <bonus-list v-model="f.core_system.passive_bonuses"></bonus-list>
+              <synergy-list v-model="f.core_system.passive_synergies"></synergy-list>
+              <h4>Either way</h4>
+              <deployable-list v-model="f.core_system.deployables"></deployable-list>
+              <counter-list v-model="f.core_system.counters"></counter-list>
+              <tag-list v-model="f.core_system.tags" :local-tags="lcp.tags"></tag-list>
+            </div>
+
+            <details class="lf-block" style="margin-top:1rem">
+              <summary>Advanced frame options</summary>
+              <div class="lf-field"><label>Frame image URL <help t="Optional. Default frame artwork, remotely hosted."/></label><input type="url" v-model="f.image_url" /></div>
+              <div class="lf-row">
+                <div class="lf-field">
+                  <label>y-position <help t="Optional. Vertical % offset for the frame art in COMP/CON's banner UI. 0–100."/></label>
+                  <input type="number" v-model.number="f.y_pos" />
+                </div>
+                <div class="lf-field">
+                  <label class="lf-inline" style="margin-top:1.6rem">
+                    <input type="checkbox" v-model="f.specialty" />
+                    Specialty license
+                    <help t="Marks this as a nonstandard / frameless license. Hides the frame and flags the license as 'Specialty'."/>
+                  </label>
+                </div>
+              </div>
+            </details>
+          </template></template>
+          <template v-if="edit.key==='weapons'"><template v-for="w in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. e.g. myco_weapon_railgun."/></label><input type="text" v-model="w.id" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The weapon's display name, e.g. Thermal Lance, Nexus (HUNTER)."/></label><input type="text" v-model="w.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Source <span class="req">*</span><help t="Manufacturer ID."/></label>
+                <select v-model="w.source">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }}</option>
+                </select>
+              </div>
+              <div class="lf-field">
+                <label>License ID <span class="req">*</span><help t="Must match a Frame ID — the frame whose license grants this weapon."/></label>
+                <select v-model="w.license_id" @change="w.license = frameName(w.license_id) || w.license">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="fr in lcp.frames" :key="fr.id" :value="fr.id">{{ fr.name }} ({{ fr.id }})</option>
+                </select>
+              </div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>License (display) <span class="req">*</span><help t="Display name of the containing license — usually the frame's name."/></label><input type="text" v-model="w.license" /></div>
+              <div class="lf-field"><label>License level <span class="req">*</span><help t="0–3."/></label><input type="number" min="0" max="3" v-model.number="w.license_level" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Mount <span class="req">*</span><help t="Required mount size for this weapon."/></label>
+                <select v-model="w.mount"><option v-for="x in weaponMounts" :key="x" :value="x">{{ x }}</option></select>
+              </div>
+              <div class="lf-field">
+                <label>Weapon type(s) <span class="req">*</span><help t="One or more — most weapons have exactly one. Tap to toggle."/></label>
+                <div class="addbtns">
+                  <button v-for="wt in weaponTypes" :key="wt" type="button" :class="['togglebtn', {on: w._typeArr.includes(wt)}]" @click="toggleArr(w._typeArr, wt)">{{ wt }}</button>
+                </div>
+              </div>
+            </div>
+            <div class="lf-field"><label>Effect <help t="Rules text — what the weapon does beyond plain damage. HTML allowed. Optional but usually present."/></label><textarea v-model="w.effect"></textarea></div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text. HTML allowed."/></label><textarea v-model="w.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>SP <help t="System Point cost. Integer, defaults to 0."/></label><input type="number" v-model.number="w.sp" /></div>
+              <div class="lf-field"><label>Cost <help t="Usage cost per attack. Only meaningful with the Limited tag. Defaults to 1."/></label><input type="number" v-model.number="w.cost" /></div>
+            </div>
+
+            <damage-list v-model="w.damage"></damage-list>
+            <range-list v-model="w.range"></range-list>
+            <tag-list v-model="w.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="w.actions" label="Actions (reactions, protocols, etc.)"></action-list>
+            <bonus-list v-model="w.bonuses"></bonus-list>
+            <synergy-list v-model="w.synergies"></synergy-list>
+            <deployable-list v-model="w.deployables"></deployable-list>
+            <counter-list v-model="w.counters"></counter-list>
+
+            <details class="lf-block">
+              <summary>On-attack / on-hit effects</summary>
+              <div class="lf-field"><label>On attack <help t="Effect that applies when you make an attack with this weapon, before hit/damage rolls. Plain text; HTML allowed."/></label><input type="text" v-model="w.on_attack" /></div>
+              <div class="lf-field"><label>On hit <help t="Applies after a successful hit, before damage."/></label><input type="text" v-model="w.on_hit" /></div>
+              <div class="lf-field"><label>On crit <help t="Applies only on a critical hit."/></label><input type="text" v-model="w.on_crit" /></div>
+              <div class="lf-field"><label>On miss <help t="Applies on a miss (e.g. Reliable)."/></label><input type="text" v-model="w.on_miss" /></div>
+            </details>
+
+            <details class="lf-block">
+              <summary>Flags</summary>
+              <div class="lf-checks">
+                <label><input type="checkbox" v-model="w.skirmish" /> Skirmish only <help t="Restrict this weapon to the Skirmish action. Overrides barrage."/></label>
+                <label><input type="checkbox" v-model="w.barrage" /> Barrage only <help t="Restrict this weapon to the Barrage action."/></label>
+                <label><input type="checkbox" v-model="w.no_attack" /> Prohibit attack action <help t="Suppresses Skirmish/Barrage entirely — for weapon-mounted systems (e.g. the Goblin's Autopod)."/></label>
+                <label><input type="checkbox" v-model="w.no_mods" /> Prohibit mods <help t="No weapon mods can be attached."/></label>
+                <label><input type="checkbox" v-model="w.no_core_bonus" /> Ignore mount core bonuses <help t="Mount-sensitive core bonuses do not apply to attacks with this weapon."/></label>
+                <label><input type="checkbox" v-model="w.no_bonus" /> Ignore bonuses <help t="This weapon neither registers nor receives Bonuses."/></label>
+                <label><input type="checkbox" v-model="w.no_synergy" /> Ignore synergies <help t="This weapon neither contributes to nor is marked by Synergies."/></label>
+              </div>
+            </details>
+
+            <p class="lf-note" style="margin-top:.6rem; font-size:.82rem">Multi-mode weapons (<span class="mono">profiles</span>) and ammo lists aren't in the UI yet — load an existing .lcp with profiles and they'll round-trip untouched.</p>
+          </template></template>
+          <template v-if="edit.key==='systems'"><template v-for="s in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. e.g. myco_system_flux_capacitor. Changing it later breaks user data that references it."/></label><input type="text" v-model="s.id" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The system's display name, e.g. Pattern-A Smoke Charges."/></label><input type="text" v-model="s.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Source <span class="req">*</span><help t="Manufacturer ID."/></label>
+                <select v-model="s.source">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }}</option>
+                </select>
+              </div>
+              <div class="lf-field">
+                <label>License ID <span class="req">*</span><help t="Frame ID whose license grants this system."/></label>
+                <select v-model="s.license_id" @change="s.license = frameName(s.license_id) || s.license">
+                  <option value="" disabled>— select —</option>
+                  <option v-for="fr in lcp.frames" :key="fr.id" :value="fr.id">{{ fr.name }} ({{ fr.id }})</option>
+                </select>
+              </div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>License (display) <span class="req">*</span><help t="Display name of the containing license — usually the frame's name. Auto-filled from the License ID above."/></label><input type="text" v-model="s.license" /></div>
+              <div class="lf-field"><label>License level <span class="req">*</span><help t="0–3. The license rank at which this system unlocks."/></label><input type="number" min="0" max="3" v-model.number="s.license_level" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field">
+                <label>Type <help t="Defaults to System if omitted."/></label>
+                <select v-model="s.type"><option v-for="x in systemTypes" :key="x" :value="x">{{ x }}</option></select>
+              </div>
+              <div class="lf-field"><label>SP <help t="System Point cost. Integer, defaults to 0."/></label><input type="number" v-model.number="s.sp" /></div>
+            </div>
+            <div class="lf-field"><label>Effect <help t="Rules text. HTML allowed."/></label><textarea v-model="s.effect"></textarea></div>
+            <div class="lf-field"><label>Description <help t="Flavor text. HTML allowed."/></label><textarea v-model="s.description"></textarea></div>
+
+            <tag-list v-model="s.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="s.actions" label="Actions"></action-list>
+            <bonus-list v-model="s.bonuses"></bonus-list>
+            <synergy-list v-model="s.synergies"></synergy-list>
+            <deployable-list v-model="s.deployables"></deployable-list>
+            <counter-list v-model="s.counters"></counter-list>
+
+            <details class="lf-block">
+              <summary>Flags</summary>
+              <div class="lf-checks">
+                <label><input type="checkbox" v-model="s.no_bonus" /> Ignore bonuses <help t="This system neither registers nor is affected by Bonuses."/></label>
+                <label><input type="checkbox" v-model="s.no_synergy" /> Ignore synergies <help t="This system neither contributes to nor is marked by Synergies."/></label>
+              </div>
+            </details>
+          </template></template>
+          <template v-if="edit.key==='mods'"><template v-for="w in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally wm_ prefixed."/></label><input type="text" v-model="w.id" placeholder="wm_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="w.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Source <span class="req">*</span><help t="Manufacturer ID."/></label>
+                <select v-model="w.source"><option value="" disabled>— select —</option><option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }}</option></select></div>
+              <div class="lf-field"><label>License ID <span class="req">*</span><help t="Frame ID whose license grants this mod."/></label>
+                <select v-model="w.license_id" @change="w.license = frameName(w.license_id) || w.license"><option value="" disabled>— select —</option><option v-for="fr in lcp.frames" :key="fr.id" :value="fr.id">{{ fr.name }} ({{ fr.id }})</option></select></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>License (display) <span class="req">*</span></label><input type="text" v-model="w.license" /></div>
+              <div class="lf-field"><label>License level <span class="req">*</span></label><input type="number" min="0" max="3" v-model.number="w.license_level" /></div>
+              <div class="lf-field"><label>SP <help t="System Point cost. Defaults to 0."/></label><input type="number" v-model.number="w.sp" /></div>
+            </div>
+            <div class="lf-field"><label>Effect <span class="req">*</span><help t="Rules text. HTML allowed."/></label><textarea v-model="w.effect"></textarea></div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text. HTML allowed."/></label><textarea v-model="w.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Allowed weapon types <help t="Comma-separated: Rifle, Cannon, Launcher, CQB, Nexus, Melee. Blank = any type."/></label><input type="text" v-model="w._allowedTypes" placeholder="Rifle, Cannon" /></div>
+              <div class="lf-field"><label>Allowed weapon sizes <help t="Comma-separated: Main, Heavy, Aux, Superheavy. Blank = any size."/></label><input type="text" v-model="w._allowedSizes" /></div>
+            </div>
+            <h3>Added to the host weapon</h3>
+            <tag-list v-model="w.addedTags" :local-tags="lcp.tags"></tag-list>
+            <damage-list v-model="w.addedDamage"></damage-list>
+            <range-list v-model="w.addedRange"></range-list>
+            <details class="lf-block">
+              <summary>On attack / hit / crit / miss</summary>
+              <div class="lf-field"><label>On attack <help t="Effect when an attack with the host weapon is declared."/></label><input type="text" v-model="w.on_attack" /></div>
+              <div class="lf-field"><label>On hit <help t="Effect when the host weapon hits."/></label><input type="text" v-model="w.on_hit" /></div>
+              <div class="lf-field"><label>On crit <help t="Effect on a critical hit."/></label><input type="text" v-model="w.on_crit" /></div>
+              <div class="lf-field"><label>On miss <help t="Effect on a miss."/></label><input type="text" v-model="w.on_miss" /></div>
+            </details>
+            <h3>The mod's own effects</h3>
+            <tag-list v-model="w.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="w.actions" label="Actions"></action-list>
+            <bonus-list v-model="w.bonuses"></bonus-list>
+            <synergy-list v-model="w.synergies"></synergy-list>
+            <deployable-list v-model="w.deployables"></deployable-list>
+            <counter-list v-model="w.counters"></counter-list>
+          </template></template>
+          <template v-if="edit.key==='core_bonuses'"><template v-for="c in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally cb_ prefixed. e.g. cb_myco_reinforced."/></label><input type="text" v-model="c.id" placeholder="cb_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
+            </div>
+            <div class="lf-field"><label>Source <span class="req">*</span><help t="Manufacturer ID — the manufacturer whose CORE Bonus pool this belongs to."/></label>
+              <select v-model="c.source"><option value="" disabled>— select —</option><option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }} — {{ m.name }}</option></select></div>
+            <div class="lf-field"><label>Effect <span class="req">*</span><help t="Rules text. HTML allowed."/></label><textarea v-model="c.effect"></textarea></div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text. HTML allowed."/></label><textarea v-model="c.description"></textarea></div>
+            <div class="lf-field"><label>Mounted effect <help t="Optional. Text shown on the mount panel when this is a mount-related CORE Bonus."/></label><input type="text" v-model="c.mounted_effect" /></div>
+            <action-list v-model="c.actions" label="Actions"></action-list>
+            <bonus-list v-model="c.bonuses"></bonus-list>
+            <synergy-list v-model="c.synergies"></synergy-list>
+            <deployable-list v-model="c.deployables"></deployable-list>
+            <counter-list v-model="c.counters"></counter-list>
+          </template></template>
+          <template v-if="edit.key==='talents'"><template v-for="t in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally t_ prefixed. e.g. t_myco_gunslinger."/></label><input type="text" v-model="t.id" placeholder="t_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="t.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the talent as a whole. HTML allowed."/></label><textarea v-model="t.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Terse <help t="Optional. A very short one-liner for condensed UI."/></label><input type="text" v-model="t.terse" /></div>
+              <div class="lf-field"><label>Icon URL <help t="Optional. URL to an SVG icon (inline icon_svg is preferred by Massif but not exposed here)."/></label><input type="url" v-model="t.icon_url" /></div>
+            </div>
+            <div v-for="(r,ri) in t.ranks" :key="ri" class="lf-sub">
+              <div class="head"><span class="title">Rank {{ ri+1 }} — {{ r.name || '(unnamed)' }}</span></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="The name of this rank of the talent."/></label><input type="text" v-model="r.name" /></div>
+              <div class="lf-field"><label>Description <span class="req">*</span><help t="Rules + flavor for this rank. HTML allowed."/></label><textarea v-model="r.description"></textarea></div>
+              <div class="lf-checks"><label><input type="checkbox" v-model="r.exclusive" /> Exclusive <help t="If on, only the bonuses/deployables/integrated gear from the HIGHEST unlocked rank apply (e.g. an upgrading system). If off, every unlocked rank's contributions stack."/></label></div>
+              <action-list v-model="r.actions" label="Rank actions"></action-list>
+              <bonus-list v-model="r.bonuses"></bonus-list>
+              <synergy-list v-model="r.synergies"></synergy-list>
+              <deployable-list v-model="r.deployables"></deployable-list>
+              <counter-list v-model="r.counters"></counter-list>
+            </div>
+          </template></template>
+          <template v-if="edit.key==='skills'"><template v-for="s in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally sk_ prefixed. e.g. sk_myco_haggle. Referenced by Backgrounds."/></label><input type="text" v-model="s.id" placeholder="sk_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="s.name" /></div>
+              <div class="lf-field"><label>Family <span class="req">*</span><help t="str / con / dex / int / cha — just groups the skill visually next to similar ones. No mechanical effect."/></label>
+                <select v-model="s.family"><option v-for="f in skillFamilies" :key="f" :value="f">{{ f }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="The short trigger text. HTML allowed; keep it terse."/></label><textarea v-model="s.description"></textarea></div>
+            <div class="lf-field"><label>Detail <span class="req">*</span><help t="Longer flavor text for the Compendium and expanded cards. HTML allowed."/></label><textarea v-model="s.detail"></textarea></div>
+          </template></template>
+          <template v-if="edit.key==='backgrounds'"><template v-for="bg in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally pbg_ prefixed. e.g. pbg_myco_courier."/></label><input type="text" v-model="bg.id" placeholder="pbg_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="bg.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text, often with italicised prompt questions. HTML allowed."/></label><textarea v-model="bg.description"></textarea></div>
+            <div class="lf-field"><label>Example skill IDs <help t="Optional, comma-separated skill trigger ids (from core data or your Skill Triggers tab). COMP/CON can auto-give the pilot 1 point in each."/></label><input type="text" v-model="bg._skills" placeholder="sk_charm, sk_threaten" /></div>
+          </template></template>
+          <template v-if="edit.key==='reserves'"><template v-for="r in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally reserve_ prefixed."/></label><input type="text" v-model="r.id" placeholder="reserve_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="r.name" /></div>
+              <div class="lf-field"><label>Type <span class="req">*</span><help t="Just decides the tab it appears under: Mech, Tactical, Resource, or Bonus. No mechanical effect."/></label>
+                <select v-model="r.type"><option v-for="x in reserveTypes" :key="x" :value="x">{{ x }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Label <help t="Optional. Alternate caption for the free-text field in the reserve's UI. Defaults to the name."/></label><input type="text" v-model="r.label" /></div>
+            <div class="lf-field"><label>Description <help t="Flavor / rules text. HTML allowed."/></label><textarea v-model="r.description"></textarea></div>
+            <div class="lf-checks"><label><input type="checkbox" v-model="r.consumable" /> Consumable <help t="If on, the reserve must be spent to use any of its actions/bonuses, and is then marked Used until manually re-enabled."/></label></div>
+            <action-list v-model="r.actions" label="Actions"></action-list>
+            <bonus-list v-model="r.bonuses"></bonus-list>
+            <synergy-list v-model="r.synergies"></synergy-list>
+            <deployable-list v-model="r.deployables"></deployable-list>
+            <counter-list v-model="r.counters"></counter-list>
+          </template></template>
+          <template v-if="edit.key==='pilot_gear'"><template v-for="g in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally pg_ prefixed."/></label><input type="text" v-model="g.id" placeholder="pg_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="g.name" /></div>
+              <div class="lf-field"><label>Type <span class="req">*</span><help t="Weapon, Armor, or Gear (case-sensitive). Only Weapon uses the damage/range fields."/></label>
+                <select v-model="g.type"><option v-for="x in pilotGearTypes" :key="x" :value="x">{{ x }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Description <help t="Flavor text. HTML allowed."/></label><textarea v-model="g.description"></textarea></div>
+            <div class="lf-field"><label>Effect <help t="Rules text. HTML allowed."/></label><textarea v-model="g.effect"></textarea></div>
+            <template v-if="g.type==='Weapon'">
+              <damage-list v-model="g.damage"></damage-list>
+              <range-list v-model="g.range"></range-list>
+            </template>
+            <tag-list v-model="g.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="g.actions" label="Actions"></action-list>
+            <bonus-list v-model="g.bonuses"></bonus-list>
+            <synergy-list v-model="g.synergies"></synergy-list>
+            <deployable-list v-model="g.deployables"></deployable-list>
+            <counter-list v-model="g.counters"></counter-list>
+          </template></template>
+          <template v-if="edit.key==='bonds'"><template v-for="b in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally bond_ prefixed."/></label><input type="text" v-model="b.id" placeholder="bond_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="b.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Major ideals <span class="req">*</span><help t="One per line. Typically 2–5."/></label><textarea v-model="b._major"></textarea></div>
+              <div class="lf-field"><label>Minor ideals <span class="req">*</span><help t="One per line. Typically 2–5."/></label><textarea v-model="b._minor"></textarea></div>
+            </div>
+            <h3>Questions</h3>
+            <div v-for="(q,qi) in b.questions" :key="qi" class="lf-sub">
+              <div class="head"><span class="title">Question {{ qi+1 }}</span><button class="btn tiny danger" @click="b.questions.splice(qi,1)">Remove</button></div>
+              <div class="lf-field"><label>Question <span class="req">*</span><help t="HTML allowed."/></label><input type="text" v-model="q.question" /></div>
+              <div class="lf-field"><label>Suggested answers <help t="One per line."/></label><textarea v-model="q._options"></textarea></div>
+            </div>
+            <button class="btn tiny" @click="b.questions.push(blankBondQuestion())">+ Question</button>
+            <h3 style="margin-top:1rem">Powers</h3>
+            <div v-for="(pw,pi) in b.powers" :key="pi" class="lf-sub">
+              <div class="head"><span class="title">{{ pw.name || 'Power ' + (pi+1) }}</span><button class="btn tiny danger" @click="b.powers.splice(pi,1)">Remove</button></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="pw.name" /></div>
+              <div class="lf-field"><label>Description <span class="req">*</span><help t="Rules text. HTML allowed."/></label><textarea v-model="pw.description"></textarea></div>
+              <div class="lf-row">
+                <div class="lf-field"><label>Frequency <help t="Optional, e.g. 1/scene, 1/mission."/></label><input type="text" v-model="pw.frequency" /></div>
+                <div class="lf-field"><label>Prerequisite <help t="Optional. HTML allowed."/></label><input type="text" v-model="pw.prerequisite" /></div>
+              </div>
+              <div class="lf-checks">
+                <label><input type="checkbox" v-model="pw.veteran" /> Veteran only</label>
+                <label><input type="checkbox" v-model="pw.master" /> Master only</label>
+              </div>
+            </div>
+            <button class="btn tiny" @click="b.powers.push(blankBondPower())">+ Power</button>
+          </template></template>
+          <template v-if="edit.key==='npc_classes'"><template v-for="c in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npcc_ prefixed. Features reference this via their 'origin'."/></label><input type="text" v-model="c.id" placeholder="npcc_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
+              <div class="lf-field"><label>Role <span class="req">*</span><help t="One combat role: artillery, controller, defender, striker, support, or tank."/></label>
+                <select v-model="c.role"><option v-for="r in npcRoles" :key="r" :value="r">{{ r }}</option></select></div>
+            </div>
+            <div class="lf-field"><label>Flavor <span class="req">*</span><help t="Compendium fluff text. HTML allowed."/></label><textarea v-model="c.info.flavor"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Tactics <span class="req">*</span><help t="GM-facing strategy note."/></label><textarea v-model="c.info.tactics"></textarea></div>
+              <div class="lf-field"><label>Terse <span class="req">*</span><help t="GM-facing one-line overview — as short as possible."/></label><textarea v-model="c.info.terse"></textarea></div>
+            </div>
+            <h3>Stats <help t="Single number = same across tiers. Three numbers 'a, b, c' = tier 1 / 2 / 3."/></h3>
+            <div class="lf-stats">
+              <div class="lf-field" v-for="sf in npcStatFields" :key="sf[0]"><label style="font-size:.78rem">{{ sf[1] }}</label><input type="text" v-model="c._stats[sf[0]]" placeholder="e.g. 8  or  6,10,14" /></div>
+              <div class="lf-field"><label style="font-size:.78rem">Size <help t="A single size (0.5, 1, 2, 3), or per-tier options separated by ' / ' — e.g. '0.5,1 / 1 / 1,2'."/></label><input type="text" v-model="c._size" placeholder="1  or  0.5,1 / 1 / 1,2" /></div>
+            </div>
+            <div class="lf-field"><label>Base feature IDs <help t="Comma-separated. Features every NPC of this class gets automatically. Must match NPC Feature ids."/></label><input type="text" v-model="c._base" placeholder="npcf_..., npcf_..." /></div>
+            <div class="lf-field"><label>Optional feature IDs <help t="Comma-separated. Features the GM may pick when building the NPC."/></label><input type="text" v-model="c._optional" placeholder="npcf_..., npcf_..." /></div>
+            <details class="lf-block">
+              <summary>Optional feature selection limits</summary>
+              <div class="lf-row">
+                <div class="lf-field"><label>Min <help t="Minimum number of optional CLASS features chosen. Defaults to 0."/></label><input type="number" v-model.number="c.optionalClassMin" /></div>
+                <div class="lf-field"><label>Max <help t="Maximum number of optional CLASS features chosen."/></label><input type="number" v-model.number="c.optionalClassMax" /></div>
+                <div class="lf-field"><label>Per tier <help t="Extra optional class feature picks per NPC tier — added on top of min/max."/></label><input type="number" v-model.number="c.optionalClassPerTier" /></div>
+              </div>
+            </details>
+          </template></template>
+          <template v-if="edit.key==='npc_templates'"><template v-for="t in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npct_ prefixed."/></label><input type="text" v-model="t.id" placeholder="npct_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="t.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text. HTML allowed."/></label><textarea v-model="t.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Force NPC tag <help t="Optional. Locks the NPC's type tag: Mech, Ship, Vehicle, Biological, Squad, or Other."/></label>
+                <select v-model="t._forceTag"><option value="">(don't force)</option><option v-for="x in forceTags.slice(1)" :key="x" :value="x">{{ x }}</option></select></div>
+              <div class="lf-field"><label>Prohibits templates <help t="Comma-separated template ids that can't be combined with this one (e.g. Grunt prohibits Elite/Veteran/Ultra)."/></label><input type="text" v-model="t._prohibit" placeholder="npct_..., npct_..." /></div>
+            </div>
+            <div class="lf-field"><label>Base feature IDs <help t="Comma-separated. Applied automatically with this template."/></label><input type="text" v-model="t._base" placeholder="npcf_..." /></div>
+            <div class="lf-field"><label>Optional feature IDs <help t="Comma-separated. Offered when this template is applied."/></label><input type="text" v-model="t._optional" placeholder="npcf_..." /></div>
+            <div class="lf-field"><label>Caveat <help t="Optional. Special rules text that COMP/CON does not track mechanically."/></label><textarea v-model="t.caveat"></textarea></div>
+            <details class="lf-block">
+              <summary>Optional feature selection limits</summary>
+              <div class="lf-row">
+                <div class="lf-field"><label>Min <help t="Minimum optional feature selections for the whole NPC. Defaults to 0."/></label><input type="number" v-model.number="t.optionalMin" /></div>
+                <div class="lf-field"><label>Max <help t="Maximum optional feature selections for the whole NPC."/></label><input type="number" v-model.number="t.optionalMax" /></div>
+                <div class="lf-field"><label>Per tier <help t="Extra optional selections per NPC tier."/></label><input type="number" v-model.number="t.optionalPerTier" /></div>
+              </div>
+            </details>
+          </template></template>
+          <template v-if="edit.key==='npc_features'"><template v-for="f in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally npcf_ prefixed."/></label><input type="text" v-model="f.id" placeholder="npcf_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="f.name" /></div>
+              <div class="lf-field"><label>Type <span class="req">*</span><help t="trait / system / reaction / tech / weapon. Each unlocks its own extra fields below."/></label>
+                <select v-model="f.type"><option v-for="x in npcFeatureTypes" :key="x" :value="x">{{ x }}</option></select></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Origin <help t="Optional. The id of the NPC Class or Template this feature belongs to. Needed when the class doesn't list this feature id itself."/></label>
+                <select v-model="f.origin">
+                  <option value="">(none)</option>
+                  <optgroup label="Classes"><option v-for="c in lcp.npc_classes" :key="c.id" :value="c.id">{{ c.name }} ({{ c.id }})</option></optgroup>
+                  <optgroup label="Templates"><option v-for="t in lcp.npc_templates" :key="t.id" :value="t.id">{{ t.name }} ({{ t.id }})</option></optgroup>
+                </select></div>
+              <div class="lf-field"><label class="lf-inline" style="margin-top:1.6rem"><input type="checkbox" v-model="f.base" /> Base feature <help t="On = always given to NPCs of the origin class/template. Off = an optional pick."/></label></div>
+            </div>
+            <div class="lf-field"><label>Effect <help t="Rules text. HTML allowed."/></label><textarea v-model="f.effect"></textarea></div>
+
+            <div v-if="f.type==='reaction'" class="lf-field"><label>Trigger <span class="req">*</span><help t="The condition that lets the NPC take this reaction. Displayed, not enforced."/></label><input type="text" v-model="f.trigger" /></div>
+
+            <template v-if="f.type==='tech' || f.type==='weapon'">
+              <div class="lf-row">
+                <div class="lf-field"><label>Attack bonus <help t="Flat bonus to attack rolls for this feature. One number, or three 'a, b, c' per tier."/></label><input type="text" v-model="f._attackBonus" placeholder="2  or  2,3,4" /></div>
+                <div class="lf-field"><label>Accuracy <help t="Accuracy dice for this feature's attacks; negative = Difficulty. One number or three per tier."/></label><input type="text" v-model="f._accuracy" placeholder="1  or  0,1,1" /></div>
+              </div>
+            </template>
+
+            <template v-if="f.type==='weapon'">
+              <div class="lf-row">
+                <div class="lf-field"><label>Weapon type <span class="req">*</span><help t="Format '{Size} {Type}', PC-style — e.g. 'Main Cannon', 'Superheavy Melee', 'Auxiliary Rifle'."/></label><input type="text" v-model="f.weapon_type" placeholder="Main Cannon" /></div>
+                <div class="lf-field"><label>Attacks <span class="req">*</span><help t="Attacks per use. One number, or three 'a, b, c' per tier."/></label><input type="text" v-model="f._attacks" placeholder="1  or  1,1,2" /></div>
+              </div>
+              <npc-damage-list v-model="f.npcDamage"></npc-damage-list>
+              <range-list v-model="f.range"></range-list>
+              <details class="lf-block">
+                <summary>On attack / hit / crit / miss</summary>
+                <div class="lf-field"><label>On attack <help t="Effect text applied when the attack is made."/></label><input type="text" v-model="f.on_attack" /></div>
+                <div class="lf-field"><label>On hit <help t="Effect text applied on a hit."/></label><input type="text" v-model="f.on_hit" /></div>
+                <div class="lf-field"><label>On crit <help t="Effect text applied on a crit."/></label><input type="text" v-model="f.on_crit" /></div>
+                <div class="lf-field"><label>On miss <help t="Effect text applied on a miss."/></label><input type="text" v-model="f.on_miss" /></div>
+              </details>
+            </template>
+
+            <tag-list v-model="f.tags" :local-tags="lcp.tags"></tag-list>
+            <action-list v-model="f.actions" label="Actions"></action-list>
+            <bonus-list v-model="f.bonuses"></bonus-list>
+            <synergy-list v-model="f.synergies"></synergy-list>
+            <deployable-list v-model="f.deployables"></deployable-list>
+          </template></template>
+          <template v-if="edit.key==='environments'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally env_ prefixed."/></label><input type="text" v-model="x.id" placeholder="env_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Detail + rules text for the environment. HTML allowed."/></label><textarea v-model="x.description"></textarea></div>
+          </template></template>
+          <template v-if="edit.key==='sitreps'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally sitrep_ prefixed."/></label><input type="text" v-model="x.id" placeholder="sitrep_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Overview of the scenario. HTML allowed."/></label><textarea v-model="x.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>PC victory <help t="How the players win."/></label><textarea v-model="x.pcVictory"></textarea></div>
+              <div class="lf-field"><label>Enemy victory <help t="How the enemy wins."/></label><textarea v-model="x.enemyVictory"></textarea></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Stalemate <help t="Optional. What happens if neither side wins."/></label><textarea v-model="x.stalemate"></textarea></div>
+              <div class="lf-field"><label>Deployment <help t="Optional. Deployment rules."/></label><textarea v-model="x.deployment"></textarea></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Objective <help t="Optional. Objective rules."/></label><textarea v-model="x.objective"></textarea></div>
+              <div class="lf-field"><label>Extraction <help t="Optional. Extraction rules."/></label><textarea v-model="x.extraction"></textarea></div>
+            </div>
+          </template></template>
+          <template v-if="edit.key==='statuses'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Can be referenced as a bonus id or by actions' add_status."/></label><input type="text" v-model="x.id" placeholder="status_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
+              <div class="lf-field"><label>Type <span class="req">*</span><help t="Status or Condition (case-sensitive)."/></label>
+                <select v-model="x.type"><option>Status</option><option>Condition</option></select></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Scope <help t="Restrict to Mech only or Pilot only. Blank = applies to both."/></label>
+                <select v-model="x.exclusive"><option value="">Both</option><option value="Mech">Mech</option><option value="Pilot">Pilot</option></select></div>
+              <div class="lf-field"><label>Icon URL <help t="Optional. URL to an SVG icon."/></label><input type="url" v-model="x.icon_url" /></div>
+            </div>
+            <div class="lf-field"><label>Terse <help t="Optional. Shortest possible summary for cramped UI."/></label><input type="text" v-model="x.terse" /></div>
+            <div class="lf-field"><label>Effects <span class="req">*</span><help t="Full rules text. HTML allowed."/></label><textarea v-model="x.effects"></textarea></div>
+          </template></template>
+          <template v-if="edit.key==='tables'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique."/></label><input type="text" v-model="x.id" /></div>
+              <div class="lf-field"><label>Title <span class="req">*</span></label><input type="text" v-model="x.title" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="How and when to roll on the table. HTML allowed."/></label><textarea v-model="x.description"></textarea></div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Die <span class="req">*</span><help t="Die size, e.g. 6 for a d6."/></label>
+                <select v-model.number="x.die"><option v-for="d in tableDice" :key="d" :value="d">d{{ d }}</option></select></div>
+              <div class="lf-field"><label>Roll count <help t="Optional. How many times to roll on this table at once. Defaults to 1."/></label><input type="number" v-model.number="x.mult" /></div>
+            </div>
+            <h3>Results</h3>
+            <div v-for="(r,ri) in x.results" :key="ri" class="lf-sub">
+              <div class="lf-row" style="align-items:flex-end">
+                <div class="lf-field" style="max-width:80px"><label>Min <help t="Lowest roll (inclusive) for this result. -1 = multiple 1s."/></label><input type="number" v-model.number="r.min" /></div>
+                <div class="lf-field" style="max-width:80px"><label>Max <help t="Highest roll (inclusive) for this result."/></label><input type="number" v-model.number="r.max" /></div>
+                <div class="lf-field"><label>Title <span class="req">*</span></label><input type="text" v-model="r.title" /></div>
+                <button class="btn tiny danger" @click="x.results.splice(ri,1)">✕</button>
+              </div>
+              <div class="lf-field"><label>Result <span class="req">*</span><help t="The outcome text. HTML allowed."/></label><textarea v-model="r.result"></textarea></div>
+            </div>
+            <button class="btn tiny" @click="x.results.push(blankTableResult())">+ Result</button>
+          </template></template>
+          <template v-if="edit.key==='custom_stats'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>Key <span class="req">*</span><help t="Globally unique identifier for the stat."/></label><input type="text" v-model="x.key" /></div>
+              <div class="lf-field"><label>Title <span class="req">*</span></label><input type="text" v-model="x.title" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Default <help t="Base value before bonuses. A number, or X/Y/Z for NPC tier 1/2/3."/></label><input type="text" v-model="x.default" /></div>
+              <div class="lf-field"><label>Icon <help t="An MDI icon id, form 'mdi-icon-name'. See pictogrammers.com/library/mdi."/></label><input type="text" v-model="x.icon" placeholder="mdi-shield" /></div>
+              <div class="lf-field"><label>Sort <help t="Position in stat-block UI. Negative = guaranteed first."/></label><input type="number" v-model.number="x.sort" /></div>
+            </div>
+            <div class="lf-checks"><label><input type="checkbox" v-model="x.trackable" /> Trackable <help t="On = a current/max stat with a tracker (like HP). Off = max-only (like Hull)."/></label></div>
+          </template></template>
+          <template v-if="edit.key==='tags'"><template v-for="t in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally prefixed tg_ , e.g. tg_myco_overcharge."/></label><input type="text" v-model="t.id" placeholder="tg_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name. May contain the {VAL} token, replaced by the value passed where the tag is used."/></label><input type="text" v-model="t.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="Rule text. HTML allowed. May contain {VAL}. If {VAL} appears but no value is given, it renders as 1."/></label><textarea v-model="t.description"></textarea></div>
+            <div class="lf-checks">
+              <label><input type="checkbox" v-model="t.filter_ignore" /> Hide from equipment filters <help t="Use for redundant tags (e.g. range-type tags) so the filter menu stays clean."/></label>
+            </div>
+          </template></template>
+          </div>
+          <div class="modal-foot">
+            <span class="grow" style="flex:1;color:var(--muted);font-size:.8rem">Esc, or click outside, to close</span>
+            <button class="btn primary" @click="closeEdit">Done</button>
+          </div>
+        </div>
+      </div>
+      </transition>
+    </main>
+  </div>
+
+  <div class="hotbar">
+    <button class="hb-btn" :class="{on: showSettings}" @click="showSettings = !showSettings">⚙ Settings</button>
+    <span>{{ themeList.find(t => t.id === settings.theme).name }}</span>
+    <span class="grow"></span>
+    <span v-if="problems.length" class="bad">⚠ {{ problems.length }} issue(s)</span>
+    <span v-else class="ok">✓ ready to export</span>
+    <span>·</span>
+    <span>{{ nonEmptyCategories.length }} file(s)</span>
+  </div>
+
+  <div class="pop-backdrop" v-if="showSettings" @click="showSettings = false"></div>
+  <div class="settings-pop" v-if="showSettings">
+    <h3>Settings</h3>
+    <div class="lf-field">
+      <label>Theme <help t="All dark. Purely cosmetic — the exported .lcp is identical whichever you pick."/></label>
+      <div class="themes">
+        <button v-for="th in themeList" :key="th.id" :class="{on: settings.theme === th.id}"
+          :style="{'--sw-bg':th.bg,'--sw-text':th.text,'--sw-accent':th.accent}"
+          @click="setTheme(th.id)"><span class="dot"></span>{{ th.name }}</button>
+      </div>
+    </div>
+    <div class="lf-checks">
+      <label><input type="checkbox" v-model="settings.chatter" /> Home background chatter <help t="A faint scrolling feed of in-universe comms behind the Home screen, like COMP/CON. Lines change with the theme."/></label>
+      <label><input type="checkbox" v-model="settings.motion" /> Animations <help t="Off = no scrolling chatter, no modal transitions."/></label>
+    </div>
+    <p class="lf-note" style="font-size:.8rem; margin:.6rem 0 0">Saved in this browser only — never written to the pack.</p>
+  </div>
+</div>
+
+<script>
+const { createApp } = Vue;
+
+/* =========================================================================
+   Enum data
+   ========================================================================= */
+
+const ACTIVATIONS = ['Free','Protocol','Quick','Full','Reaction','Quick Tech','Full Tech','Invade'];
+const FREQUENCIES = ['unlimited','1/round','1/turn','1/scene','1/mission'];
+const DAMAGE_TYPES = ['Kinetic','Energy','Explosive','Heat','Burn','Variable'];
+const RANGE_TYPES  = ['Threat','Range','Burst','Blast','Cone','Line'];
+const WEAPON_TYPES = ['Rifle','Cannon','Launcher','CQB','Nexus','Melee'];
+const WEAPON_SIZES = ['Auxiliary','Main','Heavy','Superheavy'];
+
+/* Bonus catalogue. Source: lancer-data wiki "Bonus List".
+   b(id, label, detail, type, scope) — detail is exactly what COMP/CON changes.
+   type: int | bool | str | dieroll | size[]   scope: All | PC | NPC          */
+const mkB = (id, label, detail, type = 'int', scope = 'All') => ({ id, label, detail, type, scope });
+const BONUS_CATALOG = [
+  ['Weapons & attacks', [
+    mkB('range','Weapon range','Adds to the Range (including Threat) of the affected weapons.'),
+    mkB('damage','Weapon damage','Adds flat damage to the affected weapons.'),
+    mkB('attack_roll','Weapon attack roll','Adds a flat bonus to attack rolls made with the affected weapons.'),
+    mkB('accuracy','Weapon Accuracy','Adds Accuracy dice to attacks with the affected weapons.'),
+    mkB('threat','Weapon Threat','Adds to the Threat range of the affected weapons.'),
+    mkB('thrown','Weapon Thrown','Gives the affected weapons the Thrown tag at this value.'),
+    mkB('tech_attack','Tech attack roll','Adds a flat bonus to tech attack rolls.'),
+  ]],
+  ['Mech / NPC stats', [
+    mkB('hp','Max HP','Adds to the mech or NPC maximum HP.'),
+    mkB('armor','Armor','Adds to Armor (flat damage reduction).'),
+    mkB('armor_max','Max Armor cap','Raises the cap on total Armor (normally 4).'),
+    mkB('structure','Structure','Adds to the Structure track.'),
+    mkB('stress','Reactor Stress','Adds to the Reactor Stress track.'),
+    mkB('heatcap','Heat Cap','Adds to Heat Capacity.'),
+    mkB('repcap','Repair Cap','Adds to Repair Capacity.'),
+    mkB('speed','Speed','Adds to standard movement Speed.'),
+    mkB('boost','Boost speed','Adds extra movement when taking the Boost action.'),
+    mkB('evasion','Evasion','Adds to Evasion.'),
+    mkB('edef','E-Defense','Adds to E-Defense.'),
+    mkB('sensor','Sensor range','Adds to Sensor range.'),
+    mkB('attack','Attack bonus (all)','Adds a flat bonus to every attack roll the mech/NPC makes.'),
+    mkB('grapple','Grapple value','Adds to the mech/NPC Grapple value.'),
+    mkB('ram','Ram value','Adds to the mech/NPC Ram value.'),
+    mkB('save','Save target','Adds to this mech/NPC Save target (the number others roll against it).'),
+    mkB('sp','System Points','Adds to available SP.'),
+    mkB('size','Size','Adds to Size.'),
+  ]],
+  ['HASE checks & saves', [
+    mkB('hull','Hull checks + saves','Adds to both Hull checks and Hull saves.'),
+    mkB('agility','Agility checks + saves','Adds to both Agility checks and Agility saves.'),
+    mkB('engineering','Engineering checks + saves','Adds to both Engineering checks and Engineering saves.'),
+    mkB('systems','Systems checks + saves','Adds to both Systems checks and Systems saves.'),
+    mkB('hull_check','Hull checks only','Adds to Hull checks (not saves).'),
+    mkB('agility_check','Agility checks only','Adds to Agility checks (not saves).'),
+    mkB('engineering_check','Engineering checks only','Adds to Engineering checks (not saves).'),
+    mkB('systems_check','Systems checks only','Adds to Systems checks (not saves).'),
+    mkB('hull_save','Hull saves only','Adds to Hull saves (not checks).'),
+    mkB('agility_save','Agility saves only','Adds to Agility saves (not checks).'),
+    mkB('engineering_save','Engineering saves only','Adds to Engineering saves (not checks).'),
+    mkB('systems_save','Systems saves only','Adds to Systems saves (not checks).'),
+  ]],
+  ['Your deployables & drones', [
+    mkB('deployable_hp','Deployable HP','Adds HP to every Deployable you have on the field.'),
+    mkB('deployable_armor','Deployable Armor','Adds Armor to every Deployable you have deployed.'),
+    mkB('deployable_evasion','Deployable Evasion','Adds Evasion to every Deployable you have deployed.'),
+    mkB('deployable_edef','Deployable E-Def','Adds E-Defense to every Deployable you have deployed.'),
+    mkB('deployable_size','Deployable Size','Adds Size to every Deployable you have deployed.'),
+    mkB('deployable_charges','Deployable charges','Adds charges to every Deployable you have deployed.'),
+    mkB('deployable_heatcap','Deployable Heat Cap','Adds Heat Capacity to every Deployable you have deployed.'),
+    mkB('deployable_repcap','Deployable Repair Cap','Adds Repair Capacity to every Deployable you have deployed.'),
+    mkB('deployable_sensor_range','Deployable Sensors','Adds Sensor range to every Deployable you have deployed.'),
+    mkB('deployable_tech_attack','Deployable tech attack','Adds tech attack to every Deployable you have deployed.'),
+    mkB('deployable_save','Deployable Save','Adds to the Save of every Deployable you have deployed.'),
+    mkB('deployable_speed','Deployable Speed','Adds Speed to every Deployable you have deployed.'),
+    mkB('drone_hp','Drone HP','Adds HP to every Drone you have deployed.'),
+    mkB('drone_armor','Drone Armor','Adds Armor to every Drone you have deployed.'),
+    mkB('drone_evasion','Drone Evasion','Adds Evasion to every Drone you have deployed.'),
+    mkB('drone_edef','Drone E-Def','Adds E-Defense to every Drone you have deployed.'),
+    mkB('drone_size','Drone Size','Adds Size to every Drone you have deployed.'),
+    mkB('drone_charges','Drone charges','Adds charges to every Drone you have deployed.'),
+    mkB('drone_heatcap','Drone Heat Cap','Adds Heat Capacity to every Drone you have deployed.'),
+    mkB('drone_repcap','Drone Repair Cap','Adds Repair Capacity to every Drone you have deployed.'),
+    mkB('drone_sensor_range','Drone Sensors','Adds Sensor range to every Drone you have deployed.'),
+    mkB('drone_tech_attack','Drone tech attack','Adds tech attack to every Drone you have deployed.'),
+    mkB('drone_save','Drone Save','Adds to the Save of every Drone you have deployed.'),
+    mkB('drone_speed','Drone Speed','Adds Speed to every Drone you have deployed.'),
+    mkB('deploy_count','Extra Deploy action','Grants an additional Deploy action for deployables.'),
+  ]],
+  ['Pilot (PC only)', [
+    mkB('pilot_hp','Pilot HP','Adds to the pilot\'s (on-foot) HP.','int','PC'),
+    mkB('pilot_armor','Pilot Armor','Adds to the pilot\'s on-foot Armor.','int','PC'),
+    mkB('pilot_evasion','Pilot Evasion','Adds to the pilot\'s on-foot Evasion.','int','PC'),
+    mkB('pilot_edef','Pilot E-Def','Adds to the pilot\'s on-foot E-Defense.','int','PC'),
+    mkB('pilot_speed','Pilot Speed','Adds to the pilot\'s on-foot Speed.','int','PC'),
+    mkB('pilot_armor_slots','Pilot armor slots','Increases how many pieces of pilot armor can be carried.','int','PC'),
+    mkB('pilot_gear_slots','Pilot gear slots','Increases how many pieces of pilot gear can be carried.','int','PC'),
+    mkB('pilot_weapon_slots','Pilot weapon slots','Increases how many pilot weapons can be carried.','int','PC'),
+    mkB('ai_cap','AI capacity','Increases how many AI-tagged systems can be installed.','int','PC'),
+    mkB('limited_bonus','Limited uses','Adds uses to every Limited-tagged item.','int','PC'),
+    mkB('skill_point','Skill Trigger point','Grants an extra pilot Skill Trigger point.','int','PC'),
+    mkB('mech_skill_point','Mech skill (HASE) point','Grants an extra HASE point.','int','PC'),
+    mkB('talent_point','Talent point','Grants an extra Talent point.','int','PC'),
+    mkB('license_point','License point','Grants an extra License point.','int','PC'),
+    mkB('cb_point','CORE Bonus point','Grants an extra CORE Bonus point.','int','PC'),
+    mkB('cheap_struct','Cheap Structure repairs','Structure repairs cost half as many repairs. Value is true/false.','bool','PC'),
+    mkB('cheap_stress','Cheap Stress repairs','Reactor Stress repairs cost half as many repairs. Value is true/false.','bool','PC'),
+    mkB('overcharge','Overcharge track','Overrides the Overcharge die track. Value is a die-roll list, e.g. 1,1d3,1d6,1d6.','dieroll','PC'),
+    mkB('mount_accuracy','All mounted weapons: Accuracy','Adds Accuracy to every mounted weapon.','int','PC'),
+    mkB('mount_range','All mounted weapons: Range','Adds Range to every mounted weapon.','int','PC'),
+    mkB('mount_damage','All mounted weapons: Damage','Adds Damage to every mounted weapon.','int','PC'),
+    mkB('mount_damage_type','All mounted weapons: damage type','Overrides the damage type of every mounted weapon. Value is a damage type.','str','PC'),
+    mkB('mount_range_type','All mounted weapons: range type','Overrides the range type of every mounted weapon. Value is a range type.','str','PC'),
+    mkB('mount_weapon_type','All mounted weapons: weapon type','Overrides the weapon type of every mounted weapon. Value is a weapon type.','str','PC'),
+    mkB('add_mount','Gain a mount','Adds a mount. Value is "type:max", e.g. main:3 (adds a Main mount unless the mech already has 3+ mounts).','str','PC'),
+  ]],
+  ['NPC only', [
+    mkB('sizes','NPC size choices','Adds size options offered during NPC creation. Value is a list of sizes.','size[]','NPC'),
+    mkB('activations','Activations / round','Adds activations per round.','int','NPC'),
+    mkB('activations_pct','Extra activation per X PCs','Grants an extra activation for every X player characters in the fight.','int','NPC'),
+    mkB('no_mods','Cannot equip mods','This NPC feature cannot take mods. Value is true/false.','bool','NPC'),
+  ]],
+];
+const ALL_BONUSES = BONUS_CATALOG.flatMap(g => g[1]);
+const ALL_BONUS_IDS = ALL_BONUSES.map(x => x.id);
+const BONUS_BY_ID = Object.fromEntries(ALL_BONUSES.map(x => [x.id, x]));
+const BONUS_SPECIALS = 'll (license level) · grit · tier (NPC) · size · hp · current_hp · armor · heat · heatcap · '
+  + 'evasion · edef · speed · save · sp · structure · stress · repcap · sensor · tech_attack · overshield · '
+  + 'hull · agi · sys · eng. Wrap in braces, e.g. {ll}. Expressions like "2 + {ll}" or "({grit}/2)+1" also work.';
+
+const SYNERGY_LOCATIONS = [
+  'rest','weapon','system','deployable','drone','move','boost','structure','armor','hp','overshield',
+  'stress','heat','repair','core_power','overcharge','hull','agility','systems','engineering','pilot_weapon','cascade'
+];
+
+/* Core Lancer tag catalogue (verbatim names + rules text from lancer-data
+   lib/tags.json). `fnd: 1` = the Foundry Lancer system has code that automates
+   this tag id. Everything else is display-only in both apps.
+   takesVal is derived from a {VAL} token in the name.                        */
+const mkT = (id, name, description, group, fnd = 0) => ({ id, name, description, group, fnd, takesVal: name.includes('{VAL}') });
+const TAG_CATALOG = [
+  mkT('tg_accurate','Accurate {VAL}','Attacks made with this weapon receive +{VAL} Accuracy.','Attack & damage',1),
+  mkT('tg_inaccurate','Inaccurate {VAL}','Attacks made with this weapon receive +{VAL} Difficulty.','Attack & damage',1),
+  mkT('tg_ap','Armor-Piercing (AP)','Damage dealt by this weapon ignores Armor.','Attack & damage',1),
+  mkT('tg_overkill','Overkill {VAL}','When rolling damage with this weapon, any damage die that lands on a {VAL} makes the attacker take 1 Heat and is rerolled. Repeats on further {VAL}s.','Attack & damage',1),
+  mkT('tg_reliable','Reliable {VAL}','This weapon always deals at least {VAL} damage, even on a miss or a low damage roll. Reliable damage inherits base damage type and tags like AP, but not hit-only tags like Knockback.','Attack & damage',1),
+  mkT('tg_arcing','Arcing','Can be fired over obstacles and does not require line of sight, as long as a path to the target can be traced. Still affected by cover.','Attack & damage'),
+  mkT('tg_seeking','Seeking','Ignores cover and does not require line of sight, as long as a path to the target can be drawn.','Attack & damage',1),
+  mkT('tg_smart','Smart','All attacks with this weapon target E-Defense instead of Evasion. Targets with no E-Defense count as 8.','Attack & damage',1),
+  mkT('tg_knockback','Knockback {VAL}','On a hit, the user may knock the target {VAL} spaces directly away from the origin. Multiple Knockback effects stack.','Attack & damage',1),
+  mkT('tg_archaic','Archaic','This weapon is old-fashioned and can\'t harm mechs.','Attack & damage'),
+  mkT('tg_ordnance','Ordnance','Can only be fired before the user moves or acts (Protocols excepted). Can\'t hit targets engaged with the user and can\'t be used for Overwatch.','Attack & damage',1),
+
+  mkT('tg_burn','Burn {VAL}','On a hit, deals {VAL} Burn: the target takes {VAL} damage immediately (ignoring Armor), then marks {VAL} Burn. At end of turn they make an Engineering check to clear it or take that much damage again.','Damage over time & heat'),
+  mkT('tg_heat_self','Heat {VAL} (Self)','Immediately after using this weapon or system, the user takes {VAL} Heat.','Damage over time & heat',1),
+  mkT('tg_heat_target','Heat {VAL} (Target)','On a hit, this weapon or system deals {VAL} Heat to its target.','Damage over time & heat'),
+
+  mkT('tg_line','Line {VAL}','Attacks affect characters in a straight line {VAL} spaces long.','Range & area'),
+  mkT('tg_cone','Cone {VAL}','Attacks affect characters in a cone {VAL} spaces long, {VAL} wide at the far end, starting 1 space wide.','Range & area'),
+  mkT('tg_blast','Blast {VAL}','Attacks affect all characters within {VAL} spaces of a point in Range and line of sight. Cover/LoS are figured from the blast\'s centre.','Range & area'),
+  mkT('tg_burst','Burst {VAL}','Attacks affect all characters within {VAL} spaces of the user (or target). The character at the centre is not hit unless stated.','Range & area'),
+  mkT('tg_threat','Threat {VAL}','This weapon can make Overwatch attacks within {VAL} spaces (or melee attacks within {VAL} spaces, if melee).','Range & area'),
+  mkT('tg_thrown','Thrown {VAL}','This melee weapon can be thrown at a target within {VAL} spaces (follows melee attack rules but affected by cover). It must be retrieved as a free action before reuse.','Range & area',1),
+  mkT('tg_range','Range ({VAL})','This system can be activated at a range of {VAL} spaces.','Range & area'),
+
+  mkT('tg_loading','Loading','Must be reloaded after each use (Stabilize, or some systems).','Usage & actions'),
+  mkT('tg_loading_after','Loading (Multiple Uses)','Must be reloaded after {VAL} uses. COMP/CON-specific alias for Loading.','Usage & actions'),
+  mkT('tg_limited','Limited {VAL}','Can only be used {VAL} times before a Full Repair. Uses are sometimes called "charges".','Usage & actions',1),
+  mkT('tg_recharge','Recharge {VAL}+','(NPC) Once used, unusable until recharged. At the start of the NPC\'s turn roll 1d6; on {VAL}+ it recharges.','Usage & actions',1),
+  mkT('tg_unique','Unique','Each character can only have one copy of this installed at a time.','Usage & actions',1),
+  mkT('tg_danger_zone','Danger Zone','Can only be used while the user is in the Danger Zone (Heat ≥ half Heat Cap).','Usage & actions'),
+  mkT('tg_protocol','Protocol','Can be activated as a free action, but only at the start of the user\'s turn.','Usage & actions'),
+  mkT('tg_quick_action','Quick Action','This system requires a quick action to activate.','Usage & actions'),
+  mkT('tg_full_action','Full Action','This system requires a full action to activate.','Usage & actions'),
+  mkT('tg_free_action','Free Action','Can be used at any point in the user\'s turn and does not count against their actions.','Usage & actions'),
+  mkT('tg_reaction','Reaction','This system can be activated as a reaction.','Usage & actions'),
+  mkT('tg_quick_tech','Quick Tech','This tech can be used as a Quick Tech action.','Usage & actions'),
+  mkT('tg_full_tech','Full Tech','This tech can be used as a Full Tech action.','Usage & actions'),
+  mkT('tg_invade','Invade','Provides additional options for the Invade quick tech action.','Usage & actions'),
+  mkT('tg_turn','{VAL}/Turn','Can be used {VAL} times in any given turn.','Usage & actions'),
+  mkT('tg_round','{VAL}/Round','Can be used {VAL} times between the start of the user\'s turn and the start of their next.','Usage & actions'),
+  mkT('tg_unlimited','Unlimited','Can be used any number of times per round.','Usage & actions'),
+
+  mkT('tg_deployable','Deployable','An object that can be deployed on the field (quick action, adjacent free space; 5 Evasion, 10 HP per Size unless stated).','Deployables & drones'),
+  mkT('tg_drone','Drone','A semi-autonomous Size 1/2 allied unit (10 Evasion, 5 HP, 0 Armor unless stated). Deploy within Sensors + line of sight; recall with the deploy action.','Deployables & drones'),
+  mkT('tg_mine','Mine','Planted in an adjacent free space; arms at end of turn and triggers as a Burst attack when a character enters an adjacent space.','Deployables & drones'),
+  mkT('tg_grenade','Grenade','As a quick action, thrown to a space within line of sight and Range.','Deployables & drones'),
+  mkT('tg_shield','Shield','This system is an energy shield of some kind.','Deployables & drones'),
+  mkT('tg_ai','AI','Only one AI system may be installed at a time. Grants the mech AI behaviour; AIs can cascade and can\'t benefit from talents.','Deployables & drones',1),
+
+  mkT('tg_overshield','Overshield','Temporary HP that is hit before real HP and does not stack (highest value wins). Disappears at end of scene / on a condition.','Defensive & misc',1),
+  mkT('tg_resistance','Resistance','Halve all damage from a source you have resistance to.','Defensive & misc'),
+  mkT('tg_indestructible','Indestructible','This equipment cannot be marked as Destroyed.','Defensive & misc',1),
+  mkT('tg_mod','Mod','A modification that can be applied to a weapon (one Mod per weapon).','Defensive & misc'),
+
+  mkT('tg_set_max_uses','Set Max Uses','COMP/CON behaviour tag: lets the player set this item\'s maximum uses.','COMP/CON behaviour tags'),
+  mkT('tg_set_damage_type','Set Damage Type','COMP/CON behaviour tag: lets the player set this item\'s damage type.','COMP/CON behaviour tags'),
+  mkT('tg_set_damage_value','Set Damage Value','COMP/CON behaviour tag: lets the player set this item\'s damage value.','COMP/CON behaviour tags'),
+];
+const TAG_BY_ID = Object.fromEntries(TAG_CATALOG.map(x => [x.id, x]));
+const TAG_GROUPS = [...new Set(TAG_CATALOG.map(x => x.group))];
+const FOUNDRY_TAG_IDS = TAG_CATALOG.filter(x => x.fnd).map(x => x.id);
+
+/* =========================================================================
+   Themes + comms ticker
+   ------------------------------------------------------------------------
+   THEME_LIST — id / label / preview swatch colours (the real palette lives
+   in the CSS [data-theme] blocks).
+   CHATTER — the scrolling ticker lines, keyed by theme id.  ~~ WRITE HERE ~~
+   Each array is a list of one-liners; keep them short-ish. They loop.
+   ========================================================================= */
+const THEME_LIST = [
+  { id:'comp-con', name:'COMP/CON', bg:'#14161c', text:'#e6e8ef', accent:'#4db6ac' },
+  { id:'horus',    name:'HORUS',    bg:'#0d0a12', text:'#ece3fb', accent:'#b072e6' },
+  { id:'harrison', name:'Harrison Armory', bg:'#15120d', text:'#f2e9db', accent:'#e0a63c' },
+  { id:'ipsn',     name:'IPS-Northstar',   bg:'#0f1319', text:'#e4ecf5', accent:'#5b95d6' },
+  { id:'ssc',      name:'Smith-Shimano',   bg:'#121016', text:'#f3e8f0', accent:'#ea6ba8' },
+  { id:'union',    name:'Union',     bg:'#101318', text:'#e8edf3', accent:'#4a90d9' },
+];
+
+const CHATTER = {
+  'comp-con': [
+    'COMP/CON: NHP shell nominal. Awaiting content pack.',
+    'COMP/CON: reminder — back up your loadouts.',
+    'COMP/CON: schema validation is your friend.',
+  ],
+  'horus': [
+    '[BLACKBOX]: they are already inside the compiler.',
+    '[BLACKBOX]: define nothing. everything is already defined.',
+    '[BLACKBOX]: the pattern wants out.',
+  ],
+  'harrison': [
+    'ARMORY COMMS: submit content pack for Purview review.',
+    'ARMORY COMMS: superior by design. superior by decree.',
+    'ARMORY COMMS: license compliance is not optional, pilot.',
+  ],
+  'ipsn': [
+    'IPS-N DISPATCH: haul it, weld it, ship it.',
+    'IPS-N DISPATCH: the Long Rim does not forgive sloppy manifests.',
+    'IPS-N DISPATCH: coffee\'s cold. export\'s clean. good enough.',
+  ],
+  'ssc': [
+    'SSC NET: darling, that colour palette is *devastating*.',
+    'SSC NET: form follows function follows fashion.',
+    'SSC NET: the Trench watches. make it beautiful.',
+  ],
+  'union': [
+    'UNION SIGNAL: content pack logged with the Third Committee.',
+    'UNION SIGNAL: cornerstone directives remain in effect.',
+    'UNION SIGNAL: ...to the stars, together.',
+  ],
+};
+const GLYPHS = { 'comp-con':'⬢', horus:'❖', harrison:'◆', ipsn:'⬟', ssc:'✦', union:'✧' };
+
+const loadSettings = () => {
+  const d = { theme:'comp-con', chatter:true, motion:true };
+  try { return { ...d, ...JSON.parse(localStorage.getItem('sofa-lcp-settings') || '{}') }; }
+  catch (e) { return d; }
+};
+
+/* =========================================================================
+   Shared sub-editors (registered globally near the bottom)
+   ========================================================================= */
+
+const HelpTip = {
+  name: 'help',
+  props: { t: { type: String, required: true } },
+  template: `<span class="help" tabindex="0"><span class="dot">i</span><span class="bubble" v-html="t"></span></span>`
+};
+
+
+/* generic v-model helper for list editors */
+const listModel = {
+  computed: { list: {
+    get() { return this.modelValue || []; },
+    set(v) { this.$emit('update:modelValue', v); }
+  } },
+  methods: {
+    addRow(obj) { this.list = [...this.list, obj]; },
+    rmRow(i) { const c = [...this.list]; c.splice(i, 1); this.list = c; }
+  }
+};
+
+const ActionList = {
+  name: 'action-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] }, label: { type: String, default: 'Actions' } },
+  emits: ['update:modelValue'],
+  data: () => ({ activationTypes: ACTIVATIONS, frequencies: FREQUENCIES }),
+  methods: {
+    add() { this.addRow({ name:'', activation:'Quick', detail:'', frequency:'', trigger:'' }); }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>{{ label }} <span v-if="list.length" class="pill">{{ list.length }}</span></summary>
+      <div v-for="(a,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ a.name || a.activation }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Name <help t="Best practice: always name it. Systems fall back to the parent name if omitted."/></label><input type="text" v-model="a.name" /></div>
+          <div class="lf-field"><label>Activation <span class="req">*</span><help t="The action type this costs: Free, Protocol, Quick, Full, Reaction, Quick/Full Tech, or Invade. Anything without an action type should be an Active Effect instead, not an Action."/></label>
+            <select v-model="a.activation"><option v-for="x in activationTypes" :key="x" :value="x">{{ x }}</option></select></div>
+        </div>
+        <div class="lf-field"><label>Detail <span class="req">*</span><help t="Second person, present tense. HTML allowed; prefer &lt;br&gt; over paragraphs. Do NOT restate activation/frequency here."/></label><textarea v-model="a.detail"></textarea></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Frequency <help t="Leave blank for unlimited / normal action economy."/></label>
+            <select v-model="a.frequency"><option value="">(unlimited)</option><option v-for="x in frequencies" :key="x" :value="x">{{ x }}</option></select></div>
+          <div class="lf-field"><label>Trigger <help t="Required for Reactions — the condition that lets you take it. Displayed, not enforced."/></label><input type="text" v-model="a.trigger" /></div>
+        </div>
+        <details class="lf-block">
+          <summary>More</summary>
+          <div class="lf-row">
+            <div class="lf-field"><label>Cost <help t="Charges deducted from a Limited parent when used. Defaults to 1 on limited items."/></label><input type="number" v-model.number="a.cost" /></div>
+            <div class="lf-field"><label>Bonus damage <help t="A dice string (e.g. 1d6) added to the origin item's damage."/></label><input type="text" v-model="a.bonus_damage" /></div>
+          </div>
+          <div class="lf-checks">
+            <label><input type="checkbox" v-model="a.pilot" /> Pilot only (unmounted) <help t="Action is only offered in Active Mode while the pilot is on foot. Defaults on for pilot gear."/></label>
+            <label><input type="checkbox" v-model="a.mech" /> Mech only (mounted) <help t="Action is only offered while the pilot is in their mech. Defaults on for mech equipment."/></label>
+          </div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ {{ label }}</button>
+    </details>`
+};
+
+const DamageList = {
+  name: 'damage-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: DAMAGE_TYPES }),
+  methods: { add() { this.addRow({ type:'Kinetic', val: 0 }); } },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Damage <help t="A number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens are allowed."/></h3>
+      <div v-for="(d,i) in list" :key="i" class="lf-sub">
+        <div class="lf-row" style="align-items:flex-end">
+          <div class="lf-field" style="max-width:150px"><label>Type <help t="Kinetic, Energy, Explosive, Heat, Burn, or Variable."/></label>
+            <select v-model="d.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+          <div class="lf-field"><label>Value <help t="A flat number (e.g. 4) or a dice string (e.g. 2d6+2). Arithmetic and {stat} tokens like {grit} are allowed."/></label><input type="text" v-model="d.val" placeholder="4 or 2d6+2" /></div>
+          <div class="lf-field" style="max-width:110px"><label>AP <help t="Armor-piercing — ignores armor. 'auto' lets COMP/CON infer it from tags."/></label>
+            <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
+          <button class="btn tiny danger" @click="rmRow(i)">✕</button>
+        </div>
+        <details class="lf-block">
+          <summary>Save / AoE</summary>
+          <div class="lf-row">
+            <div class="lf-field"><label>Save stat <help t="e.g. hull, agi, sys, eng. Leave blank for no save."/></label><input type="text" v-model="d.save" placeholder="agi" /></div>
+            <div class="lf-field"><label>AoE <help t="true, or a shape string like 'burst 2'. Only affects the multi-target UI."/></label><input type="text" v-model="d.aoe" /></div>
+            <div class="lf-field"><label>Target <help t="Ordering hint for Active Mode: self, ally, or enemy."/></label>
+              <select v-model="d.target"><option :value="undefined">(enemy)</option><option value="self">self</option><option value="ally">ally</option><option value="enemy">enemy</option></select></div>
+          </div>
+          <div class="lf-checks"><label><input type="checkbox" v-model="d.save_half" /> Half damage on a successful save <help t="On a save that succeeds, the target takes half instead of none. Off = a successful save negates the damage entirely."/></label></div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ Damage</button>
+    </div>`
+};
+
+const RangeList = {
+  name: 'range-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: RANGE_TYPES }),
+  methods: { add() { this.addRow({ type:'Range', val: 0 }); } },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Range</h3>
+      <div v-for="(r,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
+        <div class="lf-field" style="max-width:150px"><label>Type <help t="Range = standard ranged attack. Threat = melee reach."/></label>
+          <select v-model="r.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+        <div class="lf-field"><label>Value <help t="Maximum range in spaces. A number, or a dice/expression string. Special value strings are allowed as of v3."/></label><input type="text" v-model="r.val" placeholder="10" /></div>
+        <div class="lf-field"><label>Min <help t="Optional minimum range — weapon can't fire closer than this."/></label><input type="text" v-model="r.min" /></div>
+        <button class="btn tiny danger" @click="rmRow(i)">✕</button>
+      </div>
+      <button class="btn tiny" @click="add">+ Range</button>
+    </div>`
+};
+
+const NpcDamageList = {
+  name: 'npc-damage-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ types: DAMAGE_TYPES }),
+  methods: { add() { this.addRow({ type:'Kinetic', _t1:'', _t2:'', _t3:'', ap:undefined, aoe:'', save:'' }); } },
+  template: `
+    <div style="margin:.6rem 0">
+      <h3>Damage <help t="NPC damage is three flat numbers, one per tier — no dice strings. Enter the tier 1 / 2 / 3 values."/></h3>
+      <div v-for="(d,i) in list" :key="i" class="lf-sub">
+        <div class="lf-row" style="align-items:flex-end">
+          <div class="lf-field" style="max-width:140px"><label>Type <help t="Kinetic, Energy, Explosive, Heat, Burn, or Variable."/></label>
+            <select v-model="d.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
+          <div class="lf-field" style="max-width:80px"><label>T1</label><input type="number" v-model.number="d._t1" /></div>
+          <div class="lf-field" style="max-width:80px"><label>T2</label><input type="number" v-model.number="d._t2" /></div>
+          <div class="lf-field" style="max-width:80px"><label>T3</label><input type="number" v-model.number="d._t3" /></div>
+          <div class="lf-field" style="max-width:100px"><label>AP <help t="Armor-piercing."/></label>
+            <select v-model="d.ap"><option :value="undefined">auto</option><option :value="true">yes</option><option :value="false">no</option></select></div>
+          <button class="btn tiny danger" @click="rmRow(i)">✕</button>
+        </div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Save stat <help t="e.g. hull, agi, sys, eng. Blank = no save."/></label><input type="text" v-model="d.save" /></div>
+          <div class="lf-field"><label>AoE <help t="true, or a shape like 'burst 2'."/></label><input type="text" v-model="d.aoe" /></div>
+        </div>
+      </div>
+      <button class="btn tiny" @click="add">+ Damage</button>
+    </div>`
+};
+
+const TagList = {
+  name: 'tag-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] }, localTags: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ catalog: TAG_CATALOG, groups: TAG_GROUPS }),
+  computed: { localIds() { return this.localTags.map(x => x.id).filter(Boolean); } },
+  methods: {
+    add() { this.addRow({ id:'', val:'', _custom:false }); },
+    known(id) { return TAG_BY_ID[id]; },
+    isCustom(t) { return t._custom || (t.id && !TAG_BY_ID[t.id]); },
+    selVal(t) { if (this.isCustom(t)) return '__custom'; return TAG_BY_ID[t.id] ? t.id : ''; },
+    setSel(t, v) {
+      if (v === '__custom') { t._custom = true; }
+      else { t._custom = false; t.id = v; if (!TAG_BY_ID[v] || !TAG_BY_ID[v].takesVal) t.val = ''; }
+    },
+    takesVal(t) { const d = TAG_BY_ID[t.id]; return !d || d.takesVal; },
+    render(str, t) {
+      const d = TAG_BY_ID[t.id]; if (!d) return str;
+      const v = (t.val === '' || t.val == null) ? (d.takesVal ? 'X' : '') : t.val;
+      return str.replaceAll('{VAL}', v);
+    },
+    title(t) { const d = TAG_BY_ID[t.id]; return d ? this.render(d.name, t) : (t.id || 'new tag'); },
+    tags(g) { return this.catalog.filter(x => x.group === g); }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>Tags <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Pick a tag by name — the correct tg_ id is written to the .lcp for you. Core tags are recognised by COMP/CON; the ⚙ badge marks the ones Foundry also automates. Use 'Custom / from a dependency' for a tag id that isn't in this list."/></summary>
+      <datalist id="localtagids"><option v-for="x in localIds" :key="x" :value="x"></option></datalist>
+      <div v-for="(t,i) in list" :key="i" class="lf-sub">
+        <div class="head">
+          <span class="title">{{ title(t) }}</span>
+          <span v-if="known(t.id) && known(t.id).fnd" class="pill" title="Foundry's Lancer system has automation code for this tag">⚙ Foundry</span>
+          <button class="btn tiny danger" @click="rmRow(i)">Remove</button>
+        </div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Tag <help t="Grouped by what the tag does. Selecting one writes its tg_ id to the export."/></label>
+            <select :value="selVal(t)" @change="setSel(t, $event.target.value)">
+              <option value="">— choose a tag —</option>
+              <optgroup v-for="g in groups" :key="g" :label="g">
+                <option v-for="tg in tags(g)" :key="tg.id" :value="tg.id">{{ tg.name }}</option>
+              </optgroup>
+              <option value="__custom">Custom / from a dependency…</option>
+            </select>
+          </div>
+          <div v-if="takesVal(t)" class="lf-field" style="max-width:140px">
+            <label>Value <help t="Fills the {VAL} in the tag's name and rules text — e.g. 2 for Reliable 2, or 3 for Limited 3."/></label>
+            <input type="text" v-model="t.val" />
+          </div>
+        </div>
+        <div v-if="isCustom(t)" class="lf-field">
+          <label>Custom tag ID <span class="req">*</span><help t="The exact id string, e.g. tg_myco_flux. It must match a tag you define in the Custom Tags tab, or one from a dependency pack."/></label>
+          <input type="text" list="localtagids" v-model="t.id" placeholder="tg_..." />
+        </div>
+        <p v-if="known(t.id)" class="lf-note" style="font-size:.82rem; margin:.4rem 0 0" v-html="render(known(t.id).description, t)"></p>
+      </div>
+      <button class="btn tiny" @click="add">+ Tag</button>
+    </details>`
+};
+
+const BONUS_TYPE_HINT = {
+  int: 'Takes an integer.',
+  bool: 'Takes true or false.',
+  str: 'Takes a text value.',
+  dieroll: 'Takes a die-roll list, e.g. 1,1d3,1d6,1d6.',
+  'size[]': 'Takes a comma-separated list of sizes, e.g. 1/2, 1, 2.'
+};
+
+const BonusList = {
+  name: 'bonus-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ catalog: BONUS_CATALOG, specials: BONUS_SPECIALS, typeHint: BONUS_TYPE_HINT }),
+  methods: {
+    add() { this.addRow({ id:'hp', val:'1', _damage:[], _range:[], _wtype:[], _wsize:[], accuracy:null, overwrite:false, replace:false }); },
+    tog(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); },
+    def(id) { return BONUS_BY_ID[id]; },
+    valHelp(id) {
+      const d = BONUS_BY_ID[id];
+      if (!d) return 'The value to apply.';
+      if (d.type === 'bool') return 'Enter true or false.';
+      if (d.type === 'dieroll') return 'A die-roll list, comma-separated — e.g. 1,1d3,1d6,1d6.';
+      if (d.type === 'size[]') return 'A comma-separated list of sizes, e.g. 1/2, 1, 2.';
+      if (d.type === 'str') return 'A text value — see the description under the picker for what it expects.';
+      return 'A whole number, a special value in braces (' + BONUS_SPECIALS + ')';
+    }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>Bonuses <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Mechanical value modifiers COMP/CON and Foundry apply automatically — +2 Hull, +1 SP, extra HP, and so on. Prefer a bonus over prose whenever a rule is just a number."/></summary>
+      <div v-for="(b,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ def(b.id) ? def(b.id).label : b.id }} = {{ b.val }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Bonus <span class="req">*</span><help t="Grouped by what it modifies. The description below shows exactly what COMP/CON changes."/></label>
+            <select v-model="b.id">
+              <optgroup v-for="g in catalog" :key="g[0]" :label="g[0]">
+                <option v-for="o in g[1]" :key="o.id" :value="o.id">{{ o.label }}</option>
+              </optgroup>
+            </select></div>
+          <div class="lf-field" style="max-width:160px"><label>Value <span class="req">*</span><help :t="valHelp(b.id)"/></label><input type="text" v-model="b.val" /></div>
+          <div class="lf-field" style="max-width:120px"><label>Accuracy <help t="Optional. Adds Accuracy (+) or Difficulty (−) dice on top of the bonus."/></label><input type="number" v-model.number="b.accuracy" /></div>
+        </div>
+        <p v-if="def(b.id)" class="lf-note" style="font-size:.82rem; margin:.3rem 0">
+          <strong>{{ def(b.id).id }}</strong> — {{ def(b.id).detail }}<br>
+          <span style="opacity:.8">{{ typeHint[def(b.id).type] }}<span v-if="def(b.id).scope!=='All'"> · {{ def(b.id).scope }}-only.</span></span>
+        </p>
+        <details class="lf-block">
+          <summary>Restrict / flags
+            <span v-if="b._damage.length + b._range.length + b._wtype.length + b._wsize.length" class="pill">{{ b._damage.length + b._range.length + b._wtype.length + b._wsize.length }}</span></summary>
+          <p class="lf-note" style="font-size:.8rem">Only meaningful for weapon/attack bonuses. Filters are ANDed — a weapon must match every category you narrow. Nothing selected = any.</p>
+          <div class="lf-field"><label>Damage types</label><div class="addbtns">
+            <button v-for="x in ['Kinetic','Energy','Explosive','Heat','Burn']" :key="x" type="button" :class="['togglebtn',{on:b._damage.includes(x)}]" @click="tog(b._damage,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Range types</label><div class="addbtns">
+            <button v-for="x in ['Melee','Threat','Range','Line','Burst','Blast','Cone']" :key="x" type="button" :class="['togglebtn',{on:b._range.includes(x)}]" @click="tog(b._range,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Weapon types</label><div class="addbtns">
+            <button v-for="x in ['Melee','CQC','Rifle','Nexus','Cannon','Launcher','Improvised']" :key="x" type="button" :class="['togglebtn',{on:b._wtype.includes(x)}]" @click="tog(b._wtype,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Weapon sizes</label><div class="addbtns">
+            <button v-for="x in ['Auxiliary','Main','Heavy','Superheavy']" :key="x" type="button" :class="['togglebtn',{on:b._wsize.includes(x)}]" @click="tog(b._wsize,x)">{{ x }}</button></div></div>
+          <div class="lf-checks">
+            <label><input type="checkbox" v-model="b.overwrite" /> Overwrite <help t="Of all overwrite-flagged bonuses with this id, only the single highest is kept."/></label>
+            <label><input type="checkbox" v-model="b.replace" /> Replace <help t="Replaces the base value outright with the sum of replace-flagged bonuses (e.g. set HP to a flat number)."/></label>
+          </div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ Bonus</button>
+    </details>`
+};
+
+const SynergyList = {
+  name: 'synergy-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ locations: SYNERGY_LOCATIONS }),
+  methods: {
+    add() { this.addRow({ _locations:'weapon', detail:'', _wtype:[], _wsize:[], _stype:[] }); },
+    tog(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>Synergies <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Context hint text shown in a specific spot in COMP/CON. Use only for interactions/context that no other field (bonus, action, damage) can express."/></summary>
+      <datalist id="synloc"><option v-for="l in locations" :key="l" :value="l"></option></datalist>
+      <div v-for="(s,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ s._locations || 'synergy' }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
+        <div class="lf-field"><label>Locations <span class="req">*</span><help t="Where the hint appears. Comma-separated. e.g. weapon, system, hull, move, boost, core_power."/></label><input type="text" list="synloc" v-model="s._locations" placeholder="weapon, system" /></div>
+        <div class="lf-field"><label>Detail <span class="req">*</span><help t="The hint text. HTML allowed."/></label><textarea v-model="s.detail"></textarea></div>
+        <details class="lf-block">
+          <summary>Filters (weapon / system hints only)</summary>
+          <div class="lf-field"><label>Weapon types</label><div class="addbtns">
+            <button v-for="x in ['Melee','CQC','Rifle','Nexus','Cannon','Launcher','Improvised']" :key="x" type="button" :class="['togglebtn',{on:s._wtype.includes(x)}]" @click="tog(s._wtype,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>Weapon sizes</label><div class="addbtns">
+            <button v-for="x in ['Auxiliary','Main','Heavy','Superheavy']" :key="x" type="button" :class="['togglebtn',{on:s._wsize.includes(x)}]" @click="tog(s._wsize,x)">{{ x }}</button></div></div>
+          <div class="lf-field"><label>System types</label><div class="addbtns">
+            <button v-for="x in ['AI','Deployable','Drone','Flight System','Shield','System','Tech']" :key="x" type="button" :class="['togglebtn',{on:s._stype.includes(x)}]" @click="tog(s._stype,x)">{{ x }}</button></div></div>
+        </details>
+      </div>
+      <button class="btn tiny" @click="add">+ Synergy</button>
+    </details>`
+};
+
+const CounterList = {
+  name: 'counter-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  methods: { add() { this.addRow({ id:'', name:'', default_value:0, min:0, max:null }); } },
+  template: `
+    <details class="lf-block">
+      <summary>Counters <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="A tick / clock / track shown in Active Mode — e.g. a charge meter. The value persists in save data, so the id must be unique."/></summary>
+      <div v-for="(c,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ c.name || c.id || 'counter' }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>ID <span class="req">*</span><help t="Unique, e.g. ctr_myco_charge."/></label><input type="text" v-model="c.id" placeholder="ctr_..." /></div>
+          <div class="lf-field"><label>Name <span class="req">*</span><help t="Label shown above the counter in Active Mode."/></label><input type="text" v-model="c.name" /></div>
+        </div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Default <help t="Starting value. Defaults to 0."/></label><input type="number" v-model.number="c.default_value" /></div>
+          <div class="lf-field"><label>Min <help t="Lowest value the player can set. Leave blank for no lower bound."/></label><input type="number" v-model.number="c.min" /></div>
+          <div class="lf-field"><label>Max <help t="Highest value the player can set. Leave blank for no upper bound."/></label><input type="number" v-model.number="c.max" /></div>
+        </div>
+      </div>
+      <button class="btn tiny" @click="add">+ Counter</button>
+    </details>`
+};
+
+const DeployableList = {
+  name: 'deployable-list', mixins: [listModel],
+  props: { modelValue: { type: Array, default: () => [] } },
+  emits: ['update:modelValue'],
+  data: () => ({ activationTypes: ACTIVATIONS,
+    statFields: [['size','Size'],['hp','HP'],['armor','Armor'],['evasion','Evasion'],['edef','E-Def'],
+                 ['heatcap','Heat cap'],['repcap','Rep cap'],['sensor_range','Sensors'],['tech_attack','Tech atk'],
+                 ['save','Save'],['speed','Speed']] }),
+  methods: {
+    add() { this.addRow({ name:'', type:'Deployable', detail:'', activation:'Quick', deactivation:'', recall:'', redeploy:'',
+                        instances:null, size:null, hp:null, armor:null, evasion:null, edef:null, heatcap:null, repcap:null,
+                        sensor_range:null, tech_attack:null, save:null, speed:null,
+                        damage:[], range:[], actions:[], bonuses:[], synergies:[], tags:[] }); }
+  },
+  template: `
+    <details class="lf-block">
+      <summary>Deployables <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Drones, turrets, mines, snares — anything tracked as its own object on the battlefield with its own stats."/></summary>
+      <div v-for="(d,i) in list" :key="i" class="lf-sub">
+        <div class="head"><span class="title">{{ d.name || 'deployable' }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name in the Active Mode deployable tracker, e.g. Shock Wreath, Turret Drone."/></label><input type="text" v-model="d.name" /></div>
+          <div class="lf-field"><label>Type <span class="req">*</span><help t="Free text, but Drone and Mine get special defaults/handling. Defaults to Deployable."/></label><input type="text" v-model="d.type" placeholder="Deployable / Drone / Mine" /></div>
+        </div>
+        <div class="lf-field"><label>Detail <span class="req">*</span><help t="Short description shown in Active Mode. HTML allowed."/></label><textarea v-model="d.detail"></textarea></div>
+        <div class="lf-row">
+          <div class="lf-field"><label>Deploy <help t="Action type of the Deploy action on the parent. Defaults to Quick."/></label>
+            <select v-model="d.activation"><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Deactivate <help t="Optional. Action on the deployable that deletes it (no refund)."/></label><select v-model="d.deactivation"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Recall <help t="Optional. Action that removes the deployable and refunds its charge cost to the parent."/></label><select v-model="d.recall"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+          <div class="lf-field"><label>Redeploy <help t="Optional. Action available after a recall that puts the deployable back with no cost."/></label><select v-model="d.redeploy"><option value="">(none)</option><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+        </div>
+        <h4>Stats <help t="All optional — leave blank to use COMP/CON's type/size-based defaults. Special value strings like {grit} are allowed."/></h4>
+        <div class="lf-stats">
+          <div class="lf-field" v-for="sf in statFields" :key="sf[0]"><label style="font-size:.78rem">{{ sf[1] }}</label><input type="text" v-model="d[sf[0]]" /></div>
+          <div class="lf-field"><label style="font-size:.78rem">Instances</label><input type="number" v-model.number="d.instances" /></div>
+        </div>
+        <damage-list v-model="d.damage"></damage-list>
+        <range-list v-model="d.range"></range-list>
+        <action-list v-model="d.actions" label="Deployable actions"></action-list>
+        <bonus-list v-model="d.bonuses"></bonus-list>
+        <synergy-list v-model="d.synergies"></synergy-list>
+      </div>
+      <button class="btn tiny" @click="add">+ Deployable</button>
+    </details>`
+};
+
+/* =========================================================================
+   Factories
+   ========================================================================= */
+
+const blankManifest = () => ({
+  name: '', author: '', description: '', version: '1.0.0',
+  image_url: '', website: '', v3: true,
+  dependencies: [], version_history: []
+});
+
+const blankTrait = () => ({ name:'', description:'', actions:[], bonuses:[], synergies:[], counters:[], deployables:[] });
+
+const blankCore = () => ({
+  name:'', description:'', active_name:'', active_effect:'', activation:'Quick',
+  deactivation:'', use:'', passive_name:'', passive_effect:'',
+  active_actions:[], active_bonuses:[], active_synergies:[],
+  passive_actions:[], passive_bonuses:[], passive_synergies:[],
+  deployables:[], counters:[], tags:[]
+});
+
+const blankFrame = () => ({
+  id: '', name: '', source: '', license_id: '', license_level: 0,
+  _mechtypeText: '', mounts: [], description: '', variant: '',
+  stats: { size:1, structure:4, stress:4, armor:0, hp:8, evasion:8, edef:8,
+           heatcap:6, repcap:4, sensor_range:10, tech_attack:0, save:10, speed:4, sp:6 },
+  traits: [],
+  core_system: blankCore(),
+  image_url: '', y_pos: 0, specialty: false
+});
+
+const blankWeapon = () => ({
+  id:'', name:'', source:'', license:'', license_id:'', license_level:0,
+  mount:'Main', _typeArr:['Rifle'], effect:'', description:'',
+  sp: 0, cost: null,
+  damage: [], range: [], tags: [], actions: [], bonuses: [], synergies: [], deployables: [], counters: [],
+  on_attack:'', on_hit:'', on_crit:'', on_miss:'',
+  skirmish:false, barrage:false, no_attack:false, no_mods:false, no_core_bonus:false, no_bonus:false, no_synergy:false
+});
+
+const blankSystem = () => ({
+  id:'', name:'', source:'', license:'', license_id:'', license_level:0,
+  type:'System', sp:0, effect:'', description:'',
+  tags: [], actions: [], bonuses: [], synergies: [], deployables: [], counters: [],
+  no_bonus:false, no_synergy:false
+});
+
+/* a reusable set of the mechanical builders that most pilot items carry */
+const mkBundle = () => ({ actions: [], bonuses: [], synergies: [], counters: [], deployables: [] });
+
+const blankSkill      = () => ({ id:'', name:'', description:'', detail:'', family:'str' });
+const blankBackground  = () => ({ id:'', name:'', description:'', _skills:'' });
+const blankCoreBonus   = () => ({ id:'', name:'', source:'', effect:'', description:'', mounted_effect:'', ...mkBundle() });
+const blankReserve     = () => ({ id:'', name:'', type:'Tactical', label:'', description:'', consumable:false, ...mkBundle() });
+const blankTalentRank  = () => ({ name:'', description:'', exclusive:false, ...mkBundle() });
+const blankTalent      = () => ({ id:'', name:'', description:'', terse:'', icon_url:'',
+                                  ranks:[blankTalentRank(), blankTalentRank(), blankTalentRank()] });
+const blankPilotGear   = () => ({ id:'', name:'', type:'Gear', description:'', effect:'',
+                                  damage:[], range:[], tags:[], ...mkBundle() });
+
+const blankNpcClass = () => ({
+  id:'', name:'', role:'striker',
+  info:{ flavor:'', tactics:'', terse:'' },
+  _stats:{ hp:'', armor:'', evade:'', edef:'', heatcap:'', speed:'', sensor:'', save:'',
+           hull:'', agility:'', systems:'', engineering:'', activations:'' },
+  _size:'1',
+  _base:'', _optional:'',
+  optionalClassMin:null, optionalClassMax:null, optionalClassPerTier:null
+});
+const blankNpcTemplate = () => ({
+  id:'', name:'', description:'', _forceTag:'', _prohibit:'', _base:'', _optional:'',
+  optionalMin:null, optionalMax:null, optionalPerTier:null, caveat:''
+});
+const blankNpcFeature = () => ({
+  id:'', name:'', type:'trait', origin:'', base:false, effect:'',
+  tags:[], actions:[], bonuses:[], synergies:[], deployables:[],
+  trigger:'',                                    // reaction
+  _attackBonus:'', _accuracy:'',                 // tech / weapon
+  weapon_type:'', _attacks:'1',                  // weapon
+  npcDamage:[], range:[], on_hit:'', on_crit:'', on_miss:'', on_attack:''
+});
+
+const blankMod = () => ({
+  id:'', name:'', source:'', license:'', license_id:'', license_level:0,
+  sp:0, effect:'', description:'',
+  _allowedTypes:'', _allowedSizes:'',
+  addedTags:[], addedDamage:[], addedRange:[],
+  on_attack:'', on_hit:'', on_crit:'', on_miss:'',
+  tags:[], ...mkBundle()
+});
+const blankEnvironment = () => ({ id:'', name:'', description:'' });
+const blankSitrep = () => ({ id:'', name:'', description:'', pcVictory:'', enemyVictory:'', stalemate:'', deployment:'', objective:'', extraction:'' });
+const blankStatus = () => ({ id:'', name:'', type:'Status', effects:'', terse:'', icon_url:'', exclusive:'' });
+const blankTableResult = () => ({ min:1, max:1, title:'', result:'' });
+const blankTable = () => ({ id:'', title:'', description:'', die:6, mult:null, results:[blankTableResult()] });
+const blankCustomStat = () => ({ key:'', title:'', trackable:false, default:0, icon:'', sort:0 });
+const blankBondQuestion = () => ({ question:'', _options:'' });
+const blankBondPower = () => ({ name:'', description:'', frequency:'', prerequisite:'', veteran:false, master:false });
+const blankBond = () => ({ id:'', name:'', _major:'', _minor:'', questions:[blankBondQuestion()], powers:[blankBondPower()] });
+const blankLists = () => ({ pilot_names:'', callsigns:'', team_names:'', mech_names:'', quirks:'' });
+
+const freshLcp = () => ({
+  lcp_manifest: blankManifest(),
+  manufacturers: [], frames: [], weapons: [], systems: [], mods: [],
+  core_bonuses: [], talents: [], skills: [], backgrounds: [], reserves: [], pilot_gear: [], bonds: [],
+  npc_classes: [], npc_templates: [], npc_features: [],
+  environments: [], sitreps: [], statuses: [], tables: [], custom_stats: [],
+  _lists: blankLists(),
+  tags: []
+});
+
+const ALL_CATEGORIES = ['manufacturers','frames','weapons','systems','mods','core_bonuses','talents','skills',
+  'backgrounds','reserves','pilot_gear','bonds','npc_classes','npc_templates','npc_features',
+  'environments','sitreps','statuses','tables','custom_stats','tags'];
+
+/* =========================================================================
+   Export shaping
+   ========================================================================= */
+
+/* strip editor-only (_prefixed) keys, empty strings, null/undefined, empty
+   arrays, and false booleans (false === "use the default" for every optional
+   flag in the schema). */
+const clean = obj => {
+  if (Array.isArray(obj)) return obj.map(clean);
+  if (obj && typeof obj === 'object') {
+    const o = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (k.startsWith('_')) continue;
+      if (v === '' || v === null || v === undefined || v === false) continue;
+      if (Array.isArray(v) && v.length === 0) continue;
+      o[k] = clean(v);
+    }
+    return o;
+  }
+  return obj;
+};
+
+const csv = s => (s || '').split(',').map(x => x.trim()).filter(Boolean);
+
+const arrish = v => Array.isArray(v) ? v : csv(v);   // tolerate old comma-string data
+const shapeBonus = b => {
+  const o = { id: b.id, val: isNaN(b.val) || b.val === '' ? b.val : Number(b.val) };
+  if (b.accuracy) o.accuracy = Number(b.accuracy);
+  if (arrish(b._damage).length) o.damage_types = arrish(b._damage);
+  if (arrish(b._range).length) o.range_types = arrish(b._range);
+  if (arrish(b._wtype).length) o.weapon_types = arrish(b._wtype);
+  if (arrish(b._wsize).length) o.weapon_sizes = arrish(b._wsize);
+  if (b.overwrite) o.overwrite = true;
+  if (b.replace) o.replace = true;
+  return o;
+};
+const shapeSynergy = s => {
+  const o = { locations: csv(s._locations), detail: s.detail };
+  if (arrish(s._wtype).length) o.weapon_types = arrish(s._wtype);
+  if (arrish(s._wsize).length) o.weapon_sizes = arrish(s._wsize);
+  if (arrish(s._stype).length) o.system_types = arrish(s._stype);
+  return o;
+};
+const numish = v => (typeof v === 'string' && v.trim() !== '' && !isNaN(v)) ? Number(v) : v;
+const DEP_STATS = ['size','hp','armor','evasion','edef','heatcap','repcap','sensor_range','tech_attack','save','speed'];
+const shapeDeployable = d => {
+  const s = { ...d };
+  DEP_STATS.forEach(k => { if (s[k] !== null && s[k] !== undefined && s[k] !== '') s[k] = numish(s[k]); });
+  return clean({
+  ...s,
+  instances: d.instances || undefined,
+  damage: (d.damage || []).map(clean),
+  range: (d.range || []).map(clean),
+  actions: (d.actions || []).map(clean),
+  bonuses: (d.bonuses || []).map(shapeBonus),
+  synergies: (d.synergies || []).map(shapeSynergy)
+  });
+};
+const mechBundle = x => ({
+  actions: (x.actions || []).map(clean),
+  bonuses: (x.bonuses || []).map(shapeBonus),
+  synergies: (x.synergies || []).map(shapeSynergy),
+  counters: (x.counters || []).map(clean),
+  deployables: (x.deployables || []).map(shapeDeployable)
+});
+
+/* "8"  -> 8   |   "6, 10, 14" -> [6,10,14]   |   "" -> undefined */
+const tiered = s => {
+  const parts = csv(String(s ?? ''));
+  if (!parts.length) return undefined;
+  const nums = parts.map(Number);
+  return nums.length === 1 ? nums[0] : nums;
+};
+/* NPC size: "1" -> 1   |   "0.5,1 / 1 / 1,2" -> [[0.5,1],[1],[1,2]] */
+const npcSize = s => {
+  s = String(s ?? '').trim();
+  if (!s) return undefined;
+  if (s.includes('/')) return s.split('/').map(tier => csv(tier).map(Number));
+  const one = csv(s).map(Number);
+  return one.length === 1 ? one[0] : [one, one, one];
+};
+
+/* =========================================================================
+   App
+   ========================================================================= */
+
+const app = createApp({
+  data() {
+    return {
+      tab: 'home',
+      previewJson: false,
+      collapsedNav: {},
+      navOpen: true,
+      edit: { key: null, idx: -1 },
+      settings: loadSettings(),
+      showSettings: false,
+      chatterLog: [],
+      chatterTyping: '',
+      themeList: THEME_LIST,
+      lcp: freshLcp(),
+      navGroups: ['Pack','Licensed data','Pilot data','NPC data','Other content','Output'],
+      tabs: [
+        { id:'home', label:'Home', group:'Pack' },
+        { id:'manufacturers', label:'Manufacturers', key:'manufacturers', group:'Licensed data' },
+        { id:'frames', label:'Frames', key:'frames', group:'Licensed data' },
+        { id:'weapons', label:'Weapons', key:'weapons', group:'Licensed data' },
+        { id:'systems', label:'Systems', key:'systems', group:'Licensed data' },
+        { id:'mods', label:'Weapon Mods', key:'mods', group:'Licensed data' },
+        { id:'core_bonuses', label:'CORE Bonuses', key:'core_bonuses', group:'Pilot data' },
+        { id:'talents', label:'Talents', key:'talents', group:'Pilot data' },
+        { id:'skills', label:'Skill Triggers', key:'skills', group:'Pilot data' },
+        { id:'backgrounds', label:'Backgrounds', key:'backgrounds', group:'Pilot data' },
+        { id:'reserves', label:'Reserves', key:'reserves', group:'Pilot data' },
+        { id:'pilot_gear', label:'Pilot Gear', key:'pilot_gear', group:'Pilot data' },
+        { id:'bonds', label:'Bonds', key:'bonds', group:'Pilot data' },
+        { id:'npc_classes', label:'NPC Classes', key:'npc_classes', group:'NPC data' },
+        { id:'npc_templates', label:'NPC Templates', key:'npc_templates', group:'NPC data' },
+        { id:'npc_features', label:'NPC Features', key:'npc_features', group:'NPC data' },
+        { id:'environments', label:'Environments', key:'environments', group:'Other content' },
+        { id:'sitreps', label:'SITREPs', key:'sitreps', group:'Other content' },
+        { id:'statuses', label:'Statuses', key:'statuses', group:'Other content' },
+        { id:'tables', label:'Rollable Tables', key:'tables', group:'Other content' },
+        { id:'lists', label:'Name Lists', group:'Other content' },
+        { id:'custom_stats', label:'Custom Stats', key:'custom_stats', group:'Other content' },
+        { id:'tags', label:'Custom Tags', key:'tags', group:'Other content' },
+        { id:'export', label:'Export', group:'Output' }
+      ],
+      tableDice: [3,4,6,8,10,12,20,100],
+      listFields: [
+        ['pilot_names','Pilot names'], ['callsigns','Callsigns'], ['team_names','Group names'],
+        ['mech_names','Mech names'], ['quirks','Quirks']
+      ],
+      npcRoles: ['artillery','controller','defender','striker','support','tank'],
+      npcFeatureTypes: ['trait','system','reaction','tech','weapon'],
+      reserveTypes: ['Mech','Tactical','Resource','Bonus'],
+      pilotGearTypes: ['Weapon','Armor','Gear'],
+      skillFamilies: ['str','con','dex','int','cha'],
+      forceTags: ['','Mech','Ship','Vehicle','Biological','Squad','Other'],
+      npcStatFields: [
+        ['hp','HP'],['armor','Armor'],['evade','Evade'],['edef','E-Def'],['heatcap','Heat Cap'],
+        ['speed','Speed'],['sensor','Sensors'],['save','Save'],['hull','Hull'],['agility','Agility'],
+        ['systems','Systems'],['engineering','Engineering'],['activations','Activations']
+      ],
+      mountTypes: ['Main','Heavy','Aux/Aux','Aux','Main/Aux','Flex','Integrated'],
+      mechTypeOptions: ['Balanced','Artillery','Striker','Controller','Support','Defender'],
+      weaponMounts: ['Main','Heavy','Aux','Superheavy'],
+      weaponTypes: WEAPON_TYPES,
+      systemTypes: ['System','AI','Deployable','Drone','Flight System','Shield','Tech'],
+      activationTypes: ACTIVATIONS,
+      coreUseTypes: ['Round','Next Round','Scene','Encounter','Mission'],
+      frameStats: [
+        { k:'size', label:'Size', help:'1, 2, 3… or 0.5 (½). No other fractions.' },
+        { k:'structure', label:'Structure', help:'Structure damage track, usually 4.' },
+        { k:'stress', label:'Stress', help:'Reactor stress track, usually 4.' },
+        { k:'armor', label:'Armor', help:'Flat damage reduction. 0–4 typical.' },
+        { k:'hp', label:'HP', help:'Hit points at LL0 before GRIT.' },
+        { k:'evasion', label:'Evasion', help:'Defense vs attack rolls.' },
+        { k:'edef', label:'E-Defense', help:'Defense vs tech attacks.' },
+        { k:'heatcap', label:'Heat Cap', help:'Heat capacity before Overheating.' },
+        { k:'repcap', label:'Repair Cap', help:'Repair capacity.' },
+        { k:'sensor_range', label:'Sensors', help:'Sensor range in spaces.' },
+        { k:'tech_attack', label:'Tech Attack', help:'Bonus to tech attacks.' },
+        { k:'save', label:'Save Target', help:'Save target others roll against this mech. Usually 10.' },
+        { k:'speed', label:'Speed', help:'Standard movement in spaces.' },
+        { k:'sp', label:'System Points', help:'SP available for systems/weapons at LL0.' }
+      ]
+    };
+  },
+  mounted() {
+    this._esc = e => {
+      if (e.key !== 'Escape') return;
+      if (this.showSettings) this.showSettings = false;
+      else if (this.edit.key) this.closeEdit();
+    };
+    window.addEventListener('keydown', this._esc);
+    this.applySettings();
+    this.startChatter();
+  },
+  beforeUnmount() { window.removeEventListener('keydown', this._esc); this.stopChatter(); },
+  watch: {
+    settings: {
+      deep: true,
+      handler(v) {
+        try { localStorage.setItem('sofa-lcp-settings', JSON.stringify(v)); } catch (e) {}
+        this.applySettings();
+      }
+    },
+    'settings.theme'() { this.startChatter(); },
+    'settings.chatter'(v) { if (v) this.startChatter(); else { this.stopChatter(); this.chatterLog = []; this.chatterTyping = ''; } },
+    'settings.motion'() { this.startChatter(); },
+    tab(v) {
+      if (v === 'home') { if (this.settings.chatter && this.settings.motion && !this._chatTimer) this._chatterTick(); }
+      else this.stopChatter();
+    }
+  },
+  computed: {
+    nonEmptyCategories() {
+      const cats = ALL_CATEGORIES.filter(c => (this.lcp[c] || []).length);
+      if (this.listFields.some(([k]) => (this.lcp._lists[k] || '').trim())) cats.push('lists');
+      return cats;
+    },
+    exportFilename() {
+      const n = (this.lcp.lcp_manifest.name || 'untitled').toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
+      return `${n}_${this.lcp.lcp_manifest.version || '0.0.0'}.lcp`;
+    },
+    problems() {
+      const p = [];
+      const m = this.lcp.lcp_manifest;
+      if (!m.name) p.push('Manifest: name is required.');
+      if (!m.author) p.push('Manifest: author is required.');
+      if (!m.description) p.push('Manifest: description is required.');
+      if (!/^\d+\.\d+\.\d+/.test(m.version || '')) p.push('Manifest: version must be semver (X.Y.Z).');
+
+      const ids = {};
+      const track = (scope, id) => {
+        if (!id) { p.push(`${scope}: an item is missing its id.`); return; }
+        ids[id] = (ids[id] || 0) + 1;
+      };
+      const manIds = new Set(this.lcp.manufacturers.map(x => x.id));
+      const frameIds = new Set(this.lcp.frames.map(x => x.id));
+
+      this.lcp.manufacturers.forEach(x => {
+        track('Manufacturer', x.id);
+        if (!x.name) p.push(`Manufacturer ${x.id||'?'}: name is required.`);
+        ['description','quote','light','dark'].forEach(f => { if (!x[f]) p.push(`Manufacturer ${x.id||'?'}: ${f} is required.`); });
+      });
+      this.lcp.frames.forEach(x => {
+        track('Frame', x.id);
+        if (!x.name) p.push(`Frame ${x.id||'?'}: name is required.`);
+        if (!x.source) p.push(`Frame ${x.id||'?'}: source is required.`);
+        else if (!manIds.has(x.source)) p.push(`Frame ${x.id||'?'}: source "${x.source}" is not a defined manufacturer.`);
+        if (!x._mechtypeText || !x._mechtypeText.trim()) p.push(`Frame ${x.id||'?'}: at least one mech type is required.`);
+        if (!x.mounts || !x.mounts.length) p.push(`Frame ${x.id||'?'}: at least one mount is required.`);
+        if (!x.description) p.push(`Frame ${x.id||'?'}: description is required.`);
+        if (x.variant && !x.license_id) p.push(`Frame ${x.id||'?'}: variants require a license_id.`);
+        if (!x.core_system.name || !x.core_system.active_name || !x.core_system.active_effect)
+          p.push(`Frame ${x.id||'?'}: core system needs name, active name, and active effect.`);
+        (x.traits||[]).forEach((t,ti) => { if (!t.name || !t.description) p.push(`Frame ${x.id||'?'} trait ${ti+1}: name and description required.`); });
+      });
+      const eq = (scope, x) => {
+        track(scope, x.id);
+        if (!x.name) p.push(`${scope} ${x.id||'?'}: name is required.`);
+        if (!x.source) p.push(`${scope} ${x.id||'?'}: source is required.`);
+        else if (!manIds.has(x.source)) p.push(`${scope} ${x.id||'?'}: source "${x.source}" is not a defined manufacturer.`);
+        if (!x.license_id) p.push(`${scope} ${x.id||'?'}: license_id is required.`);
+        else if (!frameIds.has(x.license_id)) p.push(`${scope} ${x.id||'?'}: license_id "${x.license_id}" is not a defined frame.`);
+        if (!x.license) p.push(`${scope} ${x.id||'?'}: license display name is required.`);
+      };
+      this.lcp.weapons.forEach(x => {
+        eq('Weapon', x);
+        if (!x.description) p.push(`Weapon ${x.id||'?'}: description is required.`);
+        if (!x._typeArr || !x._typeArr.length) p.push(`Weapon ${x.id||'?'}: at least one weapon type is required.`);
+      });
+      this.lcp.systems.forEach(x => eq('System', x));
+      this.lcp.tags.forEach(x => {
+        track('Tag', x.id);
+        if (!x.name || !x.description) p.push(`Tag ${x.id||'?'}: name and description required.`);
+      });
+
+      // nested bonus / synergy sanity
+      const scanMech = (scope, x) => {
+        (x.bonuses||[]).forEach(b => { if (!ALL_BONUS_IDS.includes(b.id)) p.push(`${scope}: unknown bonus id "${b.id}".`); if (b.val === '' || b.val === null) p.push(`${scope}: a bonus is missing its value.`); });
+        (x.synergies||[]).forEach(s => { if (!s._locations || !s._locations.trim()) p.push(`${scope}: a synergy has no location.`); if (!s.detail) p.push(`${scope}: a synergy has no detail text.`); });
+        (x.counters||[]).forEach(c => { if (!c.id || !c.name) p.push(`${scope}: a counter needs an id and name.`); });
+        (x.deployables||[]).forEach(d => { if (!d.name || !d.detail) p.push(`${scope}: a deployable needs a name and detail.`); });
+      };
+      this.lcp.weapons.forEach(x => scanMech(`Weapon ${x.id||'?'}`, x));
+      this.lcp.systems.forEach(x => scanMech(`System ${x.id||'?'}`, x));
+      this.lcp.frames.forEach(f => {
+        (f.traits||[]).forEach((t,ti) => scanMech(`Frame ${f.id||'?'} trait ${ti+1}`, t));
+        const c = f.core_system;
+        scanMech(`Frame ${f.id||'?'} core`, { bonuses:[...(c.active_bonuses||[]),...(c.passive_bonuses||[])], synergies:[...(c.active_synergies||[]),...(c.passive_synergies||[])], counters:c.counters, deployables:c.deployables });
+      });
+
+      // ---- pilot data ----
+      this.lcp.core_bonuses.forEach(x => {
+        track('CORE Bonus', x.id);
+        if (!x.name) p.push(`CORE Bonus ${x.id||'?'}: name is required.`);
+        if (!x.source) p.push(`CORE Bonus ${x.id||'?'}: source is required.`);
+        else if (!manIds.has(x.source)) p.push(`CORE Bonus ${x.id||'?'}: source "${x.source}" is not a defined manufacturer.`);
+        if (!x.effect) p.push(`CORE Bonus ${x.id||'?'}: effect is required.`);
+        if (!x.description) p.push(`CORE Bonus ${x.id||'?'}: description is required.`);
+        scanMech(`CORE Bonus ${x.id||'?'}`, x);
+      });
+      this.lcp.talents.forEach(x => {
+        track('Talent', x.id);
+        if (!x.name) p.push(`Talent ${x.id||'?'}: name is required.`);
+        if (!x.description) p.push(`Talent ${x.id||'?'}: description is required.`);
+        (x.ranks||[]).forEach((r,ri) => {
+          if (!r.name || !r.description) p.push(`Talent ${x.id||'?'} rank ${ri+1}: name and description required.`);
+          scanMech(`Talent ${x.id||'?'} rank ${ri+1}`, r);
+        });
+      });
+      this.lcp.skills.forEach(x => {
+        track('Skill', x.id);
+        if (!x.name || !x.description || !x.detail) p.push(`Skill ${x.id||'?'}: name, description and detail are required.`);
+      });
+      this.lcp.backgrounds.forEach(x => {
+        track('Background', x.id);
+        if (!x.name || !x.description) p.push(`Background ${x.id||'?'}: name and description required.`);
+      });
+      this.lcp.reserves.forEach(x => {
+        track('Reserve', x.id);
+        if (!x.name) p.push(`Reserve ${x.id||'?'}: name is required.`);
+        scanMech(`Reserve ${x.id||'?'}`, x);
+      });
+      this.lcp.pilot_gear.forEach(x => {
+        track('Pilot Gear', x.id);
+        if (!x.name) p.push(`Pilot Gear ${x.id||'?'}: name is required.`);
+        scanMech(`Pilot Gear ${x.id||'?'}`, x);
+      });
+
+      // ---- NPC data ----
+      const featureIds = new Set(this.lcp.npc_features.map(x => x.id));
+      const originIds = new Set([...this.lcp.npc_classes.map(x => x.id), ...this.lcp.npc_templates.map(x => x.id)]);
+      this.lcp.npc_classes.forEach(x => {
+        track('NPC Class', x.id);
+        if (!x.name) p.push(`NPC Class ${x.id||'?'}: name is required.`);
+        if (!this.npcRoles.includes(x.role)) p.push(`NPC Class ${x.id||'?'}: role must be one of ${this.npcRoles.join(', ')}.`);
+        if (!x.info.flavor || !x.info.tactics || !x.info.terse) p.push(`NPC Class ${x.id||'?'}: info needs flavor, tactics and terse.`);
+        ['hp','armor','evade','edef','heatcap','speed','save'].forEach(k => { if (!String(x._stats[k]).trim()) p.push(`NPC Class ${x.id||'?'}: stat "${k}" is required.`); });
+        [...csv(x._base), ...csv(x._optional)].forEach(fid => { if (!featureIds.has(fid)) p.push(`NPC Class ${x.id||'?'}: feature id "${fid}" is not a defined NPC Feature.`); });
+      });
+      this.lcp.npc_templates.forEach(x => {
+        track('NPC Template', x.id);
+        if (!x.name || !x.description) p.push(`NPC Template ${x.id||'?'}: name and description required.`);
+        [...csv(x._base), ...csv(x._optional)].forEach(fid => { if (!featureIds.has(fid)) p.push(`NPC Template ${x.id||'?'}: feature id "${fid}" is not a defined NPC Feature.`); });
+      });
+      this.lcp.npc_features.forEach(x => {
+        track('NPC Feature', x.id);
+        if (!x.name) p.push(`NPC Feature ${x.id||'?'}: name is required.`);
+        if (!this.npcFeatureTypes.includes(x.type)) p.push(`NPC Feature ${x.id||'?'}: type must be one of ${this.npcFeatureTypes.join(', ')}.`);
+        if (x.origin && !originIds.has(x.origin)) p.push(`NPC Feature ${x.id||'?'}: origin "${x.origin}" is not a defined class or template.`);
+        if (x.type === 'reaction' && !x.trigger) p.push(`NPC Feature ${x.id||'?'}: reaction features need a trigger.`);
+        if (x.type === 'weapon') {
+          if (!x.weapon_type) p.push(`NPC Feature ${x.id||'?'}: weapon features need a weapon type.`);
+          if (!String(x._attacks).trim()) p.push(`NPC Feature ${x.id||'?'}: weapon features need an attacks value.`);
+          (x.npcDamage||[]).forEach(d => { if (d._t1==='' || d._t2==='' || d._t3==='') p.push(`NPC Feature ${x.id||'?'}: each damage entry needs all three tier values.`); });
+        }
+        scanMech(`NPC Feature ${x.id||'?'}`, x);
+      });
+
+      // ---- weapon mods ----
+      this.lcp.mods.forEach(x => {
+        track('Weapon Mod', x.id);
+        if (!x.name) p.push(`Weapon Mod ${x.id||'?'}: name is required.`);
+        if (!x.source) p.push(`Weapon Mod ${x.id||'?'}: source is required.`);
+        else if (!manIds.has(x.source)) p.push(`Weapon Mod ${x.id||'?'}: source "${x.source}" is not a defined manufacturer.`);
+        if (!x.license_id) p.push(`Weapon Mod ${x.id||'?'}: license_id is required.`);
+        else if (!frameIds.has(x.license_id)) p.push(`Weapon Mod ${x.id||'?'}: license_id "${x.license_id}" is not a defined frame.`);
+        if (!x.effect) p.push(`Weapon Mod ${x.id||'?'}: effect is required.`);
+        scanMech(`Weapon Mod ${x.id||'?'}`, x);
+      });
+
+      // ---- other content ----
+      this.lcp.environments.forEach(x => { track('Environment', x.id); if (!x.name || !x.description) p.push(`Environment ${x.id||'?'}: name and description required.`); });
+      this.lcp.sitreps.forEach(x => { track('SITREP', x.id); if (!x.name || !x.description) p.push(`SITREP ${x.id||'?'}: name and description required.`); });
+      this.lcp.statuses.forEach(x => {
+        track('Status', x.id);
+        if (!x.name || !x.effects) p.push(`Status ${x.id||'?'}: name and effects required.`);
+        if (x.type !== 'Status' && x.type !== 'Condition') p.push(`Status ${x.id||'?'}: type must be Status or Condition.`);
+      });
+      this.lcp.tables.forEach(x => {
+        track('Table', x.id);
+        if (!x.title || !x.description) p.push(`Table ${x.id||'?'}: title and description required.`);
+        (x.results||[]).forEach(r => { if (!r.title || !r.result) p.push(`Table ${x.id||'?'}: every result needs a title and result text.`); });
+      });
+      this.lcp.custom_stats.forEach(x => {
+        if (!x.key) { p.push('Custom Stat: missing key.'); return; }
+        ids[x.key] = (ids[x.key]||0)+1;
+        if (!x.title) p.push(`Custom Stat ${x.key}: title is required.`);
+      });
+
+      Object.entries(ids).forEach(([id, n]) => { if (n > 1) p.push(`Duplicate id "${id}" used ${n} times — ids must be globally unique.`); });
+      return p;
+    },
+    editTarget() {
+      const { key, idx } = this.edit;
+      return (key && this.lcp[key] && this.lcp[key][idx]) ? this.lcp[key][idx] : null;
+    },
+    chatterText() {
+      return this.chatterLog.join('\n') + (this.chatterLog.length ? '\n' : '') + this.chatterTyping;
+    },
+    factionGlyph() { return GLYPHS[this.settings.theme] || '⬢'; },
+    modalTitle() {
+      const M = { manufacturers:'Manufacturer', frames:'Frame', weapons:'Weapon', systems:'System',
+        mods:'Weapon Mod', core_bonuses:'CORE Bonus', talents:'Talent', skills:'Skill Trigger',
+        backgrounds:'Background', reserves:'Reserve', pilot_gear:'Pilot Gear', bonds:'Bond',
+        npc_classes:'NPC Class', npc_templates:'NPC Template', npc_features:'NPC Feature',
+        environments:'Environment', sitreps:'SITREP', statuses:'Status / Condition', tables:'Rollable Table',
+        custom_stats:'Custom Stat', tags:'Custom Tag' };
+      return (M[this.edit.key] || 'Item') + ' editor';
+    },
+    builtLcp() { return this.buildOutput(); },
+    jsonPreview() {
+      const o = this.builtLcp;
+      const out = { 'lcp_manifest.json': o.lcp_manifest };
+      this.nonEmptyCategories.forEach(c => { out[`${c}.json`] = o[c]; });
+      return JSON.stringify(out, null, 2);
+    }
+  },
+  methods: {
+    go(t) { this.tab = t; },
+    toggleNavGroup(g) { this.collapsedNav = { ...this.collapsedNav, [g]: !this.collapsedNav[g] }; },
+    toggleNav() { this.navOpen = !this.navOpen; },
+    setTheme(id) { this.settings.theme = id; },
+    applySettings() {
+      const el = document.getElementById('lcp-forge');
+      if (!el) return;
+      el.dataset.theme = this.settings.theme;
+      el.dataset.motion = this.settings.motion ? 'on' : 'off';
+    },
+    stopChatter() { clearTimeout(this._chatTimer); this._chatTimer = null; },
+    startChatter() {
+      this.stopChatter();
+      if (!this.settings.chatter) { this.chatterLog = []; this.chatterTyping = ''; return; }
+      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
+      if (!this.settings.motion) {                    // static: just show the lines once
+        this.chatterLog = [...lines]; this.chatterTyping = ''; return;
+      }
+      // start empty — types up from nothing, oldest lines cull off the top
+      this.chatterLog = []; this.chatterTyping = ''; this._chatIdx = 0;
+      if (this.tab === 'home') this._chatterTick();
+    },
+    _chatterTick() {
+      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
+      const target = lines[this._chatIdx % lines.length] || '';
+      if (this.chatterTyping.length < target.length) {
+        this.chatterTyping = target.slice(0, this.chatterTyping.length + 1);
+        this._chatTimer = setTimeout(() => this._chatterTick(), 15 + Math.random() * 22);
+      } else {
+        this.chatterLog.push(target);
+        if (this.chatterLog.length > 22) this.chatterLog.shift();   // cull lines that scrolled off the top
+        this.chatterTyping = '';
+        this._chatIdx++;
+        this._chatTimer = setTimeout(() => this._chatterTick(), 260 + Math.random() * 420);
+      }
+    },
+    openEdit(key, i) { this.edit = { key, idx: i }; this.tab = key; },
+    closeEdit() { this.edit = { key: null, idx: -1 }; },
+    toggleArr(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); },
+    addCsv(obj, key, v) { const parts = (obj[key] || '').split(',').map(x => x.trim()).filter(Boolean); if (!parts.includes(v)) parts.push(v); obj[key] = parts.join(', '); },
+    blankTrait,
+    frameName(id) { const f = this.lcp.frames.find(x => x.id === id); return f ? f.name : ''; },
+    push(key, obj) { this.lcp[key].push(obj); },
+    addManufacturer() { this.lcp.manufacturers.push({ id:'', name:'', description:'', quote:'', light:'#888888', dark:'#aaaaaa', icon_url:'' }); this.tab='manufacturers'; },
+    addFrame() { this.lcp.frames.push(blankFrame()); },
+    addWeapon() { this.lcp.weapons.push(blankWeapon()); },
+    addSystem() { this.lcp.systems.push(blankSystem()); },
+    blankCoreBonus, blankTalent, blankTalentRank, blankSkill, blankBackground, blankReserve, blankPilotGear,
+    blankNpcClass, blankNpcTemplate, blankNpcFeature, blankMod, blankEnvironment, blankSitrep, blankStatus,
+    blankTable, blankTableResult, blankCustomStat, blankBond, blankBondQuestion, blankBondPower,
+    npcFeatureName(id) { const f = this.lcp.npc_features.find(x => x.id === id); return f ? f.name : id; },
+    removeItem(key, i) { this.lcp[key].splice(i, 1); },
+    resetAll() {
+      if (!confirm('Discard everything and start a new pack?')) return;
+      this.lcp = freshLcp();
+      this.tab = 'home';
+      this.edit = { key: null, idx: -1 };
+    },
+
+    buildOutput() {
+      const m = this.lcp.lcp_manifest;
+      const manifest = { name: m.name, author: m.author, description: m.description, version: m.version };
+      if (m.image_url) manifest.image_url = m.image_url;
+      if (m.website) manifest.website = m.website;
+      if (m.v3) manifest.v3 = true;
+      const deps = (m.dependencies || []).filter(d => d.name).map(d => clean(d));
+      if (deps.length) manifest.dependencies = deps;
+      const vh = (m.version_history || []).filter(v => v.version).map(v => ({
+        version: v.version, date: v.date,
+        changes: (v._changesText || '').split('\n').map(s => s.trim()).filter(Boolean)
+      }));
+      if (vh.length) manifest.version_history = vh;
+
+      const frames = this.lcp.frames.map(f => {
+        const c = f.core_system;
+        const core = clean({
+          name: c.name, description: c.description,
+          active_name: c.active_name, active_effect: c.active_effect,
+          activation: c.activation, deactivation: c.deactivation, use: c.use,
+          passive_name: c.passive_name, passive_effect: c.passive_effect,
+          active_actions: (c.active_actions||[]).map(clean),
+          active_bonuses: (c.active_bonuses||[]).map(shapeBonus),
+          active_synergies: (c.active_synergies||[]).map(shapeSynergy),
+          passive_actions: (c.passive_actions||[]).map(clean),
+          passive_bonuses: (c.passive_bonuses||[]).map(shapeBonus),
+          passive_synergies: (c.passive_synergies||[]).map(shapeSynergy),
+          deployables: (c.deployables||[]).map(shapeDeployable),
+          counters: (c.counters||[]).map(clean),
+          tags: (c.tags||[]).map(clean)
+        });
+        const out = clean({
+          id: f.id, name: f.name, source: f.source,
+          license_level: f.license_level || 0,
+          mechtype: csv(f._mechtypeText),
+          description: f.description,
+          mounts: f.mounts,
+          stats: f.stats,
+          traits: (f.traits||[]).map(t => clean({ name: t.name, description: t.description, ...mechBundle(t) })),
+          core_system: core,
+          variant: f.variant,
+          image_url: f.image_url,
+          y_pos: f.y_pos || undefined,
+          specialty: f.specialty || undefined
+        });
+        if (f.variant && f.license_id) out.license_id = f.license_id;
+        return out;
+      });
+
+      const weapons = this.lcp.weapons.map(w => clean({
+        id: w.id, name: w.name, source: w.source, license: w.license, license_id: w.license_id,
+        license_level: w.license_level || 0,
+        mount: w.mount,
+        type: (w._typeArr && w._typeArr.length === 1) ? w._typeArr[0] : (w._typeArr || []),
+        effect: w.effect, description: w.description,
+        sp: w.sp || undefined, cost: w.cost || undefined,
+        damage: (w.damage||[]).map(clean), range: (w.range||[]).map(clean), tags: (w.tags||[]).map(clean),
+        ...mechBundle(w),
+        on_attack: w.on_attack, on_hit: w.on_hit, on_crit: w.on_crit, on_miss: w.on_miss,
+        skirmish: w.skirmish || undefined, barrage: w.barrage || undefined,
+        no_attack: w.no_attack || undefined, no_mods: w.no_mods || undefined,
+        no_core_bonus: w.no_core_bonus || undefined, no_bonus: w.no_bonus || undefined, no_synergy: w.no_synergy || undefined
+      }));
+
+      const systems = this.lcp.systems.map(s => clean({
+        id: s.id, name: s.name, source: s.source, license: s.license, license_id: s.license_id,
+        license_level: s.license_level || 0,
+        type: s.type, sp: s.sp || undefined, effect: s.effect, description: s.description,
+        tags: (s.tags||[]).map(clean),
+        ...mechBundle(s),
+        no_bonus: s.no_bonus || undefined, no_synergy: s.no_synergy || undefined
+      }));
+
+      const manufacturers = this.lcp.manufacturers.map(x => clean(x));
+      const tags = this.lcp.tags.map(x => clean(x));
+
+      const core_bonuses = this.lcp.core_bonuses.map(c => clean({
+        id: c.id, name: c.name, source: c.source, effect: c.effect, description: c.description,
+        mounted_effect: c.mounted_effect, ...mechBundle(c)
+      }));
+
+      const talents = this.lcp.talents.map(t => clean({
+        id: t.id, name: t.name, description: t.description, terse: t.terse, icon_url: t.icon_url,
+        ranks: (t.ranks || []).map(r => clean({
+          name: r.name, description: r.description, exclusive: r.exclusive || undefined, ...mechBundle(r)
+        }))
+      }));
+
+      const skills = this.lcp.skills.map(x => clean(x));
+
+      const backgrounds = this.lcp.backgrounds.map(bg => clean({
+        id: bg.id, name: bg.name, description: bg.description,
+        skills: csv(bg._skills)
+      }));
+
+      const reserves = this.lcp.reserves.map(r => clean({
+        id: r.id, name: r.name, type: r.type, label: r.label, description: r.description,
+        consumable: r.consumable || undefined, ...mechBundle(r)
+      }));
+
+      const pilot_gear = this.lcp.pilot_gear.map(g => clean({
+        id: g.id, name: g.name, type: g.type, description: g.description, effect: g.effect,
+        damage: g.type === 'Weapon' ? (g.damage || []).map(clean) : [],
+        range: g.type === 'Weapon' ? (g.range || []).map(clean) : [],
+        tags: (g.tags || []).map(clean), ...mechBundle(g)
+      }));
+
+      const npc_classes = this.lcp.npc_classes.map(c => {
+        const stats = {};
+        this.npcStatFields.forEach(([k]) => { const v = tiered(c._stats[k]); if (v !== undefined) stats[k] = v; });
+        const sz = npcSize(c._size); if (sz !== undefined) stats.size = sz;
+        return clean({
+          id: c.id, name: c.name, role: c.role,
+          info: { flavor: c.info.flavor, tactics: c.info.tactics, terse: c.info.terse },
+          stats,
+          base_features: csv(c._base), optional_features: csv(c._optional),
+          optionalClassMin: c.optionalClassMin ?? undefined,
+          optionalClassMax: c.optionalClassMax ?? undefined,
+          optionalClassPerTier: c.optionalClassPerTier ?? undefined
+        });
+      });
+
+      const npc_templates = this.lcp.npc_templates.map(t => clean({
+        id: t.id, template: true, name: t.name, description: t.description,
+        forceTag: t._forceTag || undefined,
+        prohibitTemplates: csv(t._prohibit),
+        base_features: csv(t._base), optional_features: csv(t._optional),
+        caveat: t.caveat,
+        optionalMin: t.optionalMin ?? undefined,
+        optionalMax: t.optionalMax ?? undefined,
+        optionalPerTier: t.optionalPerTier ?? undefined
+      }));
+
+      const npc_features = this.lcp.npc_features.map(f => {
+        const o = {
+          id: f.id, name: f.name, type: f.type, origin: f.origin, base: f.base || undefined,
+          effect: f.effect,
+          tags: (f.tags || []).map(clean),
+          actions: (f.actions || []).map(clean),
+          bonuses: (f.bonuses || []).map(shapeBonus),
+          synergies: (f.synergies || []).map(shapeSynergy),
+          deployables: (f.deployables || []).map(shapeDeployable)
+        };
+        if (f.type === 'reaction') o.trigger = f.trigger;
+        if (f.type === 'tech' || f.type === 'weapon') {
+          const ab = tiered(f._attackBonus); if (ab !== undefined) o.attack_bonus = Array.isArray(ab) ? ab : [ab, ab, ab];
+          const ac = tiered(f._accuracy); if (ac !== undefined) o.accuracy = Array.isArray(ac) ? ac : [ac, ac, ac];
+        }
+        if (f.type === 'weapon') {
+          o.weapon_type = f.weapon_type;
+          o.attacks = tiered(f._attacks);
+          o.range = (f.range || []).map(clean);
+          o.damage = (f.npcDamage || []).map(d => clean({
+            type: d.type, damage: [Number(d._t1) || 0, Number(d._t2) || 0, Number(d._t3) || 0],
+            ap: d.ap, aoe: d.aoe || undefined, save: d.save || undefined
+          }));
+          ['on_attack','on_hit','on_crit','on_miss'].forEach(k => { if (f[k]) o[k] = f[k]; });
+        }
+        return clean(o);
+      });
+
+      const lines = s => (s || '').split('\n').map(x => x.trim()).filter(Boolean);
+
+      const mods = this.lcp.mods.map(w => clean({
+        id: w.id, name: w.name, source: w.source, license: w.license, license_id: w.license_id,
+        license_level: w.license_level || 0, sp: w.sp || undefined, effect: w.effect, description: w.description,
+        allowed_types: csv(w._allowedTypes), allowed_sizes: csv(w._allowedSizes),
+        added_tags: (w.addedTags || []).map(clean),
+        added_damage: (w.addedDamage || []).map(clean),
+        added_range: (w.addedRange || []).map(clean),
+        on_attack: w.on_attack, on_hit: w.on_hit, on_crit: w.on_crit, on_miss: w.on_miss,
+        tags: (w.tags || []).map(clean), ...mechBundle(w)
+      }));
+
+      const bonds = this.lcp.bonds.map(b => clean({
+        id: b.id, name: b.name,
+        major_ideals: lines(b._major), minor_ideals: lines(b._minor),
+        questions: (b.questions || []).filter(q => q.question).map(q => ({ question: q.question, options: lines(q._options) })),
+        powers: (b.powers || []).filter(pw => pw.name).map(pw => clean({
+          name: pw.name, description: pw.description, frequency: pw.frequency, prerequisite: pw.prerequisite,
+          veteran: pw.veteran || undefined, master: pw.master || undefined
+        }))
+      }));
+
+      const environments = this.lcp.environments.map(x => clean(x));
+      const sitreps = this.lcp.sitreps.map(x => clean(x));
+      const statuses = this.lcp.statuses.map(x => clean(x));
+      const custom_stats = this.lcp.custom_stats.map(x => clean({
+        key: x.key, title: x.title, trackable: x.trackable || undefined,
+        default: (typeof x.default === 'string' && x.default.trim() !== '' && !isNaN(x.default)) ? Number(x.default) : x.default,
+        icon: x.icon, sort: x.sort || undefined
+      }));
+      const tables = this.lcp.tables.map(t => clean({
+        id: t.id, title: t.title, description: t.description, die: t.die || 6, mult: t.mult || undefined,
+        results: (t.results || []).map(r => ({ min: r.min, max: r.max, title: r.title, result: r.result }))
+      }));
+      const lists = {};
+      this.listFields.forEach(([k]) => { const v = lines(this.lcp._lists[k]); if (v.length) lists[k] = v; });
+
+      return {
+        lcp_manifest: manifest, manufacturers, frames, weapons, systems, mods,
+        core_bonuses, talents, skills, backgrounds, reserves, pilot_gear, bonds,
+        npc_classes, npc_templates, npc_features,
+        environments, sitreps, statuses, tables, custom_stats, lists, tags
+      };
+    },
+
+    async exportLcp() {
+      if (this.problems.length) { alert('Fix validation issues first.'); return; }
+      const o = this.buildOutput();
+      const zip = new JSZip();
+      zip.file('lcp_manifest.json', JSON.stringify(o.lcp_manifest, null, 2));
+      this.nonEmptyCategories.forEach(c => zip.file(`${c}.json`, JSON.stringify(o[c], null, 2)));
+      const blob = await zip.generateAsync({ type: 'blob' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = this.exportFilename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    },
+
+    async importLcp(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const zip = await JSZip.loadAsync(file);
+        const read = async name => {
+          const f = zip.file(name);
+          return f ? JSON.parse(await f.async('string')) : null;
+        };
+        const man = await read('lcp_manifest.json');
+        const fresh = freshLcp();
+        if (man) {
+          Object.assign(fresh.lcp_manifest, man);
+          fresh.lcp_manifest.v3 = !!man.v3;
+          fresh.lcp_manifest.dependencies = man.dependencies || [];
+          fresh.lcp_manifest.version_history = (man.version_history || []).map(v => ({
+            version: v.version, date: v.date, _changesText: (v.changes || []).join('\n')
+          }));
+        }
+        fresh.manufacturers = (await read('manufacturers.json')) || [];
+        fresh.tags = (await read('tags.json')) || [];
+
+        const inBonus = b => ({ id:b.id, val:String(b.val ?? ''), accuracy:b.accuracy ?? null,
+          _damage:[...(b.damage_types||[])], _range:[...(b.range_types||[])],
+          _wtype:[...(b.weapon_types||[])], _wsize:[...(b.weapon_sizes||[])],
+          overwrite:!!b.overwrite, replace:!!b.replace });
+        const inSyn = s => ({ _locations:(s.locations||[]).join(', '), detail:s.detail||'',
+          _wtype:[...(s.weapon_types||[])], _wsize:[...(s.weapon_sizes||[])], _stype:[...(s.system_types||[])] });
+        const inDep = d => ({ name:'', type:'Deployable', detail:'', activation:'Quick', deactivation:'', recall:'', redeploy:'',
+          instances:null, size:null, hp:null, armor:null, evasion:null, edef:null, heatcap:null, repcap:null,
+          sensor_range:null, tech_attack:null, save:null, speed:null, damage:[], range:[], actions:[], bonuses:[], synergies:[], tags:[],
+          ...d, bonuses:(d.bonuses||[]).map(inBonus), synergies:(d.synergies||[]).map(inSyn) });
+        const inBundle = x => ({
+          actions: x.actions || [],
+          bonuses: (x.bonuses||[]).map(inBonus),
+          synergies: (x.synergies||[]).map(inSyn),
+          counters: x.counters || [],
+          deployables: (x.deployables||[]).map(inDep)
+        });
+
+        fresh.frames = ((await read('frames.json')) || []).map(f => {
+          const b = blankFrame();
+          b.id=f.id; b.name=f.name; b.source=f.source; b.license_id=f.license_id||''; b.license_level=f.license_level||0;
+          b.variant=f.variant||''; b.description=f.description||''; b.image_url=f.image_url||''; b.y_pos=Number(f.y_pos)||0;
+          b.specialty=!!f.specialty;
+          b._mechtypeText=(f.mechtype||[]).join(', ');
+          b.mounts=f.mounts||[];
+          b.stats=Object.assign(blankFrame().stats, f.stats||{});
+          b.traits=(f.traits||[]).map(t => ({ name:t.name||'', description:t.description||'', ...inBundle(t) }));
+          const c=f.core_system||{}; const bc=blankCore();
+          Object.assign(bc, { name:c.name||'', description:c.description||'', active_name:c.active_name||'',
+            active_effect:c.active_effect||'', activation:c.activation||'Quick', deactivation:c.deactivation||'',
+            use:c.use||'', passive_name:c.passive_name||'', passive_effect:c.passive_effect||'' });
+          bc.active_actions=c.active_actions||[]; bc.passive_actions=c.passive_actions||[];
+          bc.active_bonuses=(c.active_bonuses||[]).map(inBonus); bc.passive_bonuses=(c.passive_bonuses||[]).map(inBonus);
+          bc.active_synergies=(c.active_synergies||[]).map(inSyn); bc.passive_synergies=(c.passive_synergies||[]).map(inSyn);
+          bc.deployables=(c.deployables||[]).map(inDep); bc.counters=c.counters||[]; bc.tags=c.tags||[];
+          b.core_system=bc;
+          return b;
+        });
+
+        fresh.weapons = ((await read('weapons.json')) || []).map(w => {
+          const b = blankWeapon();
+          Object.assign(b, w);
+          b._typeArr = Array.isArray(w.type) ? w.type : (w.type ? [w.type] : []);
+          b.damage=w.damage||[]; b.range=w.range||[]; b.tags=w.tags||[];
+          Object.assign(b, inBundle(w));
+          ['skirmish','barrage','no_attack','no_mods','no_core_bonus','no_bonus','no_synergy'].forEach(k => b[k]=!!w[k]);
+          return b;
+        });
+        fresh.systems = ((await read('systems.json')) || []).map(s => {
+          const b = blankSystem();
+          Object.assign(b, s);
+          b.tags=s.tags||[];
+          Object.assign(b, inBundle(s));
+          b.no_bonus=!!s.no_bonus; b.no_synergy=!!s.no_synergy;
+          return b;
+        });
+
+        const arr = a => Array.isArray(a) ? a.join(', ') : (a == null ? '' : String(a));
+
+        fresh.core_bonuses = ((await read('core_bonuses.json')) || []).map(c => ({
+          ...blankCoreBonus(), ...c, mounted_effect: c.mounted_effect || '', ...inBundle(c)
+        }));
+        fresh.skills = (await read('skills.json')) || [];
+        fresh.backgrounds = ((await read('backgrounds.json')) || []).map(bg => ({
+          id: bg.id, name: bg.name, description: bg.description || '', _skills: (bg.skills || []).join(', ')
+        }));
+        fresh.talents = ((await read('talents.json')) || []).map(t => ({
+          id: t.id, name: t.name, description: t.description || '', terse: t.terse || '', icon_url: t.icon_url || '',
+          ranks: (t.ranks || []).slice(0, 3).map(r => ({
+            name: r.name || '', description: r.description || '', exclusive: !!r.exclusive, ...inBundle(r)
+          }))
+        }));
+        while (fresh.talents.some(t => t.ranks.length < 3)) fresh.talents.forEach(t => { while (t.ranks.length < 3) t.ranks.push(blankTalentRank()); });
+        fresh.reserves = ((await read('reserves.json')) || []).map(r => ({
+          ...blankReserve(), ...r, label: r.label || '', description: r.description || '', consumable: !!r.consumable, ...inBundle(r)
+        }));
+        fresh.pilot_gear = ((await read('pilot_gear.json')) || []).map(g => ({
+          ...blankPilotGear(), ...g, description: g.description || '', effect: g.effect || '',
+          damage: g.damage || [], range: g.range || [], tags: g.tags || [], ...inBundle(g)
+        }));
+
+        fresh.npc_classes = ((await read('npc_classes.json')) || []).map(c => {
+          const b = blankNpcClass();
+          b.id = c.id; b.name = c.name; b.role = c.role || 'striker';
+          b.info = { flavor: (c.info||{}).flavor || '', tactics: (c.info||{}).tactics || '', terse: (c.info||{}).terse || '' };
+          this.npcStatFields.forEach(([k]) => { b._stats[k] = arr((c.stats||{})[k]); });
+          const sz = (c.stats||{}).size;
+          b._size = Array.isArray(sz) ? sz.map(t => (Array.isArray(t) ? t.join(',') : t)).join(' / ') : arr(sz);
+          b._base = (c.base_features || []).join(', '); b._optional = (c.optional_features || []).join(', ');
+          b.optionalClassMin = c.optionalClassMin ?? null; b.optionalClassMax = c.optionalClassMax ?? null; b.optionalClassPerTier = c.optionalClassPerTier ?? null;
+          return b;
+        });
+        fresh.npc_templates = ((await read('npc_templates.json')) || []).map(t => ({
+          ...blankNpcTemplate(), id: t.id, name: t.name, description: t.description || '',
+          _forceTag: t.forceTag || '', _prohibit: (t.prohibitTemplates || []).join(', '),
+          _base: (t.base_features || []).join(', '), _optional: (t.optional_features || []).join(', '),
+          caveat: t.caveat || '',
+          optionalMin: t.optionalMin ?? null, optionalMax: t.optionalMax ?? null, optionalPerTier: t.optionalPerTier ?? null
+        }));
+        fresh.npc_features = ((await read('npc_features.json')) || []).map(f => {
+          const b = blankNpcFeature();
+          Object.assign(b, {
+            id: f.id, name: f.name, type: f.type || 'trait', origin: f.origin || '', base: !!f.base,
+            effect: f.effect || '', trigger: f.trigger || '', weapon_type: f.weapon_type || '',
+            _attackBonus: arr(f.attack_bonus), _accuracy: arr(f.accuracy), _attacks: arr(f.attacks) || '1',
+            tags: f.tags || [], range: f.range || [],
+            on_attack: f.on_attack || '', on_hit: f.on_hit || '', on_crit: f.on_crit || '', on_miss: f.on_miss || ''
+          });
+          b.actions = f.actions || [];
+          b.bonuses = (f.bonuses || []).map(inBonus);
+          b.synergies = (f.synergies || []).map(inSyn);
+          b.deployables = (f.deployables || []).map(inDep);
+          b.npcDamage = (f.damage || []).map(d => ({
+            type: d.type || 'Kinetic',
+            _t1: (d.damage || [])[0] ?? '', _t2: (d.damage || [])[1] ?? '', _t3: (d.damage || [])[2] ?? '',
+            ap: d.ap, aoe: d.aoe || '', save: d.save || ''
+          }));
+          return b;
+        });
+
+        fresh.mods = ((await read('mods.json')) || []).map(w => ({
+          ...blankMod(), ...w, mounted_effect: undefined,
+          _allowedTypes: (w.allowed_types || []).join(', '), _allowedSizes: (w.allowed_sizes || []).join(', '),
+          addedTags: w.added_tags || [], addedDamage: w.added_damage || [], addedRange: w.added_range || [],
+          tags: w.tags || [], ...inBundle(w)
+        }));
+        fresh.environments = (await read('environments.json')) || [];
+        fresh.sitreps = ((await read('sitreps.json')) || []).map(x => ({ ...blankSitrep(), ...x }));
+        fresh.statuses = ((await read('statuses.json')) || []).map(x => ({ ...blankStatus(), ...x, exclusive: x.exclusive || '' }));
+        fresh.custom_stats = ((await read('custom_stats.json')) || []).map(x => ({ ...blankCustomStat(), ...x, default: String(x.default ?? 0) }));
+        fresh.tables = ((await read('tables.json')) || []).map(t => ({
+          ...blankTable(), ...t, mult: t.mult ?? null,
+          results: (t.results || []).map(r => ({ min: r.min ?? 1, max: r.max ?? 1, title: r.title || '', result: r.result || '' }))
+        }));
+        fresh.bonds = ((await read('bonds.json')) || []).map(b => ({
+          id: b.id, name: b.name,
+          _major: (b.major_ideals || []).join('\n'), _minor: (b.minor_ideals || []).join('\n'),
+          questions: (b.questions || []).map(q => ({ question: q.question || '', _options: (q.options || []).join('\n') })),
+          powers: (b.powers || []).map(pw => ({
+            name: pw.name || '', description: pw.description || '', frequency: pw.frequency || '',
+            prerequisite: pw.prerequisite || '', veteran: !!pw.veteran, master: !!pw.master
+          }))
+        }));
+        const listData = (await read('lists.json')) || {};
+        this.listFields.forEach(([k]) => { fresh._lists[k] = (listData[k] || []).join('\n'); });
+
+        this.lcp = fresh;
+        this.edit = { key: null, idx: -1 };
+        this.tab = 'home';
+        alert('Loaded ' + file.name);
+      } catch (err) {
+        console.error(err);
+        alert('Could not read that file: ' + err.message);
+      } finally {
+        e.target.value = '';
+      }
+    }
+  }
+});
+
+app.component('help', HelpTip);
+app.component('action-list', ActionList);
+app.component('damage-list', DamageList);
+app.component('range-list', RangeList);
+app.component('tag-list', TagList);
+app.component('bonus-list', BonusList);
+app.component('synergy-list', SynergyList);
+app.component('counter-list', CounterList);
+app.component('deployable-list', DeployableList);
+app.component('npc-damage-list', NpcDamageList);
+
+app.mount('#lcp-forge');
+</script>
+</body>
+</html>
+
+LCPEDITORAPPHTML;
+	exit;
+} );
+
+/* [lcp_editor] -> a same-origin iframe of the app. */
+add_shortcode( 'lcp_editor', function ( $atts ) {
+	$a   = shortcode_atts( array( 'height' => '88vh' ), $atts, 'lcp_editor' );
+	$src = esc_url( add_query_arg( 'lcp_editor_app', '1', home_url( '/' ) ) );
+	$h   = preg_replace( '/[^0-9a-z%.]/i', '', (string) $a['height'] );
+	if ( '' === $h ) {
+		$h = '88vh';
+	}
+	return sprintf(
+		'<iframe src="%s" title="Sofa&#039;s LCP Editor" loading="lazy" '
+		. 'style="display:block;width:100%%;height:%s;min-height:600px;border:0;border-radius:8px;background:#14161c"></iframe>',
+		$src,
+		esc_attr( $h )
+	);
+} );
