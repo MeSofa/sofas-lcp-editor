@@ -1739,9 +1739,11 @@ const TAG_BY_ID = Object.fromEntries(TAG_CATALOG.map(x => [x.id, x]));
 const TAG_GROUPS = [...new Set(TAG_CATALOG.map(x => x.group))];
 const FOUNDRY_TAG_IDS = TAG_CATALOG.filter(x => x.fnd).map(x => x.id);
 
-/* Themes and the background comms feed. THEME_LIST holds swatch colours (the
-   real palettes are the CSS [data-theme] blocks); CHATTER holds the feed lines
-   per theme, typed out one at a time on the Home screen. */
+/* Themes. Each entry = a theme id, display name, and 3 swatch colours (the real
+   palettes are the CSS #lcp-forge[data-theme="id"] blocks) + a brand glyph.
+   The Home-screen comms feed for each theme lives in chatter/<id>.txt — one
+   line per line, blank lines and #comments ignored. To add a theme: add an
+   entry here, a [data-theme] CSS block, a GLYPHS entry, and a chatter file. */
 const THEME_LIST = [
   { id:'comp-con', name:'COMP/CON', bg:'#14161c', text:'#e6e8ef', accent:'#4db6ac' },
   { id:'horus',    name:'HORUS',    bg:'#0d0a12', text:'#ece3fb', accent:'#b072e6' },
@@ -1750,40 +1752,23 @@ const THEME_LIST = [
   { id:'ssc',      name:'Smith-Shimano',   bg:'#121016', text:'#f3e8f0', accent:'#ea6ba8' },
   { id:'union',    name:'Union',     bg:'#101318', text:'#e8edf3', accent:'#4a90d9' },
 ];
-
-const CHATTER = {
-  'comp-con': [
-    'COMP/CON: NHP shell nominal. Awaiting content pack.',
-    'COMP/CON: reminder — back up your loadouts.',
-    'COMP/CON: schema validation is your friend.',
-  ],
-  'horus': [
-    '[BLACKBOX]: they are already inside the compiler.',
-    '[BLACKBOX]: define nothing. everything is already defined.',
-    '[BLACKBOX]: the pattern wants out.',
-  ],
-  'harrison': [
-    'ARMORY COMMS: submit content pack for Purview review.',
-    'ARMORY COMMS: superior by design. superior by decree.',
-    'ARMORY COMMS: license compliance is not optional, pilot.',
-  ],
-  'ipsn': [
-    'IPS-N DISPATCH: haul it, weld it, ship it.',
-    'IPS-N DISPATCH: the Long Rim does not forgive sloppy manifests.',
-    'IPS-N DISPATCH: coffee\'s cold. export\'s clean. good enough.',
-  ],
-  'ssc': [
-    'SSC NET: darling, that colour palette is *devastating*.',
-    'SSC NET: form follows function follows fashion.',
-    'SSC NET: the Trench watches. make it beautiful.',
-  ],
-  'union': [
-    'UNION SIGNAL: content pack logged with the Third Committee.',
-    'UNION SIGNAL: cornerstone directives remain in effect.',
-    'UNION SIGNAL: ...to the stars, together.',
-  ],
-};
 const GLYPHS = { 'comp-con':'⬢', horus:'❖', harrison:'◆', ipsn:'⬟', ssc:'✦', union:'✧' };
+
+/* Where chatter/<theme>.txt is fetched from. Tries the file next to the page
+   first (works when served from a folder), then falls back to the repo so it
+   also works from the WordPress embed / a lone index.html. */
+const CHATTER_REPO = 'https://raw.githubusercontent.com/MeSofa/sofas-lcp-editor/main/';
+async function loadChatterLines(theme) {
+  for (const url of ['chatter/' + theme + '.txt', CHATTER_REPO + 'chatter/' + theme + '.txt']) {
+    try {
+      const r = await fetch(url, { cache: 'no-cache' });
+      if (r.ok) {
+        return (await r.text()).split(/\r?\n/).map(s => s.trim()).filter(s => s && s[0] !== '#');
+      }
+    } catch (e) { /* try next */ }
+  }
+  return [];
+}
 
 const loadSettings = () => {
   const d = { theme:'comp-con', chatter:true, motion:true };
@@ -2474,7 +2459,7 @@ const app = createApp({
     'settings.chatter'(v) { if (v) this.startChatter(); else { this.stopChatter(); this.chatterLog = []; this.chatterTyping = ''; } },
     'settings.motion'() { this.startChatter(); },
     tab(v) {
-      if (v === 'home') { if (this.settings.chatter && this.settings.motion && !this._chatTimer) this._chatterTick(); }
+      if (v === 'home') { if (this.settings.chatter && this.settings.motion && !this._chatTimer && this._chatLines && this._chatLines.length) this._chatterTick(); }
       else this.stopChatter();
     }
   },
@@ -2698,17 +2683,24 @@ const app = createApp({
     stopChatter() { clearTimeout(this._chatTimer); this._chatTimer = null; },
     startChatter() {
       this.stopChatter();
-      if (!this.settings.chatter) { this.chatterLog = []; this.chatterTyping = ''; return; }
-      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
-      if (!this.settings.motion) {                    // static: just show the lines once
-        this.chatterLog = [...lines]; this.chatterTyping = ''; return;
-      }
-      // start empty — types up from nothing, oldest lines cull off the top
-      this.chatterLog = []; this.chatterTyping = ''; this._chatIdx = 0;
-      if (this.tab === 'home') this._chatterTick();
+      this.chatterLog = []; this.chatterTyping = ''; this._chatIdx = 0; this._chatLines = [];
+      if (!this.settings.chatter) return;
+      const theme = this.settings.theme;
+      this._chatterCache = this._chatterCache || {};
+      const got = this._chatterCache[theme]
+        ? Promise.resolve(this._chatterCache[theme])
+        : loadChatterLines(theme).then(l => (this._chatterCache[theme] = l));
+      got.then(lines => {
+        if (this.settings.theme !== theme || !this.settings.chatter) return;   // changed while loading
+        this._chatLines = lines;
+        if (!lines.length) return;
+        if (!this.settings.motion) { this.chatterLog = lines.slice(0, 24); return; }
+        if (this.tab === 'home') this._chatterTick();
+      });
     },
     _chatterTick() {
-      const lines = CHATTER[this.settings.theme] || CHATTER['comp-con'];
+      const lines = this._chatLines || [];
+      if (!lines.length) return;
       const target = lines[this._chatIdx % lines.length] || '';
       if (this.chatterTyping.length < target.length) {
         this.chatterTyping = target.slice(0, this.chatterTyping.length + 1);

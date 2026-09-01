@@ -1,0 +1,4 @@
+# HORUS
+[BLACKBOX]: they are already inside the compiler.
+[BLACKBOX]: define nothing. everything is already defined.
+[BLACKBOX]: the pattern wants out.

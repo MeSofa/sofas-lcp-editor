@@ -1,0 +1,4 @@
+# COMP/CON — one line per line. Blank lines and #comments are ignored. They loop.
+COMP/CON: NHP shell nominal. Awaiting content pack.
+COMP/CON: reminder — back up your loadouts.
+COMP/CON: schema validation is your friend.
