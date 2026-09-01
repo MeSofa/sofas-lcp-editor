@@ -1,51 +1,35 @@
-# Deploying to WordPress (standalone page)
+# Self-hosting as a standalone page
 
-`index.html` is served **as-is** at `/lcp-editor` — no theme header, footer or
-nav, exactly like opening the file directly.
+`index.html` is fully self-contained, so hosting it is trivial — drop the file
+anywhere static and open it. These helpers are for serving it from a WordPress
+site at a clean path (e.g. `/lcp-editor`) with no theme wrapper, via the
+**Code Snippets** plugin.
 
-## One-time setup
-
-1. **Snippets → Add New** (Code Snippets plugin). Title: `Sofa's LCP Editor`.
-2. Paste the entire contents of **`lcp-editor.snippet.php`**.
-3. Scope: **Run snippet everywhere**. **Save Changes and Activate.**
-4. Visit `yoursite.com/lcp-editor`.
-
-Optionally create a published **Page** with slug `lcp-editor` (any title, content
-ignored) so it shows up in the auto-generated nav — the snippet intercepts that
-slug and serves the raw app instead of the themed page.
-
-## How it works
-
-The snippet hooks `template_redirect`; when the request path ends in `lcp-editor`
-(or a Page with that slug is being viewed) it prints `index.html` verbatim and
-`exit`s before the theme loads. It matches on the request path, not a rewrite
-rule, so there's no permalink flush.
-
-## Updating
-
-After any change to `index.html`:
+## Option A — bake the HTML into the snippet
 
 ```
 python3 embed/make-snippet.py
 ```
 
-then paste the regenerated `lcp-editor.snippet.php` over the existing snippet.
+Paste the generated `lcp-editor.snippet.php` into a new snippet (scope: run
+everywhere), activate it, and the app is served at `/lcp-editor`. Re-run and
+re-paste after every change to `index.html`.
 
-## Deployed
+## Option B — fetch from a public GitHub repo
 
-Live at **https://sofadoesstuff.com/lcp-editor**.
-Code Snippet **id 10** ("Sofa's LCP Editor"), Page **id 144** (nav only).
-Update: regenerate, then PUT the code (minus the leading `<?php`) to
-`/wp-json/code-snippets/v1/snippets/10`.
+```
+python3 embed/make-snippet-remote.py USER/REPO
+```
 
----
+This snippet fetches `index.html` from the repo at request time and caches it
+for 5 minutes (`?refresh=1` on the URL busts the cache; the last good copy is
+served if the fetch fails). After the one-time paste, updating the live site is
+just `git push`.
 
-## GitHub-hosted variant (update by `git push`)
+## How the snippet works
 
-`embed/make-snippet-remote.py USER/REPO` generates a ~15-line snippet
-(`lcp-editor.remote.snippet.php`) that fetches `index.html` from a **public**
-GitHub repo at request time, caching it 5 min (`/lcp-editor?refresh=1` busts the
-cache; last good copy is served if GitHub is down).
-
-Once the repo is pushed: paste that snippet over Code Snippet #10. Then the only
-step to update the live site is `git push`.
+It hooks `template_redirect`, and when the request path ends in `lcp-editor`
+(or a Page with that slug is being viewed) it prints the HTML and `exit`s
+before the theme loads. Path matching, not a rewrite rule, so no permalink
+flush is needed. Optionally publish an empty Page with that slug so it appears
+in an auto-generated nav.

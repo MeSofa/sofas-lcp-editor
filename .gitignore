@@ -2,3 +2,6 @@
 *.lcp
 !examples/*.lcp
 /scratch/
+
+# generated snippet build artifacts
+embed/*.snippet.php

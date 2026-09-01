@@ -4,25 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sofa's LCP Editor</title>
-<!--
-  Sofa's LCP Editor — a client-side .lcp generator for Lancer / COMP/CON.
-  Single self-contained file: Vue 3 + JSZip from CDN, everything else inline,
-  so it drops straight into a WordPress Code Snippet shortcode.
-
-  Covers: manifest; licensed data (manufacturers, frames + traits + core
-  systems, weapons, systems); pilot data (CORE bonuses, talents, skill
-  triggers, backgrounds, reserves, pilot gear); NPC data (classes,
-  templates, features); custom tags; and full flat .lcp export/import.
-  Shared builders (bonuses, synergies, counters, deployables) are what
-  Foundry's automation reads.
-
-  UI: each category is a compact list; clicking a row opens a modal editor.
-  The left nav toggles from the ☰ button. Not yet in the UI: weapon profiles /
-  ammo, integrated & special-equipment selectors, Active Effects objects,
-  license collections, base actions, eidolons.
-
-  Schema references: https://github.com/massif-press/lancer-data/wiki
--->
+<meta name="description" content="Sofa's LCP Editor — a browser tool for building Lancer Content Packs (.lcp) for COMP/CON." />
 <script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
@@ -1757,14 +1739,9 @@ const TAG_BY_ID = Object.fromEntries(TAG_CATALOG.map(x => [x.id, x]));
 const TAG_GROUPS = [...new Set(TAG_CATALOG.map(x => x.group))];
 const FOUNDRY_TAG_IDS = TAG_CATALOG.filter(x => x.fnd).map(x => x.id);
 
-/* =========================================================================
-   Themes + comms ticker
-   ------------------------------------------------------------------------
-   THEME_LIST — id / label / preview swatch colours (the real palette lives
-   in the CSS [data-theme] blocks).
-   CHATTER — the scrolling ticker lines, keyed by theme id.  ~~ WRITE HERE ~~
-   Each array is a list of one-liners; keep them short-ish. They loop.
-   ========================================================================= */
+/* Themes and the background comms feed. THEME_LIST holds swatch colours (the
+   real palettes are the CSS [data-theme] blocks); CHATTER holds the feed lines
+   per theme, typed out one at a time on the Home screen. */
 const THEME_LIST = [
   { id:'comp-con', name:'COMP/CON', bg:'#14161c', text:'#e6e8ef', accent:'#4db6ac' },
   { id:'horus',    name:'HORUS',    bg:'#0d0a12', text:'#ece3fb', accent:'#b072e6' },
