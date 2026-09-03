@@ -66,26 +66,53 @@
   .lf-top .nav-toggle:hover { border-color: var(--accent); }
   .lf-body { flex: 1; display: flex; min-height: 0; }
   .lf-nav {
-    width: 190px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--line);
-    padding: .6rem; display: flex; flex-direction: column; gap: 2px;
-    overflow-y: auto; position: relative; z-index: 3;
+    width: 210px; flex-shrink: 0; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 3;
   }
-  .lf-nav button {
-    text-align: left; background: none; border: 0; color: var(--muted);
-    padding: .5rem .6rem; border-radius: 6px; cursor: pointer; font-size: .92rem; width: 100%;
+  .lf-nav .nav-pinned { flex-shrink: 0; padding: .5rem; }
+  .lf-nav .nav-pinned.top { border-bottom: 1px solid var(--line); }
+  .lf-nav .nav-pinned.bottom { border-top: 1px solid var(--line); }
+  .lf-nav .nav-scroll {
+    flex: 1; overflow-y: auto; padding: .45rem .5rem .8rem;
+    display: flex; flex-direction: column; gap: 1px;
+  }
+  .lf-nav .pin-btn {
+    width: 100%; text-align: left; background: none; border: 1px solid transparent; color: var(--text);
+    padding: .5rem .6rem; border-radius: 6px; cursor: pointer; font: inherit; font-size: .92rem; font-weight: 600;
+    display: flex; align-items: center; gap: .55rem;
+  }
+  .lf-nav .pin-btn:hover { background: var(--panel-2); }
+  .lf-nav .pin-btn.active { background: var(--accent); color: var(--accent-ink); }
+  .lf-nav .pin-btn .ico { font-size: .95rem; opacity: .75; }
+  .lf-nav .pin-btn.active .ico { opacity: 1; }
+  .lf-nav .nav-group {
+    font-size: .67rem; text-transform: uppercase; letter-spacing: .09em; color: var(--muted);
+    padding: .55rem .5rem; margin-top: .2rem; cursor: pointer; user-select: none; border-radius: 5px;
+    display: flex; align-items: center; gap: .45rem;
+  }
+  .lf-nav .nav-group:hover, .lf-nav .nav-group.open { color: var(--text); }
+  .lf-nav .nav-group:first-child { margin-top: 0; }
+  .lf-nav .nav-group .g-chev {
+    font-size: .5rem; width: .6rem; text-align: center; opacity: .65; transition: transform .15s ease;
+  }
+  .lf-nav .nav-group.open .g-chev { transform: rotate(90deg); }
+  .lf-nav .nav-group .g-count {
+    margin-left: auto; font-size: .62rem; letter-spacing: 0; color: var(--muted);
+    background: var(--panel-2); border-radius: 20px; padding: .05rem .38rem; min-width: 1.1rem; text-align: center;
+  }
+  .lf-nav .nav-item {
+    text-align: left; background: none; border: 0; border-left: 2px solid transparent; color: var(--muted);
+    padding: .42rem .55rem .42rem .9rem; margin-left: .3rem; border-radius: 0 6px 6px 0;
+    cursor: pointer; font: inherit; font-size: .89rem; width: calc(100% - .3rem);
     display: flex; justify-content: space-between; align-items: center; gap: .4rem;
   }
-  .lf-nav button:hover { background: var(--panel-2); color: var(--text); }
-  .lf-nav button.active { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  .lf-nav .count { font-size: .75rem; opacity: .8; }
-  .lf-nav button.active .count { color: var(--accent-ink); }
-  .lf-nav .nav-group {
-    font-size: .68rem; text-transform: uppercase; letter-spacing: .08em; color: var(--muted);
-    opacity: .8; padding: .7rem .6rem .3rem; cursor: pointer; display: flex; align-items: center; gap: .35rem;
+  .lf-nav .nav-item:hover { background: var(--panel-2); color: var(--text); }
+  .lf-nav .nav-item.active {
+    background: color-mix(in srgb, var(--accent) 15%, transparent);
+    border-left-color: var(--accent); color: var(--accent); font-weight: 600;
   }
-  .lf-nav .nav-group:hover { color: var(--text); }
-  .lf-nav .nav-group:first-child { padding-top: .2rem; }
-  .lf-nav .nav-group .g-chev { font-size: .6rem; }
+  .lf-nav .count { font-size: .72rem; opacity: .7; font-weight: 400; }
+  .lf-nav .nav-item.active .count { color: var(--accent); opacity: .9; }
   .lf-main { flex: 1; min-width: 0; overflow-y: auto; padding: 1.25rem 1.5rem 4rem; }
   .lf-main-inner { max-width: 980px; margin: 0 auto; }
 
@@ -312,17 +339,30 @@
 
   <div class="lf-body">
     <nav class="lf-nav" v-show="navOpen">
-      <template v-for="g in navGroups" :key="g">
-        <div class="nav-group" @click="toggleNavGroup(g)">
-          <span class="g-chev">{{ collapsedNav[g] ? '▶' : '▼' }}</span> {{ g }}
-        </div>
-        <template v-if="!collapsedNav[g]">
-          <button v-for="t in tabs.filter(x => x.group===g)" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
-            <span>{{ t.label }}</span>
-            <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
-          </button>
+      <div class="nav-pinned top">
+        <button class="pin-btn" :class="{active: tab==='home'}" @click="tab='home'">
+          <span class="ico">◈</span> Home
+        </button>
+      </div>
+      <div class="nav-scroll">
+        <template v-for="g in navGroups" :key="g">
+          <div class="nav-group" :class="{open: openGroup===g}" @click="toggleNavGroup(g)">
+            <span class="g-chev">▶</span> <span>{{ g }}</span>
+            <span class="g-count">{{ groupCount(g) }}</span>
+          </div>
+          <template v-if="openGroup===g">
+            <button class="nav-item" v-for="t in groupTabs(g)" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
+              <span>{{ t.label }}</span>
+              <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
+            </button>
+          </template>
         </template>
-      </template>
+      </div>
+      <div class="nav-pinned bottom">
+        <button class="pin-btn" :class="{active: tab==='export'}" @click="tab='export'">
+          <span class="ico">⇩</span> Export .lcp
+        </button>
+      </div>
     </nav>
 
     <main class="lf-main">
@@ -1189,7 +1229,7 @@
           <template v-if="edit.key==='core_bonuses'"><template v-for="c in [editTarget]" :key="edit.idx">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally cb_ prefixed. e.g. cb_myco_reinforced."/></label><input type="text" v-model="c.id" placeholder="cb_..." /></div>
-              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="c.name" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name of the CORE Bonus, e.g. 'Reinforced Frame'."/></label><input type="text" v-model="c.name" /></div>
             </div>
             <div class="lf-field"><label>Source <span class="req">*</span><help t="Manufacturer ID — the manufacturer whose CORE Bonus pool this belongs to."/></label>
               <select v-model="c.source"><option value="" disabled>— select —</option><option v-for="m in lcp.manufacturers" :key="m.id" :value="m.id">{{ m.id }} — {{ m.name }}</option></select></div>
@@ -1205,7 +1245,7 @@
           <template v-if="edit.key==='talents'"><template v-for="t in [editTarget]" :key="edit.idx">
             <div class="lf-row">
               <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally t_ prefixed. e.g. t_myco_gunslinger."/></label><input type="text" v-model="t.id" placeholder="t_..." /></div>
-              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="t.name" /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span><help t="Display name of the talent (all three ranks share it), e.g. 'Gunslinger'."/></label><input type="text" v-model="t.name" /></div>
             </div>
             <div class="lf-field"><label>Description <span class="req">*</span><help t="Flavor text for the talent as a whole. HTML allowed."/></label><textarea v-model="t.description"></textarea></div>
             <div class="lf-row">
@@ -1809,7 +1849,8 @@ const ActionList = {
   },
   template: `
     <details class="lf-block">
-      <summary>{{ label }} <span v-if="list.length" class="pill">{{ list.length }}</span></summary>
+      <summary>{{ label }} <span v-if="list.length" class="pill">{{ list.length }}</span>
+        <help t="Activated abilities this item grants — anything that costs an action type (Free, Protocol, Quick, Full, Reaction, tech, Invade). A talent rank or CORE Bonus that just gives you a new action goes here. Passive, always-on rules belong in Bonuses or the effect text instead."/></summary>
       <div v-for="(a,i) in list" :key="i" class="lf-sub">
         <div class="head"><span class="title">{{ a.name || a.activation }}</span><button class="btn tiny danger" @click="rmRow(i)">Remove</button></div>
         <div class="lf-row">
@@ -1880,7 +1921,7 @@ const RangeList = {
   methods: { add() { this.addRow({ type:'Range', val: 0 }); } },
   template: `
     <div style="margin:.6rem 0">
-      <h3>Range</h3>
+      <h3>Range <help t="One entry per range band. Most weapons have a single Range or Threat entry; add more for a weapon that is e.g. both Threat 1 and Range 5."/></h3>
       <div v-for="(r,i) in list" :key="i" class="lf-row" style="align-items:flex-end; margin-bottom:.4rem">
         <div class="lf-field" style="max-width:150px"><label>Type <help t="Range = standard ranged attack. Threat = melee reach."/></label>
           <select v-model="r.type"><option v-for="x in types" :key="x" :value="x">{{ x }}</option></select></div>
@@ -2359,7 +2400,7 @@ const app = createApp({
     return {
       tab: 'home',
       previewJson: false,
-      collapsedNav: {},
+      openGroup: null,
       navOpen: true,
       edit: { key: null, idx: -1 },
       settings: loadSettings(),
@@ -2368,7 +2409,7 @@ const app = createApp({
       chatterTyping: '',
       themeList: THEME_LIST,
       lcp: freshLcp(),
-      navGroups: ['Pack','Licensed data','Pilot data','NPC data','Other content','Output'],
+      navGroups: ['Licensed data','Pilot data','NPC data','Other content'],
       tabs: [
         { id:'home', label:'Home', group:'Pack' },
         { id:'manufacturers', label:'Manufacturers', key:'manufacturers', group:'Licensed data' },
@@ -2459,6 +2500,8 @@ const app = createApp({
     'settings.chatter'(v) { if (v) this.startChatter(); else { this.stopChatter(); this.chatterLog = []; this.chatterTyping = ''; } },
     'settings.motion'() { this.startChatter(); },
     tab(v) {
+      const t = this.tabs.find(x => x.id === v);
+      if (t && this.navGroups.includes(t.group)) this.openGroup = t.group;
       if (v === 'home') { if (this.settings.chatter && this.settings.motion && !this._chatTimer && this._chatLines && this._chatLines.length) this._chatterTick(); }
       else this.stopChatter();
     }
@@ -2671,8 +2714,10 @@ const app = createApp({
   },
   methods: {
     go(t) { this.tab = t; },
-    toggleNavGroup(g) { this.collapsedNav = { ...this.collapsedNav, [g]: !this.collapsedNav[g] }; },
+    toggleNavGroup(g) { this.openGroup = this.openGroup === g ? null : g; },
     toggleNav() { this.navOpen = !this.navOpen; },
+    groupTabs(g) { return this.tabs.filter(t => t.group === g); },
+    groupCount(g) { return this.tabs.reduce((n, t) => n + (t.group === g && t.key ? (this.lcp[t.key] || []).length : 0), 0); },
     setTheme(id) { this.settings.theme = id; },
     applySettings() {
       const el = document.getElementById('lcp-forge');
