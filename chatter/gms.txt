@@ -1,0 +1,5 @@
+# GMS — one line per line. Blank lines and #comments are ignored. They loop.
+GMS SUPPLY: standard-pattern chassis in stock, all sectors.
+GMS SUPPLY: everything here is everyone's. That's the point.
+GMS SUPPLY: warranty void on unlicensed modification.
+GMS SUPPLY: if it works, it ships.

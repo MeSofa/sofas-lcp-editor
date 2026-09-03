@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Sofa's LCP Editor</title>
 <meta name="description" content="Sofa's LCP Editor — a browser tool for building Lancer Content Packs (.lcp) for COMP/CON." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet" />
 <script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
 <script src="https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"></script>
 <style>
@@ -34,6 +37,10 @@
     --bg:#101318; --panel:#181c23; --panel-2:#20252e; --line:#333c48;
     --text:#e8edf3; --muted:#93a1b2; --accent:#4a90d9; --accent-ink:#04101d; --danger:#e07066; --warn:#e6c06a;
   }
+  #lcp-forge[data-theme="gms"] {
+    --bg:#16110f; --panel:#1e1614; --panel-2:#291d1a; --line:#4a332e;
+    --text:#f3e7e3; --muted:#b39089; --accent:#d24b47; --accent-ink:#1a0605; --danger:#ff8a6a; --warn:#e8b06a;
+  }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); }
   #lcp-forge {
@@ -45,19 +52,47 @@
     flex-direction: column;
   }
   #lcp-forge button { font-family: inherit; }
-  #lcp-forge h1, #lcp-forge h2, #lcp-forge h3, #lcp-forge h4 { margin: 0 0 .5rem; font-weight: 650; }
-  #lcp-forge h1 { font-size: 1.15rem; }
-  #lcp-forge h2 { font-size: 1.05rem; border-bottom: 1px solid var(--line); padding-bottom: .4rem; margin-bottom: 1rem; }
-  #lcp-forge h3 { font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-  #lcp-forge h4 { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-top: .3rem; }
+  #lcp-forge h1, #lcp-forge h2, #lcp-forge h3, #lcp-forge h4 {
+    margin: 0 0 .5rem; font-weight: 650;
+    font-family: "Titillium Web", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  #lcp-forge h1 { font-size: 1.2rem; letter-spacing: .01em; }
+  #lcp-forge h2 {
+    font-size: 1.12rem; border-bottom: 1px solid var(--line); padding-bottom: .4rem; margin-bottom: 1rem;
+    letter-spacing: .01em;
+  }
+  #lcp-forge section > h2 { position: relative; padding-left: .7rem; }
+  #lcp-forge section > h2::before {
+    content: ""; position: absolute; left: 0; top: .12em; height: .9em; width: 3px;
+    background: var(--accent); border-radius: 2px;
+  }
+  #lcp-forge h3 { font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  #lcp-forge h4 { font-size: .8rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: .3rem; }
   #lcp-forge a { color: var(--accent); }
+
+  /* themed scrollbars */
+  #lcp-forge, #lcp-forge * { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+  #lcp-forge ::-webkit-scrollbar { width: 11px; height: 11px; }
+  #lcp-forge ::-webkit-scrollbar-track { background: transparent; }
+  #lcp-forge ::-webkit-scrollbar-thumb {
+    background: var(--line); border-radius: 6px; border: 3px solid var(--bg); background-clip: padding-box;
+  }
+  #lcp-forge ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  @media (prefers-reduced-motion: reduce) {
+    #lcp-forge *, #lcp-forge *::before, #lcp-forge *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+  }
 
   .lf-top {
     display: flex; align-items: center; gap: 1rem;
     padding: .7rem 1rem; background: var(--panel); border-bottom: 1px solid var(--line);
     flex-shrink: 0; position: relative; z-index: 3;
   }
-  .lf-top .brand { font-weight: 700; letter-spacing: .02em; }
+  .lf-top .brand {
+    font-family: "Titillium Web", system-ui, sans-serif; font-weight: 700; letter-spacing: .03em;
+    display: inline-flex; align-items: center; gap: .5rem; font-size: 1.02rem;
+  }
+  .lf-top .brand .fg { display: inline-flex; color: var(--accent); }
+  .lf-top .brand .fg svg { width: 1.15em; height: 1.15em; display: block; }
   .lf-top .spacer { flex: 1; }
   .lf-top .nav-toggle {
     background: none; border: 1px solid var(--line); color: var(--text); border-radius: 6px;
@@ -201,14 +236,16 @@
     padding: 2.5rem 1.5rem; overflow-y: auto;
   }
   .modal {
-    background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+    background: var(--bg); border: 1px solid var(--line); border-radius: 4px;
     width: 100%; max-width: 1000px; display: flex; flex-direction: column;
     max-height: calc(100vh - 5rem); box-shadow: 0 24px 70px rgba(0,0,0,.55);
   }
   .modal-head {
     display: flex; align-items: center; justify-content: space-between; gap: 1rem;
     padding: .8rem 1.1rem; background: var(--accent); color: var(--accent-ink);
-    font-weight: 700; border-radius: 10px 10px 0 0; flex-shrink: 0;
+    font-family: "Titillium Web", system-ui, sans-serif; font-weight: 700;
+    letter-spacing: .03em; text-transform: uppercase; font-size: .95rem; flex-shrink: 0;
+    clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
   }
   .modal-x { background: none; border: 0; color: inherit; font-size: 1.05rem; cursor: pointer; line-height: 1; }
   .modal-body { padding: 1.2rem 1.3rem; overflow-y: auto; }
@@ -226,6 +263,18 @@
   }
   textarea { min-height: 70px; resize: vertical; }
   input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+  /* required-but-empty: gentle hint always, stronger once the field has been touched */
+  .modal-body input:required:invalid,
+  .modal-body select:required:invalid,
+  .modal-body textarea:required:invalid {
+    border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+  }
+  .modal-body input:user-invalid,
+  .modal-body select:user-invalid,
+  .modal-body textarea:user-invalid {
+    border-color: var(--danger);
+    background: color-mix(in srgb, var(--danger) 12%, var(--panel-2));
+  }
   .lf-row { display: flex; gap: .8rem; flex-wrap: wrap; }
   .lf-row > .lf-field { flex: 1; min-width: 150px; }
   .lf-inline { display: flex; align-items: center; gap: .4rem; }
@@ -239,9 +288,15 @@
     border-radius: 6px; padding: .45rem .8rem; cursor: pointer; font: inherit;
   }
   .btn:hover { border-color: var(--accent); }
-  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.primary {
+    background: var(--accent); color: var(--accent-ink); border-color: var(--accent);
+    font-family: "Titillium Web", system-ui, sans-serif; font-weight: 700;
+    letter-spacing: .03em; text-transform: uppercase; font-size: .85rem;
+    clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 8px 100%, 0 calc(100% - 8px));
+  }
   .btn.ghost { background: none; }
   .btn.tiny { padding: .2rem .5rem; font-size: .8rem; }
+  .btn.tiny.primary { clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px)); }
   .btn.danger { color: var(--danger); }
   .btn:disabled { opacity: .45; cursor: not-allowed; }
 
@@ -314,8 +369,20 @@
   .help:hover .bubble, .help:focus-within .bubble { display: block; }
   .help .bubble code { background: var(--panel-2); padding: 0 .25rem; border-radius: 3px; }
 
-  .empty { color: var(--muted); font-style: italic; padding: 1rem 0; }
-  .pill { font-size: .72rem; background: var(--panel-2); border: 1px solid var(--line); border-radius: 999px; padding: .1rem .5rem; color: var(--muted); }
+  .empty {
+    color: var(--muted); border: 1px dashed var(--line); border-radius: 8px;
+    padding: 1.6rem 1.2rem; margin-bottom: 1rem; text-align: center; font-size: .9rem; line-height: 1.5;
+  }
+  .empty .empty-ico {
+    display: block; margin: 0 auto .5rem; width: 30px; height: 30px; color: var(--accent); opacity: .8;
+  }
+  .empty .empty-ico svg { width: 100%; height: 100%; display: block; }
+  .empty strong { color: var(--text); font-weight: 650; }
+  .pill {
+    font-size: .7rem; background: var(--panel-2); border: 1px solid var(--line); padding: .12rem .5rem;
+    color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .02em;
+    border-radius: 2px; clip-path: polygon(0 0, calc(100% - 5px) 0, 100% 5px, 100% 100%, 5px 100%, 0 calc(100% - 5px));
+  }
   .lf-note { background: var(--panel); border-left: 3px solid var(--accent); padding: .7rem .9rem; border-radius: 4px; color: var(--muted); font-size: .88rem; margin-bottom: 1rem; }
   .lf-warn { border-left-color: var(--warn); }
   .lf-danger { border-left-color: var(--danger); }
@@ -328,7 +395,7 @@
 <div id="lcp-forge">
   <div class="lf-top">
     <button class="nav-toggle" @click="toggleNav" :title="navOpen ? 'Hide sidebar' : 'Show sidebar'">☰</button>
-    <span class="brand">{{ factionGlyph }} Sofa's&nbsp;LCP&nbsp;Editor</span>
+    <span class="brand"><span class="fg" v-html="factionGlyph"></span> Sofa's&nbsp;LCP&nbsp;Editor</span>
     <span class="pill">{{ lcp.lcp_manifest.name || 'untitled pack' }}</span>
     <span class="spacer"></span>
     <input ref="importFile" type="file" accept=".lcp,.zip" style="display:none" @change="importLcp" />
@@ -472,7 +539,7 @@
         <section v-show="tab==='manufacturers'">
           <h2>Manufacturers <span class="pill">manufacturers.json</span></h2>
           <p class="lf-note">Define these first — frames, weapons and systems reference a manufacturer by its <span class="mono">id</span> via their <span class="mono">source</span> field.</p>
-          <p v-if="!lcp.manufacturers.length" class="empty">No manufacturers yet.</p>
+          <div v-if="!lcp.manufacturers.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No manufacturers yet</strong><br>Corporations that make frames, weapons and systems. Add these first &mdash; everything licensed points back to one by <span class="mono">id</span>.</div>
 
           <div class="toolbar">
             <button class="btn primary" @click="addManufacturer">+ Manufacturer</button>
@@ -492,7 +559,7 @@
         <section v-show="tab==='frames'">
           <h2>Frames <span class="pill">frames.json</span></h2>
           <p v-if="!lcp.manufacturers.length" class="lf-note lf-warn">Add a manufacturer first — a frame's <span class="mono">source</span> must match one.</p>
-          <p v-if="!lcp.frames.length" class="empty">No frames yet.</p>
+          <div v-if="!lcp.frames.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No frames yet</strong><br>The chassis a pilot pilots. Each frame is its own license, with weapons and systems unlocked at its ranks.</div>
 
           <div class="toolbar">
             <button class="btn primary" @click="addFrame">+ Frame</button>
@@ -512,7 +579,7 @@
         <section v-show="tab==='weapons'">
           <h2>Weapons <span class="pill">weapons.json</span></h2>
           <p v-if="!lcp.frames.length" class="lf-note lf-warn">Weapons attach to a license — usually a frame. Add a frame first so you can pick its License ID.</p>
-          <p v-if="!lcp.weapons.length" class="empty">No weapons yet.</p>
+          <div v-if="!lcp.weapons.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No weapons yet</strong><br>Mech weapons, unlocked at a license rank. They attach to a frame&rsquo;s license.</div>
 
           <div class="toolbar">
             <button class="btn primary" @click="addWeapon">+ Weapon</button>
@@ -531,7 +598,7 @@
         <!-- ============ SYSTEMS ============ -->
         <section v-show="tab==='systems'">
           <h2>Systems <span class="pill">systems.json</span></h2>
-          <p v-if="!lcp.systems.length" class="empty">No systems yet.</p>
+          <div v-if="!lcp.systems.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No systems yet</strong><br>Mech systems &mdash; utility gear, drones, shields, tech &mdash; unlocked at a license rank.</div>
 
           <div class="toolbar">
             <button class="btn primary" @click="addSystem">+ System</button>
@@ -551,7 +618,7 @@
         <section v-show="tab==='mods'">
           <h2>Weapon Mods <span class="pill">mods.json</span></h2>
           <p class="lf-note">A mod is a system with extra fields for which weapons it can attach to and what it adds. Added tags / damage / range are applied to the host weapon while the mod is installed.</p>
-          <p v-if="!lcp.mods.length" class="empty">No weapon mods yet.</p>
+          <div v-if="!lcp.mods.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No weapon mods yet</strong><br>Attachments that change a host weapon while installed: added tags, damage, range or effects.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('mods', blankMod())">+ Weapon Mod</button>
             <span class="grow"></span>
@@ -570,7 +637,7 @@
         <section v-show="tab==='core_bonuses'">
           <h2>CORE Bonuses <span class="pill">core_bonuses.json</span></h2>
           <p class="lf-note">Extra CORE Bonuses pilots can pick at LL0/LL5/LL10. Note that many CORE Bonus effects are special-cased in COMP/CON — if the Bonuses builder can't fully express the rule, spell it out in the effect text.</p>
-          <p v-if="!lcp.core_bonuses.length" class="empty">No CORE bonuses yet.</p>
+          <div v-if="!lcp.core_bonuses.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No CORE Bonuses yet</strong><br>Extra CORE Bonuses pilots can choose at LL0, LL5 and LL10, on top of their frame&rsquo;s.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('core_bonuses', blankCoreBonus())">+ CORE Bonus</button>
             <span class="grow"></span>
@@ -589,7 +656,7 @@
         <section v-show="tab==='talents'">
           <h2>Talents <span class="pill">talents.json</span></h2>
           <p class="lf-note">Every talent has exactly three ranks. Put the mechanical parts of each rank into its Actions / Bonuses / Synergies.</p>
-          <p v-if="!lcp.talents.length" class="empty">No talents yet.</p>
+          <div v-if="!lcp.talents.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No talents yet</strong><br>Pilot talents. Each has three ranks; put the mechanics (actions, bonuses, synergies) on the ranks.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('talents', blankTalent())">+ Talent</button>
             <span class="grow"></span>
@@ -608,7 +675,7 @@
         <section v-show="tab==='skills'">
           <h2>Skill Triggers <span class="pill">skills.json</span></h2>
           <p class="lf-note">Purely narrative — no mechanical fields. <span class="mono">family</span> only decides where in the list the skill appears.</p>
-          <p v-if="!lcp.skills.length" class="empty">No skill triggers yet.</p>
+          <div v-if="!lcp.skills.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No skill triggers yet</strong><br>Narrative skill triggers &mdash; the checks pilots roll out of combat. Purely descriptive, no mechanics.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('skills', blankSkill())">+ Skill Trigger</button>
             <span class="grow"></span>
@@ -626,7 +693,7 @@
         <!-- ============ BACKGROUNDS ============ -->
         <section v-show="tab==='backgrounds'">
           <h2>Backgrounds <span class="pill">backgrounds.json</span></h2>
-          <p v-if="!lcp.backgrounds.length" class="empty">No backgrounds yet.</p>
+          <div v-if="!lcp.backgrounds.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No backgrounds yet</strong><br>Where a pilot came from before they started piloting. Flavour and a couple of suggested skills.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('backgrounds', blankBackground())">+ Background</button>
             <span class="grow"></span>
@@ -644,7 +711,7 @@
         <!-- ============ RESERVES ============ -->
         <section v-show="tab==='reserves'">
           <h2>Reserves <span class="pill">reserves.json</span></h2>
-          <p v-if="!lcp.reserves.length" class="empty">No reserves yet.</p>
+          <div v-if="!lcp.reserves.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No reserves yet</strong><br>Resources a pilot can bank between missions &mdash; gear, personnel, favours, extra supplies.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('reserves', blankReserve())">+ Reserve</button>
             <span class="grow"></span>
@@ -663,7 +730,7 @@
         <section v-show="tab==='pilot_gear'">
           <h2>Pilot Gear <span class="pill">pilot_gear.json</span></h2>
           <p class="lf-note">Pilot weapons, armor and equipment all live in one file, split by <span class="mono">type</span>. Pilot-scale — bonuses here apply to the pilot on foot, not the mech.</p>
-          <p v-if="!lcp.pilot_gear.length" class="empty">No pilot gear yet.</p>
+          <div v-if="!lcp.pilot_gear.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No pilot gear yet</strong><br>What the pilot carries on foot: weapons, armour and equipment. Pilot-scale, not mech-scale.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('pilot_gear', blankPilotGear())">+ Pilot Gear</button>
             <span class="grow"></span>
@@ -682,7 +749,7 @@
         <section v-show="tab==='bonds'">
           <h2>Bonds <span class="pill">bonds.json</span></h2>
           <p class="lf-note">Karrakin Trade Baronies narrative rules. The Bond UI only appears in COMP/CON if the KTB LCP is installed — add it as a dependency on the Manifest tab.</p>
-          <p v-if="!lcp.bonds.length" class="empty">No bonds yet.</p>
+          <div v-if="!lcp.bonds.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No bonds yet</strong><br>Bonds (Field Guide to the Karrakin Trade Baronies) &mdash; playbooks with questions, powers, ideals and burdens.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('bonds', blankBond())">+ Bond</button>
             <span class="grow"></span>
@@ -701,7 +768,7 @@
         <section v-show="tab==='npc_classes'">
           <h2>NPC Classes <span class="pill">npc_classes.json</span></h2>
           <p class="lf-note">A class needs its stats and a list of feature ids. Build the features on the <strong>NPC Features</strong> tab first, then reference them here by id (comma-separated). Stats take a single number, or three comma-separated numbers for tier 1 / 2 / 3.</p>
-          <p v-if="!lcp.npc_classes.length" class="empty">No NPC classes yet.</p>
+          <div v-if="!lcp.npc_classes.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No NPC classes yet</strong><br>The core stat block for an NPC type, scaled across the three tiers, plus its base and optional features.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('npc_classes', blankNpcClass())">+ NPC Class</button>
             <span class="grow"></span>
@@ -720,7 +787,7 @@
         <section v-show="tab==='npc_templates'">
           <h2>NPC Templates <span class="pill">npc_templates.json</span></h2>
           <p class="lf-note">Templates (Grunt, Elite, Veteran…) layer features onto any class. <span class="mono">"template": true</span> is written automatically.</p>
-          <p v-if="!lcp.npc_templates.length" class="empty">No NPC templates yet.</p>
+          <div v-if="!lcp.npc_templates.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No NPC templates yet</strong><br>Modifiers layered onto an NPC class &mdash; Elite, Veteran, Ultra and the like.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('npc_templates', blankNpcTemplate())">+ NPC Template</button>
             <span class="grow"></span>
@@ -739,7 +806,7 @@
         <section v-show="tab==='npc_features'">
           <h2>NPC Features <span class="pill">npc_features.json</span></h2>
           <p class="lf-note">Traits, systems, reactions, tech and weapons for NPCs. Tie a feature to its class/template with <strong>Origin</strong> + <strong>Base</strong>, or list its id under that class's base/optional features.</p>
-          <p v-if="!lcp.npc_features.length" class="empty">No NPC features yet.</p>
+          <div v-if="!lcp.npc_features.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No NPC features yet</strong><br>Traits, systems, reactions, tech and weapons that NPC classes and templates draw from.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('npc_features', blankNpcFeature())">+ NPC Feature</button>
             <span class="grow"></span>
@@ -757,7 +824,7 @@
         <!-- ============ ENVIRONMENTS ============ -->
         <section v-show="tab==='environments'">
           <h2>Environments <span class="pill">environments.json</span></h2>
-          <p v-if="!lcp.environments.length" class="empty">No environments yet.</p>
+          <div v-if="!lcp.environments.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No environments yet</strong><br>Battlefield-wide conditions that colour a whole scene &mdash; low gravity, dense fog, hard vacuum.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('environments', blankEnvironment())">+ Environment</button>
             <span class="grow"></span>
@@ -776,7 +843,7 @@
         <section v-show="tab==='sitreps'">
           <h2>SITREPs <span class="pill">sitreps.json</span></h2>
           <p class="lf-note">Preset scenarios for the Encounter Builder.</p>
-          <p v-if="!lcp.sitreps.length" class="empty">No SITREPs yet.</p>
+          <div v-if="!lcp.sitreps.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No SITREPs yet</strong><br>Mission types: the objective, win condition and deployment rules for a combat.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('sitreps', blankSitrep())">+ SITREP</button>
             <span class="grow"></span>
@@ -794,7 +861,7 @@
         <!-- ============ STATUSES ============ -->
         <section v-show="tab==='statuses'">
           <h2>Statuses &amp; Conditions <span class="pill">statuses.json</span></h2>
-          <p v-if="!lcp.statuses.length" class="empty">No statuses yet.</p>
+          <div v-if="!lcp.statuses.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No statuses yet</strong><br>Custom statuses and conditions beyond the core set, with their rules text and an icon.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('statuses', blankStatus())">+ Status / Condition</button>
             <span class="grow"></span>
@@ -813,7 +880,7 @@
         <section v-show="tab==='tables'">
           <h2>Rollable Tables <span class="pill">tables.json</span></h2>
           <p class="lf-note">Dice tables usable from Active Mode's Roll Table tool. Every possible roll on the die must be covered by a result's min–max range. Use min = max = -1 for a "multiple 1s" row.</p>
-          <p v-if="!lcp.tables.length" class="empty">No tables yet.</p>
+          <div v-if="!lcp.tables.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No rollable tables yet</strong><br>Weighted result tables you can roll in play or reference from other content.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('tables', blankTable())">+ Table</button>
             <span class="grow"></span>
@@ -842,7 +909,7 @@
         <section v-show="tab==='custom_stats'">
           <h2>Custom Stats <span class="pill">custom_stats.json</span></h2>
           <p class="lf-note lf-warn">Experimental in COMP/CON. A custom stat appears on <em>every</em> combat entity that has anything referencing it, and can't be shared across LCPs.</p>
-          <p v-if="!lcp.custom_stats.length" class="empty">No custom stats yet.</p>
+          <div v-if="!lcp.custom_stats.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No custom stats yet</strong><br>Extra derived stats to track on the mech sheet for a mechanic the core rules don&rsquo;t cover.</div>
           <div class="toolbar">
             <button class="btn primary" @click="push('custom_stats', blankCustomStat())">+ Custom Stat</button>
             <span class="grow"></span>
@@ -861,7 +928,7 @@
         <section v-show="tab==='tags'">
           <h2>Custom Tags <span class="pill">tags.json</span></h2>
           <p class="lf-note">Only needed if your equipment uses a tag that isn't in the Lancer core data. The core tags (Accurate, Loading, Reliable X, …) are already in the tag picker on weapons and systems — you don't define those here. Note that a brand-new custom tag id is shown as text everywhere but isn't automated by COMP/CON or Foundry (they only automate a fixed list of known ids).</p>
-          <p v-if="!lcp.tags.length" class="empty">No custom tags.</p>
+          <div v-if="!lcp.tags.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No custom tags yet</strong><br>Display-only labels for your items. COMP/CON shows the text; tags don&rsquo;t drive automation on their own.</div>
 
           <div class="toolbar">
             <button class="btn primary" @click="lcp.tags.push({id:'tag',name:'',description:'',filter_ignore:false})">+ Tag</button>
@@ -1786,13 +1853,24 @@ const FOUNDRY_TAG_IDS = TAG_CATALOG.filter(x => x.fnd).map(x => x.id);
    entry here, a [data-theme] CSS block, a GLYPHS entry, and a chatter file. */
 const THEME_LIST = [
   { id:'comp-con', name:'COMP/CON', bg:'#14161c', text:'#e6e8ef', accent:'#4db6ac' },
+  { id:'gms',      name:'GMS',      bg:'#16110f', text:'#f3e7e3', accent:'#d24b47' },
   { id:'horus',    name:'HORUS',    bg:'#0d0a12', text:'#ece3fb', accent:'#b072e6' },
   { id:'harrison', name:'Harrison Armory', bg:'#15120d', text:'#f2e9db', accent:'#e0a63c' },
   { id:'ipsn',     name:'IPS-Northstar',   bg:'#0f1319', text:'#e4ecf5', accent:'#5b95d6' },
   { id:'ssc',      name:'Smith-Shimano',   bg:'#121016', text:'#f3e8f0', accent:'#ea6ba8' },
   { id:'union',    name:'Union',     bg:'#101318', text:'#e8edf3', accent:'#4a90d9' },
 ];
-const GLYPHS = { 'comp-con':'⬢', horus:'❖', harrison:'◆', ipsn:'⬟', ssc:'✦', union:'✧' };
+/* faction marks — single-colour line icons, sized via currentColor / em */
+const SVG = s => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + s + '</svg>';
+const GLYPHS = {
+  'comp-con': SVG('<path d="M12 2.5l8.2 4.7v9.6L12 21.5 3.8 16.8V7.2z"/><path d="M12 8.2l4 2.3v4.6L12 17.4l-4-2.3v-4.6z"/>'),
+  gms:        SVG('<circle cx="12" cy="12" r="8"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/><circle cx="12" cy="12" r="2.4" fill="currentColor" stroke="none"/>'),
+  horus:      SVG('<path d="M12 3.5l8.5 15H3.5z"/><circle cx="12" cy="13.5" r="2.6" fill="currentColor" stroke="none"/>'),
+  harrison:   SVG('<path d="M12 2.2l9.8 9.8L12 21.8 2.2 12z"/><path d="M12 7l5 5-5 5-5-5z"/>'),
+  ipsn:       SVG('<path d="M12 2.4l2.7 6.9 6.9 .5-5.3 4.5 1.7 6.8L12 17.9 6.3 21.9l1.7-6.8-5.3-4.5 6.9-.5z"/>'),
+  ssc:        SVG('<circle cx="12" cy="6.2" r="3.3"/><circle cx="12" cy="17.8" r="3.3"/><circle cx="6.2" cy="12" r="3.3"/><circle cx="17.8" cy="12" r="3.3"/>'),
+  union:      SVG('<circle cx="12" cy="12" r="6.4"/><ellipse cx="12" cy="12" rx="6.4" ry="2.7"/><path d="M2.6 12h3M18.4 12h3M12 2.6v3M12 18.4v3"/>'),
+};
 
 /* Where chatter/<theme>.txt is fetched from. Tries the file next to the page
    first (works when served from a folder), then falls back to the repo so it
@@ -2488,6 +2566,11 @@ const app = createApp({
     this.startChatter();
   },
   beforeUnmount() { window.removeEventListener('keydown', this._esc); this.stopChatter(); },
+  updated() {
+    // keep the `required` flag in sync with the * marker as editor fields render
+    if (!this.edit.key || this._reqRaf) return;
+    this._reqRaf = requestAnimationFrame(() => { this._reqRaf = null; this.markRequired(); });
+  },
   watch: {
     settings: {
       deep: true,
@@ -2694,7 +2777,7 @@ const app = createApp({
     chatterText() {
       return this.chatterLog.join('\n') + (this.chatterLog.length ? '\n' : '') + this.chatterTyping;
     },
-    factionGlyph() { return GLYPHS[this.settings.theme] || '⬢'; },
+    factionGlyph() { return GLYPHS[this.settings.theme] || GLYPHS['comp-con']; },
     modalTitle() {
       const M = { manufacturers:'Manufacturer', frames:'Frame', weapons:'Weapon', systems:'System',
         mods:'Weapon Mod', core_bonuses:'CORE Bonus', talents:'Talent', skills:'Skill Trigger',
@@ -2758,8 +2841,17 @@ const app = createApp({
         this._chatTimer = setTimeout(() => this._chatterTick(), 260 + Math.random() * 420);
       }
     },
-    openEdit(key, i) { this.edit = { key, idx: i }; this.tab = key; },
+    openEdit(key, i) { this.edit = { key, idx: i }; this.tab = key; this.$nextTick(() => this.markRequired()); },
     closeEdit() { this.edit = { key: null, idx: -1 }; },
+    markRequired() {
+      const body = document.querySelector('#lcp-forge .modal-body');
+      if (!body) return;
+      body.querySelectorAll('.lf-field').forEach(f => {
+        const ctrl = f.querySelector('input, select, textarea');
+        if (!ctrl || ctrl.type === 'checkbox') return;
+        ctrl.toggleAttribute('required', !!f.querySelector(':scope > label .req'));
+      });
+    },
     toggleArr(arr, v) { const i = arr.indexOf(v); if (i < 0) arr.push(v); else arr.splice(i, 1); },
     addCsv(obj, key, v) { const parts = (obj[key] || '').split(',').map(x => x.trim()).filter(Boolean); if (!parts.includes(v)) parts.push(v); obj[key] = parts.join(', '); },
     blankTrait,
