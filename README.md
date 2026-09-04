@@ -25,9 +25,10 @@ systems, weapon mods.
 **Pilot data** — CORE bonuses, talents, skill triggers, backgrounds, reserves,
 pilot gear, bonds.
 **NPC data** — classes (tiered stats), templates, features (trait / system /
-reaction / tech / weapon).
+reaction / tech / weapon), factions.
 **Other** — environments, SITREPs, statuses & conditions, rollable tables, name
 lists, custom stats, custom tags.
+**Reference** — base actions, glossary entries, rules-constant overrides.
 
 Weapons, systems, traits, core systems and most pilot items carry the shared
 builders: actions, bonuses, synergies, counters and deployables. The tag and
@@ -45,11 +46,15 @@ line per line, `#` lines and blanks ignored. Add a theme by adding an entry to
 `THEME_LIST` in `index.html`, a matching `#lcp-forge[data-theme]` CSS block, a
 `GLYPHS` entry, and a `chatter/<id>.txt` file.
 
+The Home feed accepts `[[double brackets]]` around a word to render it with a
+faint glitch.
+
 ## Not yet supported
 
 Weapon profiles and ammo lists, integrated / special-equipment selectors, the
-richer Active Effects objects, license-collection bundles, base actions,
-eidolons. All of these still round-trip on import.
+richer Active Effects objects, license-collection bundles, Eidolons. Fields on
+categories that *are* covered round-trip untouched on import; an entirely
+unknown file is dropped on re-export.
 
 ## Schema
 

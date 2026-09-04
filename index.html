@@ -232,6 +232,32 @@
   #lcp-forge[data-motion="off"] .home-bg-inner .cursor { animation: none; opacity: .6; }
   .home-content { position: relative; z-index: 1; }
 
+  /* [[word]] in a chatter line renders as a faintly unstable span */
+  .home-bg-inner .glitch {
+    position: relative; display: inline-block; color: var(--text);
+    text-shadow: 0 0 3px var(--accent); animation: g-jit 3.6s steps(1) infinite;
+  }
+  .home-bg-inner .glitch::before, .home-bg-inner .glitch::after {
+    content: attr(data-txt); position: absolute; left: 0; top: 0; width: 100%;
+    overflow: hidden; pointer-events: none;
+  }
+  .home-bg-inner .glitch::before { color: var(--danger); animation: g-a 2.3s steps(1) infinite; }
+  .home-bg-inner .glitch::after  { color: var(--accent); animation: g-b 1.9s steps(1) infinite; }
+  @keyframes g-jit { 0%,91%,100% { transform: none } 92% { transform: translateX(1px) } 96% { transform: translateX(-1px) } }
+  @keyframes g-a {
+    0%,87%,100% { clip-path: inset(100% 0 0 0); transform: none }
+    88% { clip-path: inset(12% 0 62% 0); transform: translateX(-2px) }
+    93% { clip-path: inset(52% 0 24% 0); transform: translateX(2px) }
+  }
+  @keyframes g-b {
+    0%,84%,100% { clip-path: inset(100% 0 0 0); transform: none }
+    85% { clip-path: inset(58% 0 12% 0); transform: translateX(2px) }
+    90% { clip-path: inset(20% 0 56% 0); transform: translateX(-2px) }
+  }
+  #lcp-forge[data-motion="off"] .home-bg-inner .glitch { animation: none; text-shadow: none; text-decoration: underline dotted; }
+  #lcp-forge[data-motion="off"] .home-bg-inner .glitch::before,
+  #lcp-forge[data-motion="off"] .home-bg-inner .glitch::after { display: none; }
+
   /* modal transition */
   .m-enter-active, .m-leave-active { transition: opacity .14s ease; }
   .m-enter-active .modal, .m-leave-active .modal { transition: transform .14s ease; }
@@ -457,7 +483,7 @@
 
         <!-- ============ HOME ============ -->
         <section v-show="tab==='home'" class="home">
-          <div class="home-bg" v-if="settings.chatter" aria-hidden="true"><div class="home-bg-inner">{{ chatterText }}<span class="cursor">▊</span></div></div>
+          <div class="home-bg" v-if="settings.chatter" aria-hidden="true"><div class="home-bg-inner" v-html="chatterHtml"></div></div>
           <div class="home-content">
           <div v-if="draftBailed" class="lf-note lf-warn draft-note">
             <span>Couldn't restore the last session's working copy — it may have been from an older version. Starting fresh.</span>
@@ -807,6 +833,54 @@
           </cat-list>
         </section>
 
+        <!-- ============ FACTIONS ============ -->
+        <section v-show="tab==='factions'">
+          <h2>Factions <span class="pill">factions.json</span></h2>
+          <div v-if="!lcp.factions.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No factions yet</strong><br>Named groups NPCs can belong to — a corpro-state, a pirate fleet, a cult. Referenced by an NPC's <span class="mono">faction</span>.</div>
+          <cat-list :items="lcp.factions" noun="faction" :title="x => x.name || x.id || 'Untitled faction'" :meta="x => x.id"
+            @open="i => openEdit('factions', i)" @clone="i => cloneItem('factions', i)" @remove="i => removeItem('factions', i)">
+            <template #add><button class="btn primary" @click="push('factions', blankFaction())">+ Faction</button></template>
+          </cat-list>
+        </section>
+
+        <!-- ============ BASE ACTIONS ============ -->
+        <section v-show="tab==='actions'">
+          <h2>Base Actions <span class="pill">actions.json</span></h2>
+          <p v-if="lcp.actions.length" class="lf-note">These define or override entries in the core action list (the panel with Boost, Ram, Grapple…). Use a new <span class="mono">id</span> to add one, or an existing core id to replace it.</p>
+          <div v-if="!lcp.actions.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No base actions yet</strong><br>New entries for the core action list — the always-available actions, not the ones granted by items.</div>
+          <cat-list :items="lcp.actions" noun="action" :title="x => x.name || x.id || 'Untitled action'" :meta="x => x.activation"
+            @open="i => openEdit('actions', i)" @clone="i => cloneItem('actions', i)" @remove="i => removeItem('actions', i)">
+            <template #add><button class="btn primary" @click="push('actions', blankAction())">+ Base Action</button></template>
+          </cat-list>
+        </section>
+
+        <!-- ============ GLOSSARY ============ -->
+        <section v-show="tab==='glossary'">
+          <h2>Glossary <span class="pill">glossary.json</span></h2>
+          <p v-if="lcp.glossary.length" class="lf-note">Term definitions COMP/CON surfaces in its rules glossary and in hover tooltips where the term appears.</p>
+          <div v-if="!lcp.glossary.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>No glossary entries yet</strong><br>Define a keyword or piece of jargon once here and COMP/CON explains it everywhere it's used.</div>
+          <cat-list :items="lcp.glossary" noun="entry" :title="x => x.name || 'Untitled entry'"
+            @open="i => openEdit('glossary', i)" @clone="i => cloneItem('glossary', i)" @remove="i => removeItem('glossary', i)">
+            <template #add><button class="btn primary" @click="push('glossary', blankGlossary())">+ Glossary Entry</button></template>
+          </cat-list>
+        </section>
+
+        <!-- ============ RULES OVERRIDES ============ -->
+        <section v-show="tab==='rules'">
+          <h2>Rules Overrides <span class="pill">rules.json</span></h2>
+          <p class="lf-note lf-warn">Advanced. Overrides core-rules constants for anyone with this pack installed. Keys must match what COMP/CON expects (e.g. <span class="mono">max_pilot_weapons</span>, <span class="mono">max_frame_size</span>) — a typo'd key is silently ignored. Numbers and <span class="mono">true</span>/<span class="mono">false</span> are read as such; anything else stays a string.</p>
+          <div class="rowlist">
+            <div v-for="(p,i) in lcp._rules" :key="i" class="lf-sub">
+              <div class="lf-row" style="align-items:flex-end">
+                <div class="lf-field"><label>Key</label><input type="text" v-model="p.k" placeholder="max_pilot_weapons" /></div>
+                <div class="lf-field" style="max-width:200px"><label>Value</label><input type="text" v-model="p.v" placeholder="2" /></div>
+                <button class="btn tiny danger" @click="lcp._rules.splice(i,1)">✕</button>
+              </div>
+            </div>
+          </div>
+          <button class="btn tiny" @click="lcp._rules.push(blankRule())">+ Override</button>
+        </section>
+
         <!-- ============ EXPORT ============ -->
         <section v-show="tab==='export'">
           <h2>Export</h2>
@@ -826,7 +900,7 @@
           <h3>Contents</h3>
           <ul class="val-list mono">
             <li>lcp_manifest.json</li>
-            <li v-for="c in nonEmptyCategories" :key="c">{{ c }}.json — {{ lcp[c].length }} item(s)</li>
+            <li v-for="c in nonEmptyCategories" :key="c">{{ c }}.json<template v-if="Array.isArray(lcp[c])"> — {{ lcp[c].length }} item(s)</template></li>
           </ul>
 
           <p style="margin-top:1.5rem">
@@ -1468,6 +1542,35 @@
             <div class="lf-checks">
               <label><input type="checkbox" v-model="t.filter_ignore" /> Hide from equipment filters <help t="Use for redundant tags (e.g. range-type tags) so the filter menu stays clean."/></label>
             </div>
+          </template></template>
+          <template v-if="edit.key==='factions'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally f_ prefixed. An NPC's faction field points at this."/></label><input type="text" v-model="x.id" placeholder="f_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
+            </div>
+            <div class="lf-field"><label>Description <help t="Flavor / background for the faction. HTML allowed."/></label><textarea v-model="x.description"></textarea></div>
+            <div class="lf-field" style="max-width:200px"><label>Colour <help t="Optional. Hex colour (#RRGGBB) used for the faction in COMP/CON."/></label><input type="text" v-model="x.color" placeholder="#c9403f" /></div>
+          </template></template>
+          <template v-if="edit.key==='actions'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique. Use a fresh id (act_...) to add an action, or an existing core action id to replace that one."/></label><input type="text" v-model="x.id" placeholder="act_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
+            </div>
+            <div class="lf-row">
+              <div class="lf-field"><label>Activation <span class="req">*</span><help t="The action type it costs."/></label>
+                <select v-model="x.activation"><option v-for="a in activationTypes" :key="a" :value="a">{{ a }}</option></select></div>
+              <div class="lf-field"><label>Terse <help t="One-line summary shown in the action menu."/></label><input type="text" v-model="x.terse" /></div>
+            </div>
+            <div class="lf-field"><label>Detail <span class="req">*</span><help t="Full rules text. Second person, present tense. HTML allowed."/></label><textarea v-model="x.detail"></textarea></div>
+            <div class="lf-checks">
+              <label><input type="checkbox" v-model="x.pilot" /> Available on foot <help t="Offered while the pilot is unmounted."/></label>
+              <label><input type="checkbox" v-model="x.mech" /> Available in mech <help t="Offered while the pilot is piloting their mech."/></label>
+              <label><input type="checkbox" v-model="x.hide_active" /> Hide from Active Mode <help t="Defined for reference but not shown as a clickable action in Active Mode."/></label>
+            </div>
+          </template></template>
+          <template v-if="edit.key==='glossary'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-field"><label>Term <span class="req">*</span><help t="The word or phrase being defined, exactly as it appears in your rules text."/></label><input type="text" v-model="x.name" /></div>
+            <div class="lf-field"><label>Description <span class="req">*</span><help t="The definition. HTML allowed."/></label><textarea v-model="x.description"></textarea></div>
           </template></template>
           </div>
           <div class="modal-foot">
@@ -2290,20 +2393,25 @@ const blankBondQuestion = () => ({ question:'', _options:'' });
 const blankBondPower = () => ({ name:'', description:'', frequency:'', prerequisite:'', veteran:false, master:false });
 const blankBond = () => ({ id:'', name:'', _major:'', _minor:'', questions:[blankBondQuestion()], powers:[blankBondPower()] });
 const blankLists = () => ({ pilot_names:'', callsigns:'', team_names:'', mech_names:'', quirks:'' });
+const blankGlossary = () => ({ name:'', description:'' });
+const blankFaction = () => ({ id:'', name:'', description:'', color:'' });
+const blankAction = () => ({ id:'', name:'', activation:'Quick', terse:'', detail:'', pilot:false, mech:true, hide_active:false });
+const blankRule = () => ({ k:'', v:'' });
 
 const freshLcp = () => ({
   lcp_manifest: blankManifest(),
   manufacturers: [], frames: [], weapons: [], systems: [], mods: [],
   core_bonuses: [], talents: [], skills: [], backgrounds: [], reserves: [], pilot_gear: [], bonds: [],
-  npc_classes: [], npc_templates: [], npc_features: [],
+  npc_classes: [], npc_templates: [], npc_features: [], factions: [],
   environments: [], sitreps: [], statuses: [], tables: [], custom_stats: [],
-  _lists: blankLists(),
+  actions: [], glossary: [],
+  _lists: blankLists(), _rules: [],
   tags: []
 });
 
 const ALL_CATEGORIES = ['manufacturers','frames','weapons','systems','mods','core_bonuses','talents','skills',
-  'backgrounds','reserves','pilot_gear','bonds','npc_classes','npc_templates','npc_features',
-  'environments','sitreps','statuses','tables','custom_stats','tags'];
+  'backgrounds','reserves','pilot_gear','bonds','npc_classes','npc_templates','npc_features','factions',
+  'environments','sitreps','statuses','tables','actions','glossary','custom_stats','tags'];
 
 /* =========================================================================
    Export shaping
@@ -2409,7 +2517,7 @@ const app = createApp({
       draftAt: draft ? draft.at : 0,
       draftBailed: (() => { try { const v = sessionStorage.getItem('lcp-draft-bailed'); if (v) sessionStorage.removeItem('lcp-draft-bailed'); return !!v; } catch (e) { return false; } })(),
       lcp: draft ? { ...freshLcp(), ...draft.lcp } : freshLcp(),
-      navGroups: ['Licensed data','Pilot data','NPC data','Other content'],
+      navGroups: ['Licensed data','Pilot data','NPC data','Other content','Reference'],
       tabs: [
         { id:'home', label:'Home', group:'Pack' },
         { id:'manufacturers', label:'Manufacturers', key:'manufacturers', group:'Licensed data' },
@@ -2427,6 +2535,7 @@ const app = createApp({
         { id:'npc_classes', label:'NPC Classes', key:'npc_classes', group:'NPC data' },
         { id:'npc_templates', label:'NPC Templates', key:'npc_templates', group:'NPC data' },
         { id:'npc_features', label:'NPC Features', key:'npc_features', group:'NPC data' },
+        { id:'factions', label:'Factions', key:'factions', group:'NPC data' },
         { id:'environments', label:'Environments', key:'environments', group:'Other content' },
         { id:'sitreps', label:'SITREPs', key:'sitreps', group:'Other content' },
         { id:'statuses', label:'Statuses', key:'statuses', group:'Other content' },
@@ -2434,6 +2543,9 @@ const app = createApp({
         { id:'lists', label:'Name Lists', group:'Other content' },
         { id:'custom_stats', label:'Custom Stats', key:'custom_stats', group:'Other content' },
         { id:'tags', label:'Custom Tags', key:'tags', group:'Other content' },
+        { id:'actions', label:'Base Actions', key:'actions', group:'Reference' },
+        { id:'glossary', label:'Glossary', key:'glossary', group:'Reference' },
+        { id:'rules', label:'Rules Overrides', group:'Reference' },
         { id:'export', label:'Export', group:'Output' }
       ],
       tableDice: [3,4,6,8,10,12,20,100],
@@ -2535,6 +2647,7 @@ const app = createApp({
     nonEmptyCategories() {
       const cats = ALL_CATEGORIES.filter(c => (this.lcp[c] || []).length);
       if (this.listFields.some(([k]) => (this.lcp._lists[k] || '').trim())) cats.push('lists');
+      if (this.lcp._rules.some(p => (p.k || '').trim())) cats.push('rules');
       return cats;
     },
     packDirty() {
@@ -2720,6 +2833,15 @@ const app = createApp({
         ids[x.key] = (ids[x.key]||0)+1;
         if (!x.title) p.push(`Custom Stat ${x.key}: title is required.`);
       });
+      this.lcp.factions.forEach(x => { track('Faction', x.id); if (!x.name) p.push(`Faction ${x.id||'?'}: name is required.`); });
+      this.lcp.actions.forEach(x => {
+        track('Base Action', x.id);
+        if (!x.name || !x.detail) p.push(`Base Action ${x.id||'?'}: name and detail are required.`);
+      });
+      this.lcp.glossary.forEach((x, i) => {
+        if (!x.name || !x.description) p.push(`Glossary entry ${x.name || i + 1}: term and description are required.`);
+      });
+      this.lcp._rules.forEach(pr => { if (pr.v && !pr.k.trim()) p.push('Rules override: a value has no key.'); });
 
       Object.entries(ids).forEach(([id, n]) => { if (n > 1) p.push(`Duplicate id "${id}" used ${n} times — ids must be globally unique.`); });
       return p;
@@ -2728,16 +2850,22 @@ const app = createApp({
       const { key, idx } = this.edit;
       return (key && this.lcp[key] && this.lcp[key][idx]) ? this.lcp[key][idx] : null;
     },
-    chatterText() {
-      return this.chatterLog.join('\n') + (this.chatterLog.length ? '\n' : '') + this.chatterTyping;
+    chatterHtml() {
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      const fmt = s => esc(s)
+        .replace(/\[\[([^\]]*?)\]\]/g, '<span class="glitch" data-txt="$1">$1</span>')
+        .replace(/\[\[|\]\]/g, '');
+      const done = this.chatterLog.map(fmt).join('\n');
+      return done + (done ? '\n' : '') + esc(this.chatterTyping) + '<span class="cursor">▊</span>';
     },
     factionGlyph() { return GLYPHS[this.settings.theme] || GLYPHS['comp-con']; },
     modalTitle() {
       const M = { manufacturers:'Manufacturer', frames:'Frame', weapons:'Weapon', systems:'System',
         mods:'Weapon Mod', core_bonuses:'CORE Bonus', talents:'Talent', skills:'Skill Trigger',
         backgrounds:'Background', reserves:'Reserve', pilot_gear:'Pilot Gear', bonds:'Bond',
-        npc_classes:'NPC Class', npc_templates:'NPC Template', npc_features:'NPC Feature',
+        npc_classes:'NPC Class', npc_templates:'NPC Template', npc_features:'NPC Feature', factions:'Faction',
         environments:'Environment', sitreps:'SITREP', statuses:'Status / Condition', tables:'Rollable Table',
+        actions:'Base Action', glossary:'Glossary Entry',
         custom_stats:'Custom Stat', tags:'Custom Tag' };
       return (M[this.edit.key] || 'Item') + ' editor';
     },
@@ -2783,12 +2911,13 @@ const app = createApp({
     _chatterTick() {
       const lines = this._chatLines || [];
       if (!lines.length) return;
-      const target = lines[this._chatIdx % lines.length] || '';
+      const raw = lines[this._chatIdx % lines.length] || '';
+      const target = raw.replace(/\[\[|\]\]/g, '');   // type the words, not the markers
       if (this.chatterTyping.length < target.length) {
         this.chatterTyping = target.slice(0, this.chatterTyping.length + 1);
         this._chatTimer = setTimeout(() => this._chatterTick(), 15 + Math.random() * 22);
       } else {
-        this.chatterLog.push(target);
+        this.chatterLog.push(raw);   // keep markers so the finished line can glitch
         if (this.chatterLog.length > 22) this.chatterLog.shift();   // cull lines that scrolled off the top
         this.chatterTyping = '';
         this._chatIdx++;
@@ -2818,6 +2947,7 @@ const app = createApp({
     blankCoreBonus, blankTalent, blankTalentRank, blankSkill, blankBackground, blankReserve, blankPilotGear,
     blankNpcClass, blankNpcTemplate, blankNpcFeature, blankMod, blankEnvironment, blankSitrep, blankStatus,
     blankTable, blankTableResult, blankCustomStat, blankBond, blankBondQuestion, blankBondPower,
+    blankFaction, blankAction, blankGlossary, blankRule,
     npcFeatureName(id) { const f = this.lcp.npc_features.find(x => x.id === id); return f ? f.name : id; },
     removeItem(key, i) { this.lcp[key].splice(i, 1); },
     cloneItem(key, i) {
@@ -2846,7 +2976,7 @@ const app = createApp({
         'CORE Bonus':'core_bonuses', 'Talent':'talents', 'Skill':'skills', 'Background':'backgrounds', 'Reserve':'reserves',
         'Pilot Gear':'pilot_gear', 'Bond':'bonds', 'NPC Class':'npc_classes', 'NPC Template':'npc_templates',
         'NPC Feature':'npc_features', 'Environment':'environments', 'SITREP':'sitreps', 'Status':'statuses',
-        'Table':'tables', 'Custom Stat':'custom_stats', 'Tag':'tags'
+        'Table':'tables', 'Custom Stat':'custom_stats', 'Tag':'tags', 'Faction':'factions', 'Base Action':'actions'
       };
       const dup = msg.match(/^Duplicate id "([^"]+)"/);
       if (dup) {
@@ -3069,6 +3199,18 @@ const app = createApp({
       const environments = this.lcp.environments.map(x => clean(x));
       const sitreps = this.lcp.sitreps.map(x => clean(x));
       const statuses = this.lcp.statuses.map(x => clean(x));
+      const factions = this.lcp.factions.map(x => clean(x));
+      const glossary = this.lcp.glossary.map(x => clean({ name: x.name, description: x.description }));
+      const actions = this.lcp.actions.map(x => clean({
+        id: x.id, name: x.name, activation: x.activation, terse: x.terse, detail: x.detail,
+        pilot: x.pilot || undefined, mech: x.mech || undefined, hide_active: x.hide_active || undefined
+      }));
+      const rules = {};
+      this.lcp._rules.forEach(p => {
+        const k = (p.k || '').trim(); if (!k) return;
+        const v = (p.v || '').trim();
+        rules[k] = v === 'true' ? true : v === 'false' ? false : (v !== '' && !isNaN(v) ? Number(v) : v);
+      });
       const custom_stats = this.lcp.custom_stats.map(x => clean({
         key: x.key, title: x.title, trackable: x.trackable || undefined,
         default: (typeof x.default === 'string' && x.default.trim() !== '' && !isNaN(x.default)) ? Number(x.default) : x.default,
@@ -3084,8 +3226,8 @@ const app = createApp({
       return {
         lcp_manifest: manifest, manufacturers, frames, weapons, systems, mods,
         core_bonuses, talents, skills, backgrounds, reserves, pilot_gear, bonds,
-        npc_classes, npc_templates, npc_features,
-        environments, sitreps, statuses, tables, custom_stats, lists, tags
+        npc_classes, npc_templates, npc_features, factions,
+        environments, sitreps, statuses, tables, actions, glossary, custom_stats, lists, rules, tags
       };
     },
 
@@ -3252,6 +3394,11 @@ const app = createApp({
           tags: w.tags || [], ...inBundle(w)
         }));
         fresh.environments = (await read('environments.json')) || [];
+        fresh.factions = ((await read('factions.json')) || []).map(x => ({ ...blankFaction(), ...x }));
+        fresh.glossary = ((await read('glossary.json')) || []).map(x => ({ ...blankGlossary(), ...x }));
+        fresh.actions = ((await read('actions.json')) || []).map(x => ({ ...blankAction(), ...x }));
+        const rulesData = (await read('rules.json')) || {};
+        fresh._rules = Object.entries(rulesData).map(([k, v]) => ({ k, v: String(v) }));
         fresh.sitreps = ((await read('sitreps.json')) || []).map(x => ({ ...blankSitrep(), ...x }));
         fresh.statuses = ((await read('statuses.json')) || []).map(x => ({ ...blankStatus(), ...x, exclusive: x.exclusive || '' }));
         fresh.custom_stats = ((await read('custom_stats.json')) || []).map(x => ({ ...blankCustomStat(), ...x, default: String(x.default ?? 0) }));
