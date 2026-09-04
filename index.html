@@ -218,8 +218,9 @@
   .home-bg {
     position: fixed; left: 0; right: 0; top: 49px; bottom: 30px;
     overflow: hidden; z-index: 0; pointer-events: none;
-    display: flex; align-items: flex-end;
+    display: flex; align-items: flex-end; transition: left .18s ease;
   }
+  .home-bg.nav-in { left: 210px; }
   .home-bg-inner {
     width: 100%; padding: 0 7%; opacity: .18;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -233,17 +234,17 @@
   #lcp-forge[data-motion="off"] .home-bg-inner .cursor { animation: none; opacity: .6; }
   .home-content { position: relative; z-index: 1; }
 
-  /* [[word]] in a chatter line renders as a faintly unstable span */
-  .home-bg-inner .glitch {
+  /* inline chatter effects (see fmtFx): [[glitch]]  ~~redact~~  **hot**  ((flicker))  __corrupt__ */
+  .fx-glitch {
     position: relative; display: inline-block; color: var(--text);
     text-shadow: 0 0 3px var(--accent); animation: g-jit 3.6s steps(1) infinite;
   }
-  .home-bg-inner .glitch::before, .home-bg-inner .glitch::after {
+  .fx-glitch::before, .fx-glitch::after {
     content: attr(data-txt); position: absolute; left: 0; top: 0; width: 100%;
     overflow: hidden; pointer-events: none;
   }
-  .home-bg-inner .glitch::before { color: var(--danger); animation: g-a 2.3s steps(1) infinite; }
-  .home-bg-inner .glitch::after  { color: var(--accent); animation: g-b 1.9s steps(1) infinite; }
+  .fx-glitch::before { color: var(--danger); animation: g-a 2.3s steps(1) infinite; }
+  .fx-glitch::after  { color: var(--accent); animation: g-b 1.9s steps(1) infinite; }
   @keyframes g-jit { 0%,91%,100% { transform: none } 92% { transform: translateX(1px) } 96% { transform: translateX(-1px) } }
   @keyframes g-a {
     0%,87%,100% { clip-path: inset(100% 0 0 0); transform: none }
@@ -255,9 +256,18 @@
     85% { clip-path: inset(58% 0 12% 0); transform: translateX(2px) }
     90% { clip-path: inset(20% 0 56% 0); transform: translateX(-2px) }
   }
-  #lcp-forge[data-motion="off"] .home-bg-inner .glitch { animation: none; text-shadow: none; text-decoration: underline dotted; }
-  #lcp-forge[data-motion="off"] .home-bg-inner .glitch::before,
-  #lcp-forge[data-motion="off"] .home-bg-inner .glitch::after { display: none; }
+  .fx-redact {
+    background: currentColor; color: transparent; border-radius: 1px; padding: 0 .12em;
+    user-select: none; box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+  .fx-hot { color: var(--warn); font-weight: 700; text-shadow: 0 0 5px var(--warn); }
+  .fx-flicker { animation: fx-flk 4.2s steps(1) infinite; }
+  @keyframes fx-flk { 0%,38%,41%,70%,100%{opacity:1} 39%{opacity:.1} 40%{opacity:.65} 71%{opacity:.3} }
+  .fx-corrupt { filter: blur(.5px); letter-spacing: .07em; opacity: .8; }
+  #lcp-forge[data-motion="off"] .fx-glitch { animation: none; text-shadow: none; text-decoration: underline dotted; }
+  #lcp-forge[data-motion="off"] .fx-glitch::before, #lcp-forge[data-motion="off"] .fx-glitch::after { display: none; }
+  #lcp-forge[data-motion="off"] .fx-flicker { animation: none; opacity: .6; }
+  #lcp-forge[data-motion="off"] .fx-corrupt { filter: none; }
 
   /* eidolon vault (locked-state briefing) */
   .lf-nav .nav-item.locked { font-style: italic; opacity: .75; }
@@ -269,16 +279,11 @@
   }
   .vault .doc p { margin: 0 0 .9rem; line-height: 2; }
   .vault .doc .hd { color: var(--accent); letter-spacing: .05em; border-bottom: 1px solid var(--line); padding-bottom: .6rem; }
-  .vault .redact {
-    background: var(--text); color: transparent; border-radius: 1px; padding: 0 .15em; user-select: none;
-    box-decoration-break: clone; -webkit-box-decoration-break: clone;
-  }
-  .vault.revealing .redact { animation: unredact .55s ease forwards; }
-  .vault.revealing .doc p:nth-child(2) .redact { animation-delay: .05s }
-  .vault.revealing .doc p:nth-child(3) .redact { animation-delay: .15s }
-  .vault.revealing .doc p:nth-child(4) .redact { animation-delay: .28s }
-  .vault.revealing .doc p:nth-child(5) .redact { animation-delay: .42s }
-  .vault.revealing .doc p:nth-child(6) .redact { animation-delay: .55s }
+  .vault .doc .fx-redact { background: var(--text); }
+  .vault.revealing .fx-redact { animation: unredact .6s ease forwards; }
+  .vault.revealing .doc p:nth-child(3) .fx-redact { animation-delay: .12s }
+  .vault.revealing .doc p:nth-child(4) .fx-redact { animation-delay: .26s }
+  .vault.revealing .doc p:nth-child(5) .fx-redact { animation-delay: .4s }
   @keyframes unredact { to { background: transparent; color: var(--muted); } }
   .vault .prompt { display: flex; align-items: center; gap: .7rem; margin-top: 1.5rem; }
   .vault .prompt label { color: var(--accent); white-space: nowrap; }
@@ -291,7 +296,7 @@
   .vault.revealing .status { color: var(--accent); }
   .vault.denied .doc { animation: vault-shake .34s; }
   @keyframes vault-shake { 0%,100%{transform:none} 20%{transform:translateX(-6px)} 60%{transform:translateX(5px)} 80%{transform:translateX(-2px)} }
-  #lcp-forge[data-motion="off"] .vault.revealing .redact { animation: none; background: transparent; color: var(--muted); }
+  #lcp-forge[data-motion="off"] .vault.revealing .fx-redact { animation: none; background: transparent; color: var(--muted); }
   #lcp-forge[data-motion="off"] .vault.denied .doc { animation: none; }
 
   /* modal transition */
@@ -521,7 +526,7 @@
 
         <!-- ============ HOME ============ -->
         <section v-show="tab==='home'" class="home">
-          <div class="home-bg" v-if="settings.chatter" aria-hidden="true"><div class="home-bg-inner" v-html="chatterHtml"></div></div>
+          <div class="home-bg" v-if="settings.chatter" :class="{ 'nav-in': navOpen }" aria-hidden="true"><div class="home-bg-inner" v-html="chatterHtml"></div></div>
           <div class="home-content">
           <div v-if="draftBailed" class="lf-note lf-warn draft-note">
             <span>Couldn't restore the last session's working copy — it may have been from an older version. Starting fresh.</span>
@@ -898,11 +903,10 @@
             <div class="vault" :class="{ revealing: eidolonRevealing, denied: eidolonShake }">
               <div class="doc">
                 <p class="hd">SSC INTERNAL // PARACAUSAL CONTAINMENT // EYES ONLY</p>
-                <p><span class="redact">Authorization</span> withheld. The <span class="redact">deep archive</span> stays <span class="redact">sealed by order of</span> the Division.</p>
-                <p>Personnel are reminded that <span class="redact">the program's</span> designation is <span class="redact">itself</span> classified, and is <span class="redact">not to be</span> spoken <span class="redact">outside a closed</span> room.</p>
-                <p>The schematics <span class="redact">are</span> real. The <span class="redact">threat</span> is <span class="redact">real</span>. What <span class="redact">we grew</span> needs no <span class="redact">sun</span>:</p>
-                <p>a <span class="redact">bloom</span> pressed <span class="redact">flat</span> to a wall, a flower <span class="redact">whose face is</span> turned <span class="redact">from the</span> light.</p>
-                <p>Say <span class="redact">the two words left standing</span>, joined, to proceed.</p>
+                <p><span class="fx-redact">Authorization</span> withheld. The <span class="fx-redact">deep archive</span> stays <span class="fx-redact">sealed by order of</span> the Division.</p>
+                <p>Personnel are reminded that even <span class="fx-redact">the program's</span> designation is <span class="fx-redact">itself</span> classified, and is <span class="fx-redact">never</span> spoken <span class="fx-redact">outside a closed</span> room.</p>
+                <p>The schematics <span class="fx-redact">are</span> real. The <span class="fx-redact">threat</span> is <span class="fx-redact">real</span>. We grew <span class="fx-redact">something</span> that wants no sun — it keeps its face <span class="fx-redact">turned</span> from every light, and opens only <span class="fx-redact">in the cold</span> shade where nothing <span class="fx-redact">green</span> should.</p>
+                <p>You already know what it is. Speak <span class="fx-redact">its</span> name to proceed.</p>
               </div>
               <div class="prompt">
                 <label>&gt; AUTHORIZATION:</label>
@@ -1951,6 +1955,19 @@ async function loadChatterLines(theme) {
   return [];
 }
 
+/* inline chatter effects. Usable in any chatter/<theme>.txt line:
+   [[x]] glitch  ·  ~~x~~ redacted  ·  **x** priority  ·  ((x)) flicker  ·  __x__ corrupted */
+const FX_MARKERS = /\[\[|\]\]|~~|\*\*|\(\(|\)\)|__/g;
+const stripFx = s => s.replace(FX_MARKERS, '');
+const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const fmtFx = s => escHtml(s)
+  .replace(/\[\[([^\]]+?)\]\]/g, '<span class="fx-glitch" data-txt="$1">$1</span>')
+  .replace(/~~([^~]+?)~~/g, '<span class="fx-redact">$1</span>')
+  .replace(/\*\*([^*]+?)\*\*/g, '<span class="fx-hot">$1</span>')
+  .replace(/\(\(([^)]+?)\)\)/g, '<span class="fx-flicker">$1</span>')
+  .replace(/__([^_]+?)__/g, '<span class="fx-corrupt">$1</span>')
+  .replace(FX_MARKERS, '');
+
 const loadSettings = () => {
   const d = { theme:'comp-con', chatter:true, motion:true };
   try { return { ...d, ...JSON.parse(localStorage.getItem('sofa-lcp-settings') || '{}') }; }
@@ -2972,12 +2989,8 @@ const app = createApp({
       return (key && this.lcp[key] && this.lcp[key][idx]) ? this.lcp[key][idx] : null;
     },
     chatterHtml() {
-      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-      const fmt = s => esc(s)
-        .replace(/\[\[([^\]]*?)\]\]/g, '<span class="glitch" data-txt="$1">$1</span>')
-        .replace(/\[\[|\]\]/g, '');
-      const done = this.chatterLog.map(fmt).join('\n');
-      return done + (done ? '\n' : '') + esc(this.chatterTyping) + '<span class="cursor">▊</span>';
+      const done = this.chatterLog.map(fmtFx).join('\n');
+      return done + (done ? '\n' : '') + escHtml(this.chatterTyping) + '<span class="cursor">▊</span>';
     },
     factionGlyph() { return GLYPHS[this.settings.theme] || GLYPHS['comp-con']; },
     modalTitle() {
@@ -3033,7 +3046,7 @@ const app = createApp({
       const lines = this._chatLines || [];
       if (!lines.length) return;
       const raw = lines[this._chatIdx % lines.length] || '';
-      const target = raw.replace(/\[\[|\]\]/g, '');   // type the words, not the markers
+      const target = stripFx(raw);   // type the words, not the effect markers
       if (this.chatterTyping.length < target.length) {
         this.chatterTyping = target.slice(0, this.chatterTyping.length + 1);
         this._chatTimer = setTimeout(() => this._chatterTick(), 15 + Math.random() * 22);

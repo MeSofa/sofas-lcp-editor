@@ -46,8 +46,8 @@ line per line, `#` lines and blanks ignored. Add a theme by adding an entry to
 `THEME_LIST` in `index.html`, a matching `#lcp-forge[data-theme]` CSS block, a
 `GLYPHS` entry, and a `chatter/<id>.txt` file.
 
-The Home feed accepts `[[double brackets]]` around a word to render it with a
-faint glitch.
+Chatter lines take inline effects: `[[x]]` glitch, `~~x~~` redacted, `**x**`
+priority, `((x))` flicker, `__x__` corrupted.
 
 ## Not yet supported
 
