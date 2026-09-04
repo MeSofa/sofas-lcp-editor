@@ -981,10 +981,12 @@ routing through {{ (networks.find(n => n.id === commsPending) || {}).code }} rel
           <template v-else>
             <div class="vault" :class="{ revealing: eidolonRevealing, denied: eidolonShake }">
               <div class="doc">
-                <p class="hd">PARACAUSAL CONTAINMENT // EYES ONLY</p>
-                <p><span class="fx-redact">Access</span> withheld. The <span class="fx-redact">deep archive</span> stays <span class="fx-redact">sealed by order of</span> the Division.</p>
-                <p>The schematics <span class="fx-redact">are</span> real. The <span class="fx-redact">threat</span> is <span class="fx-redact">real</span>. This door has <span class="fx-redact">five</span> seals, and no single office holds them all.</p>
-                <p>Each was struck from a text the fleets still <span class="fx-redact">read</span>. Name the five and the shade lets go.</p>
+                <p class="hd">PARACAUSAL CONTAINMENT · CLEARANCE OMEGA</p>
+                <p>There is a room the Division keeps off every map, and in it are <span class="fx-redact">drawings of things</span> that should not have survived being drawn. We keep them regardless. Someone always does.</p>
+                <p>What you are asking to open was not built. It was <span class="fx-redact">permitted</span> — drawn up out of the narrow dark between what is true and what is only <span class="fx-redact">enforced</span>. It does not answer to range. It does not answer to armour. Given enough sky and enough years, the officers who watch it are no longer certain it answers to <span class="fx-redact">us</span>.</p>
+                <p>So the file was not hidden. It was taken apart. Its key was <span class="fx-redact">cut into five</span> and handed to five houses that do not, as a rule, return each other's calls — each piece folded into something their pilots already carry from port to port and never think to guard. No hand holds the whole. That was the design. That is <em>always</em> the design.</p>
+                <p>If you have walked every band and listened past the weather and the gossip and the requisition forms, you may already know the word each house was given to keep. That is <span class="fx-redact">further</span> than most of the people who sealed this ever got.</p>
+                <p>Speak them — in any order, one at a time — and the shade will let go a finger at a time.</p>
                 <div class="seals">
                   <div v-for="lk in eidolonLocks" :key="lk.id" class="seal" :class="{ open: openLocks.includes(lk.id) }">
                     <span class="sig">{{ openLocks.includes(lk.id) ? '▹▹▹' : '▚▚▚' }}</span>
@@ -2041,17 +2043,34 @@ async function loadChatterLines(theme) {
 }
 
 /* inline chatter effects. Usable in any chatter/<theme>.txt line:
-   [[x]] glitch  ·  ~~x~~ redacted  ·  **x** priority  ·  ((x)) flicker  ·  __x__ corrupted */
-const FX_MARKERS = /\[\[|\]\]|~~|\*\*|\(\(|\)\)|__/g;
+   [[x]] glitch · ~~x~~ redacted · **x** priority · *x* italic · ((x)) flicker · __x__ corrupted */
+const FX_MARKERS = /\[\[|\]\]|~~|\*|\(\(|\)\)|__/g;
 const stripFx = s => s.replace(FX_MARKERS, '');
 const escHtml = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const fmtFx = s => escHtml(s)
   .replace(/\[\[([^\]]+?)\]\]/g, '<span class="fx-glitch" data-txt="$1">$1</span>')
   .replace(/~~([^~]+?)~~/g, '<span class="fx-redact">$1</span>')
   .replace(/\*\*([^*]+?)\*\*/g, '<span class="fx-hot">$1</span>')
+  .replace(/\*([^*]+?)\*/g, '<em>$1</em>')
   .replace(/\(\(([^)]+?)\)\)/g, '<span class="fx-flicker">$1</span>')
   .replace(/__([^_]+?)__/g, '<span class="fx-corrupt">$1</span>')
   .replace(FX_MARKERS, '');
+
+/* {u1}..{uN} in a chatter line → a random handle, drawn once per page load and
+   held for the session so a "speaker" stays the same name while you read. */
+const HANDLE_POOL = [
+  'zvGrilled','Scrag0142','Konsumee','Ghij2','ParacausalFl00f','ActuallyJaspr','SignatureDevourer','mrElectr1c',
+  'Karma','muninnf34thers','MorrigansAtlas','RadicalGigParty','The0dalphiaFilm','Oceananan','Barry Bones',
+  'nullp0inter','gh0stmess','wyrmtongue','PaleHorseActual','unblinking_','cassettefutura','doityourselfg0d','8ballsays',
+  'HausOfNoon','frog_exe','m1rror_m1rror','notyourorrery','greywater_dreams','ansible_down','TheThirdRaven','kettlelogic',
+  'orpheus_stayed','planch3tte','VANTABERG','hollowbell','quietquitthesun','doomscroll_deluxe','Ish7ar','kudzu_protocol',
+  'lastcallforever','Enkidu_wept','mothToAnsible','HecateDialup','Praxis_Kitten','forecl0sure','whalefall_radio',
+  'tallgrass_ghost','YaldabaothLite','corvid_union','brine_and_static','uncannyV_alley','deletewiz','Hesperus_Phosphorus',
+  'ExeuntPursued','sub_rosa','marrowlight','cathode_saint','Nergal_txt','low_orbit_lull','secondhand_omen','blink_and_die',
+  'NHP_sympathizer','glossolalia_gg','RA_fan_account','touching_grass_lie','3amprinter','the_pattern_stays'
+];
+const HANDLES = (a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; })([...HANDLE_POOL]);
+const resolveHandles = s => s.replace(/\{u(\d+)\}/g, (_, n) => HANDLES[(+n - 1) % HANDLES.length]);
 
 const loadSettings = () => {
   const d = { theme:'comp-con', chatter:true, motion:true };
@@ -3156,9 +3175,9 @@ const app = createApp({
         const stillComms = this.tab === 'comms' && this.commsNet === src && !this.commsConnecting;
         const stillHome = this.tab === 'home' && this.settings.theme === src && this.settings.chatter;
         if (!stillComms && !stillHome) return;   // changed while loading
-        this._chatLines = lines;
-        if (!lines.length) return;
-        if (!this.settings.motion) { this.chatterLog = lines.slice(0, 24); return; }
+        this._chatLines = lines.map(resolveHandles);
+        if (!this._chatLines.length) return;
+        if (!this.settings.motion) { this.chatterLog = this._chatLines.slice(0, 24); return; }
         this._chatterTick();
       });
     },

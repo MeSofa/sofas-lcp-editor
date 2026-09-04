@@ -1,4 +1,17 @@
-# IPS-Northstar
-IPS-N DISPATCH: haul it, weld it, ship it.
-IPS-N DISPATCH: the Long Rim does not forgive sloppy manifests.
+# IPS-Northstar — dispatch band. manifests, haulage, inventory, the frontier.
+# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** ((flicker)) __corrupt__
+IPS-N DISPATCH: manifest 44-Δ logged — 12 pallets reactor coolant, 3 crates ration bars, 1 undeclared. flagging the 1.
+IPS-N DISPATCH: a container is not sealed until the seal SAYS it is sealed. I will keep saying this until my throat gives out.
+IPS-N DISPATCH: hauler *Quietly Profitable* is forty hours out of Cradle. cargo nominal. crew morale, and I quote, "fine."
+IPS-N DISPATCH: lost and found, Dock 9 — one (1) Everest-pattern mech arm. it has been three weeks. come and get your arm.
+IPS-N DISPATCH: route note — the run past the last beacon, along the thinnest, ((longest)) edge of anywhere. crews just call it the ~~Rim~~. add two days. always add two days.
+IPS-N DISPATCH: fuel's up the arm again. blame the old houses upstream. don't say that on an open channel.
+IPS-N DISPATCH: Bay 12 audit — expected 900 units, counted 901. do not investigate. re-seal and ship.
+IPS-N DISPATCH: to the pilot who parked a Barbarossa in the LOADING lane: it is a loading lane. the clue is in the name.
+IPS-N DISPATCH: weather on the approach vector is "particulate." wear the mask. bill the client for the mask.
+IPS-N DISPATCH: manifest 51-K rejected. you cannot ship a live horse in a coolant crate. I don't care whose horse it is.
+IPS-N DISPATCH: cold-chain breach on pallet 7. contents now "ambient." reclassifying as scrap. someone tell the buyer gently.
+IPS-N DISPATCH: end of shift. the freight does not care that it's the end of your shift. neither does Kaeleen, apparently.
+IPS-N DISPATCH: found the undeclared item from manifest 44. it was more ration bars. deeply boring crisis, averted.
+IPS-N DISPATCH: we haul it, we weld it, we ship it. we do not open it. we do not name it. we do not keep it.
 IPS-N DISPATCH: coffee's cold. export's clean. good enough.

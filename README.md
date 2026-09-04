@@ -48,7 +48,8 @@ full on the Comms tab (whichever network you connect to). Adding a theme:
 a `chatter/<id>.txt` file.
 
 Chatter lines take inline effects: `[[x]]` glitch, `~~x~~` redacted, `**x**`
-priority, `((x))` flicker, `__x__` corrupted.
+priority, `*x*` italic, `((x))` flicker, `__x__` corrupted. `{u1}`…`{uN}` fill
+with random handles, held for the session (used by the HORUS band).
 
 ## Not yet supported
 
