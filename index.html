@@ -2069,8 +2069,7 @@ const HANDLE_POOL = [
   'ExeuntPursued','sub_rosa','marrowlight','cathode_saint','Nergal_txt','low_orbit_lull','secondhand_omen','blink_and_die',
   'NHP_sympathizer','glossolalia_gg','RA_fan_account','touching_grass_lie','3amprinter','the_pattern_stays'
 ];
-const HANDLES = (a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; })([...HANDLE_POOL]);
-const resolveHandles = s => s.replace(/\{u(\d+)\}/g, (_, n) => HANDLES[(+n - 1) % HANDLES.length]);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
 const loadSettings = () => {
   const d = { theme:'comp-con', chatter:true, motion:true };
@@ -3175,16 +3174,22 @@ const app = createApp({
         const stillComms = this.tab === 'comms' && this.commsNet === src && !this.commsConnecting;
         const stillHome = this.tab === 'home' && this.settings.theme === src && this.settings.chatter;
         if (!stillComms && !stillHome) return;   // changed while loading
-        this._chatLines = lines.map(resolveHandles);
+        this._chatLines = lines.map(l => this.resolveHandles(l));
         if (!this._chatLines.length) return;
         if (!this.settings.motion) { this.chatterLog = this._chatLines.slice(0, 24); return; }
         this._chatterTick();
       });
     },
+    resolveHandles(s) {
+      if (!this._handles) this._handles = shuffle([...HANDLE_POOL]);
+      const h = this._handles;
+      return s.replace(/\{u(\d+)\}/g, (_, n) => h[(+n - 1) % h.length]);
+    },
     connectNet(id) {
       this.commsPending = id;
       this.commsConnecting = true;
       this.stopChatter();
+      this._handles = shuffle([...HANDLE_POOL]);   // fresh cast every time you dial in
       clearTimeout(this._connT);
       this._connT = setTimeout(() => {
         this.commsConnecting = false;

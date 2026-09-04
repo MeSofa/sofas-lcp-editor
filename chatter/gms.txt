@@ -1,5 +1,17 @@
-# GMS — one line per line. Blank lines and #comments are ignored. They loop.
-GMS SUPPLY: standard-pattern chassis in stock, all sectors.
-GMS SUPPLY: everything here is everyone's. That's the point.
-GMS SUPPLY: warranty void on unlicensed modification.
+# GMS — supply band. General Massive Systems. the stuff everyone starts with. one line per line, #comments/blanks ignored.
+GMS SUPPLY: standard-pattern chassis in stock, all sectors. always. that's the promise.
+GMS SUPPLY: everything here is everyone's. that's the point. that's the *whole* point.
+GMS SUPPLY: warranty void on unlicensed modification. warranty also void on licensed modification. the warranty is mostly a vibe.
+GMS SUPPLY: if it works, it ships. if it half-works, it ships with a manual. if it doesn't work, it's an Everest and it'll be fine.
+GMS SUPPLY: reminder — the Everest is not exciting. the Everest has also never let anyone down. pick a lane.
+GMS SUPPLY: bulk order received: 4,000 units, no customisation, delivery "whenever." our favourite kind of customer.
+GMS SUPPLY: the Sagarmatha is on backorder again. everyone wants the fast one. nobody wants to *maintain* the fast one.
+GMS SUPPLY: pilot, your GMS weapon has a two-hundred-year-old design and a spare parts network on every rock in the reach. that IS the feature.
+GMS SUPPLY: we don't do prestige. prestige doesn't hold a torque spec. we do *torque specs*.
+GMS SUPPLY: reminder that a GMS system will never surprise you. in this business, "never surprises you" is worth more than it sounds.
+GMS SUPPLY: someone asked if GMS gear is "boring." yes. gloriously. deliberately. reliably. boringly.
+GMS SUPPLY: field note — the corpro chassis look better in the brochure. the GMS chassis look better after a firefight.
+GMS SUPPLY: shipment of 900 replacement actuators heading to the frontier. they'll outlast the ships carrying them.
+GMS SUPPLY: no loyalty program. no membership tier. no "concierge." you have money, we have a mech, that's the relationship.
+GMS SUPPLY: reminder — the manual is in the crate. it's always in the crate. read the crate manual.
 GMS SUPPLY: if it works, it ships.

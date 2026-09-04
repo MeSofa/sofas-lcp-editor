@@ -1,5 +1,5 @@
 # Harrison Armory — citizen band. Purview notices, civic credit, mandatory optimism.
-# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** ((flicker)) __corrupt__
+# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** *italic* ((flicker)) __corrupt__
 ARMORY COMMS: your civic contribution score updated overnight — +4 (attended the parade), −2 (insufficient enthusiasm at the parade).
 ARMORY COMMS: citizen, "a mech in every garage" is not a slogan. it is a target. you are behind on it.
 ARMORY COMMS: the Purview thanks you for your report concerning your neighbour. the Purview is always listening. that is a kind of love.
@@ -9,6 +9,72 @@ ARMORY COMMS: your neighbour's flag is measurably larger than yours. this has be
 ARMORY COMMS: superior by design. superior by decree. superior, citizen, because of **you**.
 ARMORY COMMS: content pack submitted for Purview review. approval pending. everything is pending. that is what stability feels like.
 ARMORY COMMS: a citizen asked what the Armory keeps behind the sealed doors on Sublevel 4. a good citizen does not ask. be a good citizen.
-ARMORY COMMS: credit adjustment — −6, "expressed nostalgia for a pre-Armory polity." those old houses are gone, citizen. please smile.
 ARMORY COMMS: license compliance is not optional. neither, going forward, is joy.
-ARMORY COMMS: the ones who owned that trade cluster before us would have had you polishing their boots. the Armory gave you the boots AND the rifle. show some gratitude.
+ARMORY COMMS: civic reminder — a citizen who maintains their loadout maintains the Purview. rust is a political act.
+ARMORY COMMS: your score this cycle: +3 (reported to duty on time), +2 (uniform crisp), −5 (asked "why"). net −0. do better.
+ARMORY COMMS: the Purview has upgraded your district's optimism quota from 80% to 85%. celebrate.
+ARMORY COMMS: citizen, the parade route changed. it now passes your home. wave. we will be checking that you waved.
+ARMORY COMMS: history module 14 — the frontier was *lawless* until Armory pattern chassis arrived. it is now *lawful*. thank the chassis at the monument.
+ARMORY COMMS: social credit note — your neighbour reported you for "sighing during the anthem." we have logged it as a respiratory event. this time.
+ARMORY COMMS: a mech in every garage. a flag on every door. a smile on every face at 0700 sharp. these are not requests, they are *civilisation*.
+ARMORY COMMS: Purview notice — the sealed wing on Sublevel 4 has had its guard rotation doubled. this is routine. everything is routine. routine is peace.
+ARMORY COMMS: credit adjustment — +8, "citizen turned in a pre-uplift heirloom for melting." the past is scrap. thank you for recycling it.
+ARMORY COMMS: reminder that "the Purview overreached" is a sentence that lowers your score simply by being spoken near a microphone, of which there are many.
+ARMORY COMMS: your unit's readiness review is scheduled. bring your mech, your papers, and an expression of *eager confidence*.
+ARMORY COMMS: civic joy exercise — recite three things the Armory has given you. "structure" counts once. "the rifle" counts once. be specific.
+ARMORY COMMS: Purview reminder — your NHP is a citizen too, and its loyalty reflects on *your* score. talk to it about the parade.
+ARMORY COMMS: credit adjustment — −4, "displayed a pre-Armory map in the home." the borders on that map are treason, citizen. beautiful, nostalgic treason.
+ARMORY COMMS: the anthem now has a fourth verse. learn the fourth verse. there will be a fifth verse. there is always another verse.
+ARMORY COMMS: citizen, your flag has faded. a faded flag is a faded loyalty. the quartermaster has new flags. bring your old flag. we count them.
+ARMORY COMMS: history module 21 — before uplift, the outer worlds *starved* for someone else's prestige. the Armory feeds everyone. the Armory also decides what's for dinner.
+ARMORY COMMS: Purview notice — a citizen asked "what's really on Sublevel 4." that citizen has been reassigned to a district with excellent schools and no questions.
+ARMORY COMMS: social credit — attending the memorial: +3. crying at the memorial: +1. crying for the *wrong soldier* at the memorial: see your officer.
+ARMORY COMMS: your score is your worth, and your worth is your safety, and your safety is the Armory's, and round it goes. isn't that *reassuring*.
+ARMORY COMMS: reminder that the Armory does not have secrets. the Armory has *classified civic assets*, which is a completely different and much more patriotic thing.
+ARMORY COMMS: citizen, your enthusiasm at the last three parades has trended *downward*. a downward citizen is a liability. choose a direction.
+ARMORY COMMS: Purview reminder — the sealed doors on Sublevel 4 are load-bearing to national morale. do not photograph the doors. do not describe the doors. the doors are fine.
+ARMORY COMMS: credit adjustment — +10, "citizen enlisted their second child early." the Armory notices sacrifice. the Armory rewards sacrifice. the Armory would like a third.
+ARMORY COMMS: mandatory optimism drill, 0600 — face east, breathe, and believe. an officer will confirm you believed. belief is visible if you do it correctly.
+ARMORY COMMS: the parade is longer this year. the parade is longer every year. one day the parade will simply be *life*, and won't that be glorious.
+ARMORY COMMS: Purview notice — increased energy signatures from Sublevel 4 are "seasonal." the Armory has seasons now. the season is *containment*. dress warm.
+ARMORY COMMS: reminder, citizen — you are free. free to serve, free to obey, free to be grateful, and free, above all, to be *seen* doing all three.
+ARMORY COMMS: your civic score for the cycle: adequate. "adequate" is not "heroic." the Armory did not conquer anything on *adequate*.
+ARMORY COMMS: history module 26 — study our enemies strictly as a *warning*. do not admire the warning. the warning would have you kneeling.
+ARMORY COMMS: Purview reminder — a citizen who dreams of a life before the Armory should report the dream. dreams are unregulated speech. we are working on that.
+ARMORY COMMS: the fifth verse of the anthem is out. it is about the sixth verse.
+ARMORY COMMS: social credit reminder — your loyalty is not a mood, it is a *practice*, like the anthem, like the parade, like breathing east at dawn.
+ARMORY COMMS: Purview notice — Sublevel 4 is not on the tour. Sublevel 4 has never been on the tour. there is no Sublevel 4 on the tour. enjoy the tour.
+ARMORY COMMS: citizen, a mech in every garage — and if you cannot afford the mech, the Armory offers a *very* reasonable service contract and a lifetime of meaning.
+ARMORY COMMS: your enthusiasm has improved. +4. see, citizen? you *can* be a hero. do it again tomorrow. do it every day. do it until it's true.
+ARMORY COMMS: superior by design. superior by decree. and if either of those ever wavers — superior by *volume*.
+ARMORY COMMS: citizen, the Purview received your suggestion. the Purview has framed your suggestion. the Purview will not be acting on your suggestion. thank you for your suggestion.
+ARMORY COMMS: reminder — a rifle is a right, a mech is a duty, and a smile is *policy*. present all three at the checkpoint.
+ARMORY COMMS: credit adjustment — −3, "hesitated." the Armory measures the pause between the order and the salute. yours is getting long.
+ARMORY COMMS: history module 31 — the monument on Founder's Hill is larger this year. it is larger every year. the Founder would have wanted the *shadow* to reach further.
+ARMORY COMMS: Purview notice — do not feed the guard dogs on Sublevel 4. do not name the guard dogs on Sublevel 4. do not ask why there are guard dogs on Sublevel 4.
+ARMORY COMMS: your NHP failed its annual loyalty screening. this reflects on you, citizen. sit it down. show it the parade footage. the *long* version.
+ARMORY COMMS: credit adjustment — +5, "citizen corrected a stranger's posture during the anthem." vigilance is community. the stranger's score dropped. balance.
+ARMORY COMMS: Purview notice — new checkpoint on the road to the coast. it is not there to slow you down, citizen. it is there so you *feel watched over* on your holiday.
+ARMORY COMMS: history module 37 — the Founder never rested. there is a painting of the Founder not resting. reproductions available at the commissary. hang it where it can see you.
+ARMORY COMMS: social credit reminder — reporting your neighbour is a gift you give them: the gift of *correction*, before it becomes the gift of *consequences*.
+ARMORY COMMS: citizen, the optimism quota is now 90%. we understand this is difficult. difficulty is where citizens are *forged*. forge, citizen.
+ARMORY COMMS: Purview advisory — do not discuss the increased traffic to Sublevel 4. do not count the trucks. numbers are for the quartermaster, not for you.
+ARMORY COMMS: your unit's mech readiness is at 94%. the missing 6% has a name, citizen, and the name is on the duty roster, and we will be speaking with the name.
+ARMORY COMMS: mandatory joy update — the approved facial expression for this cycle is "resolute contentment." examples posted at the barracks. practice in a mirror. the mirror is also watching, but supportively.
+ARMORY COMMS: credit adjustment — −8, "hummed a foreign melody." there are no foreign melodies, citizen. there is the anthem, and there is *evidence*.
+ARMORY COMMS: Purview notice — the guard dogs on Sublevel 4 are now guard dogs *and* something else. do not ask what else. bring biscuits, actually, no, don't. forget the biscuits. forget Sublevel 4.
+ARMORY COMMS: reminder that the Armory does not conscript. the Armory *invites*, at gunpoint, warmly, into a family you cannot leave. that's not conscription. that's *belonging*.
+ARMORY COMMS: history module 41 — every schoolchild learns to draw the borders of the Armory from memory. every schoolchild draws them a little larger than last year. we let them. it's aspirational.
+ARMORY COMMS: your civic score is *heroic* this cycle, citizen. do you feel it? the warmth? that's the Purview, loving you back, exactly as much as you've earned and not one unit more.
+ARMORY COMMS: Purview reminder — a good citizen sleeps facing the flag. an *excellent* citizen has explained to us why the others don't.
+ARMORY COMMS: the anthem's sixth verse is out. it thanks the citizen by name. all citizens. simultaneously. it is a logistical marvel and it takes forty minutes.
+ARMORY COMMS: credit adjustment — +12, "citizen volunteered for a posting near Sublevel 4 and asked no questions on arrival, during, or after." this is the model. be the model.
+ARMORY COMMS: social credit note — your enthusiasm graph has finally turned upward. we knew you had it in you, citizen. we always knew. it's in your file that we knew.
+ARMORY COMMS: Purview advisory — the energy signature from the sealed wing briefly formed a *shape* on the monitors last night. the technician who said so has been promoted to a quieter room.
+ARMORY COMMS: citizen, "a mech in every garage" — some of you have taken this to mean *one*. the Founder, resting never, would have said *at least one*.
+ARMORY COMMS: reminder — you are not being watched *because* you are suspected. you are being watched because you are *loved*, and love, at the Armory's scale, requires cameras.
+ARMORY COMMS: history module 44 — we do not teach doubt. doubt was tried, once, by lesser polities, and look where they are. (they are gone. that's the lesson. that's the whole module.)
+ARMORY COMMS: mandatory optimism drill moved to 0530 for *keenness*. face east. the sun is not up yet. believe it up.
+ARMORY COMMS: Purview notice — whatever you heard about Sublevel 4, it was louder in the retelling. it is fine. it has always been fine. it will continue to be fine, behind the doors, forever, quietly, mostly.
+ARMORY COMMS: your score, citizen, is the Armory's way of saying it sees you. and the Armory, unlike the old powers, *never looks away*. isn't that a comfort. say that it's a comfort. out loud. now.
+ARMORY COMMS: reminder that gratitude, unexpressed, is just a feeling, and the Armory did not build a nation on feelings. say it out loud. we're listening. we're always listening. isn't that lovely.

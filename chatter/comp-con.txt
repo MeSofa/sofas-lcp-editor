@@ -1,4 +1,19 @@
-# COMP/CON — one line per line. Blank lines and #comments are ignored. They loop.
-COMP/CON: NHP shell nominal. Awaiting content pack.
-COMP/CON: reminder — back up your loadouts.
-COMP/CON: schema validation is your friend.
+# COMP/CON — public band. the assistant that everyone actually uses. one line per line, #comments/blanks ignored.
+COMP/CON: NHP shell nominal. awaiting content pack.
+COMP/CON: reminder — back up your loadouts. the void does not do version control.
+COMP/CON: schema validation is your friend. schema validation is your only friend at 3am.
+COMP/CON: pilot, your mech has zero heat and full structure. suspicious. what are you planning.
+COMP/CON: tip — a license you cannot afford is just a *wishlist* with extra steps.
+COMP/CON: your last three loadouts were all the same frame. it's okay. i'm not judging. i *can't* judge. it's not in my build.
+COMP/CON: reminder that "it worked in the last mission" is not a load-bearing statement.
+COMP/CON: content pack imported. 0 errors. 0 warnings. take the win. don't look too hard at it.
+COMP/CON: pilot, you have been staring at the frame select screen for eleven minutes. i have prepared a recommendation. you will ignore it. that's our thing.
+COMP/CON: friendly note — the Compendium is searchable. it has always been searchable. you do not have to scroll.
+COMP/CON: your NHP and my NHP are technically the same model. we don't talk about it. it gets weird.
+COMP/CON: tip — name your mech before the first mission. it fights better with a name. this is not superstition. it's just *true*.
+COMP/CON: reminder to hydrate, pilot. i cannot do this part for you. i have tried to add it to the action economy. the developers said no.
+COMP/CON: loadout saved. loadout saved again. loadout saved a third time because you weren't sure the first two took. they took. they all took.
+COMP/CON: the Union band is very loud today. the Harrison band is also very loud. the HORUS band is quiet, which is worse.
+COMP/CON: pilot — you're allowed to just play the game. you don't have to *solve* it first.
+COMP/CON: reminder — export early, export often, and check the manifest before you hand it to anyone with a reputation.
+COMP/CON: welcome back. it's been a while. your loadouts are exactly where you left them. i kept them warm.

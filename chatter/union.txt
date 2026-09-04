@@ -1,5 +1,5 @@
 # Union — SecComm public band. directives, uplift, unity.
-# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** ((flicker)) __corrupt__
+# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** *italic* ((flicker)) __corrupt__
 UNION SIGNAL: the Third Committee reminds every citizen — you are not alone, you are not adrift, you are **accounted for**.
 UNION SIGNAL: a world liberated is a world enrolled. welcome. your paperwork was completed on your behalf.
 UNION SIGNAL: cornerstone directives remain in effect. the cornerstones are load-bearing. so, citizen, are you.
@@ -12,3 +12,58 @@ UNION SIGNAL: your grandparents dreamed of a unified humanity. we know. we have 
 UNION SIGNAL: ...to the stars, together. participation in "together" is, naturally, both mandatory and joyful.
 UNION SIGNAL: a fleet is only a great many people agreeing very hard in the same direction. be a fleet.
 UNION SIGNAL: the Committee has heard your feedback. the Committee has filed your feedback. these are the same sentence.
+UNION SIGNAL: reminder — the Union does not occupy. the Union *arrives*, and then simply never has a reason to leave.
+UNION SIGNAL: your district met its uplift quota this cycle. as a reward, next cycle's quota has been raised. this is how a reward works now.
+UNION SIGNAL: a citizen asked whether the vote was real. the vote was *real*. the outcome was, additionally, *known*. both things can be true in a mature democracy.
+UNION SIGNAL: SecComm advisory — the frontier is safe. it has always been safe. any prior statement that the frontier was unsafe has been retired for accuracy.
+UNION SIGNAL: to the colony hesitating at the enrollment deadline: the Union respects your process. the Union has also already printed your flags.
+UNION SIGNAL: humanity is a single body now, citizen, and you are a cell in it. cells that stop cooperating have a name. don't be the name.
+UNION SIGNAL: the anthem has been shortened by four seconds this cycle for *efficiency*. those four seconds have been reallocated to the Committee.
+UNION SIGNAL: reminder that the past was a mistake we are still cleaning up and the future is a promise you are legally obligated to keep.
+UNION SIGNAL: a Union fleet in your sky is not a threat, citizen. it is a *hug*, at scale, with guns, for your protection.
+UNION SIGNAL: the Committee reviewed a petition signed by ninety thousand citizens. the Committee thanks all ninety thousand for their engagement with the process.
+UNION SIGNAL: history module — before the Union, humanity was scattered, quarrelsome, and *free* in the small, dangerous way a spark is free. we gathered the sparks. look how it burns now.
+UNION SIGNAL: your loyalty score is not visible to you. this is for your peace of mind. trust that it is fine. trusting that it is fine is, itself, scored.
+UNION SIGNAL: SecComm reminder — the blink-gates belong to everyone, which is why only the Committee may decide when everyone gets to use them.
+UNION SIGNAL: to the world debating secession: the Union has considered your feelings, cross-referenced them against the good of the species, and gently overruled them. you'll thank us in a generation. we've scheduled the thanks.
+UNION SIGNAL: a fleet exercise passed over the capital tonight. citizens described it as "beautiful" and "very close." both descriptions are on file as compliments.
+UNION SIGNAL: reminder that unity is not the *absence* of disagreement. unity is disagreement that has been heard, thanked, and filed.
+UNION SIGNAL: the Committee has declared this the Year of the Citizen. last year was also the Year of the Citizen. every year is the Year of the Citizen. you are *so* central.
+UNION SIGNAL: SecComm advisory — do not discuss cornerstone directives with unenrolled parties. do not discuss cornerstone directives with enrolled parties. ideally, do not discuss cornerstone directives.
+UNION SIGNAL: your grandparents' dreams, on file, have been reviewed. most of them are compatible with current policy. the incompatible ones have been archived respectfully.
+UNION SIGNAL: to the pilot who asked "liberated from whom" — the Union liberates from *disorder*, citizen, and disorder is wherever the Union has not yet arrived. it's almost tautological. it's *reassuringly* tautological.
+UNION SIGNAL: reminder — a single voice raised against the Union is *heard*. a thousand voices raised against the Union is a *weather event*, and weather can be managed.
+UNION SIGNAL: the Committee met for nine hours to decide whether to meet. the Committee decided yes. democracy is a muscle. we work it out daily.
+UNION SIGNAL: SecComm notice — the outer fleet's deployment is *precautionary*. it is always precautionary. that is the word we have decided to use.
+UNION SIGNAL: humanity, together, has done impossible things: crossed the dark, tamed the blink, ended the age of nations. do not squander that on wanting a *different* impossible thing.
+UNION SIGNAL: a citizen filed to have their enrollment reversed. the Committee has filed the citizen's filing. the filing is safe. the citizen is enrolled. everyone's paperwork is in order.
+UNION SIGNAL: reminder that "the Union has gone too far" is a phrase from a river that would very much like to stop being a river. keep flowing, citizen.
+UNION SIGNAL: the fleet stood down after the exercise. it did not go far. it never goes far. that's the reassurance.
+UNION SIGNAL: SecComm advisory — sentiment on the capital band this week trended toward "tired." we have adjusted the anthem to be *four percent more hopeful*. hope is a setting.
+UNION SIGNAL: the Committee has ruled that history ended with the founding of the Union and everything since is *maintenance*. sleep well. the story's over. we won.
+UNION SIGNAL: to the colony that voted no: the Union honours your democratic choice, and looks forward to the *next* vote, and the one after that, for as many votes as it takes.
+UNION SIGNAL: reminder — your presence at the enrollment ceremony was noted. your *enthusiasm* was noted separately. both files matter. one of them matters more.
+UNION SIGNAL: a fleet is people, citizen. thousands of people, agreeing very hard, in the same direction, with a shared plan of battle, for the good of the whole. now — be a fleet.
+UNION SIGNAL: SecComm notice — the blink relay to the outer marches will be *briefly* unavailable while the Committee reviews what is being said on it.
+UNION SIGNAL: the Year of the Citizen continues. rations are stable. the fleet is close. the vote is scheduled. everything, citizen, is *proceeding*.
+UNION SIGNAL: SecComm advisory — a rumour is circulating that the Committee is "not one body but several arguing." this is *slander*, and also *governance*, and we would prefer you focus on the first framing.
+UNION SIGNAL: the enrollment ceremony has been streamlined. citizens now simply *are* enrolled, on a rolling basis, retroactively, at birth, and also slightly before.
+UNION SIGNAL: reminder — the Union ended war. what remains are *police actions*, *stabilisations*, and *precautionary deployments*, none of which are war, all of which have a body count, filed separately.
+UNION SIGNAL: your district's loyalty average dipped 2% this cycle. the Committee has responded by making the anthem *louder*. the anthem is now the loudest it has ever been.
+UNION SIGNAL: a citizen asked what happens to worlds that refuse enrollment *permanently*. the Committee has clarified that "permanently" is not a timeframe the Union recognises.
+UNION SIGNAL: SecComm notice — the outer fleet has repositioned closer to the capital "for morale." whose morale was not specified. assume it's yours. feel the morale.
+UNION SIGNAL: history module — the age of nations ended in *blood*, citizen, and the age of Union began in *paperwork*, and if you had to pick one to be born into, you picked correctly. we made sure of it.
+UNION SIGNAL: reminder that the blink network logs every jump, every message, every hesitation before a message. the log is not *surveillance*. the log is the Union *remembering you fondly*.
+UNION SIGNAL: the Committee reviewed footage of a peaceful demonstration. the Committee has thanked the demonstrators for their *civic energy* and rescheduled their permits to a date that does not exist.
+UNION SIGNAL: to the pilot who keeps asking about the cornerstone directives on this channel: the directives are for your protection, and the *contents* of that protection are also for your protection, and so on, comfortingly, forever.
+UNION SIGNAL: SecComm advisory — sentiment analysis flags rising use of the word "empire" in private messages. the Union is not an empire. an empire *takes*. the Union *offers*, and then remembers that you accepted.
+UNION SIGNAL: the fleet exercise over the capital has been extended by a week "due to overwhelming public interest." there was no public interest. there is now, from the window, quite a lot.
+UNION SIGNAL: reminder — a unified humanity has no enemies, only *citizens who haven't been reached yet* and *citizens who are being difficult*. the fleet handles both. gently. mostly.
+UNION SIGNAL: the Committee has declared that dissent is *healthy*, in the way that a fever is the body fighting something. we are the body. you are the fever. get well soon.
+UNION SIGNAL: SecComm notice — the Third Committee is, and has always been, *one voice*. any recording that appears to show it disagreeing with itself has been enhanced for clarity into agreement.
+UNION SIGNAL: your grandparents wanted the stars, citizen. they did not specify the *terms*. we have handled the terms. you're welcome, retroactively, on their behalf.
+UNION SIGNAL: reminder that leaving the Union is not *forbidden*. it is simply not *supported*, in the way that breathing vacuum is not supported.
+UNION SIGNAL: the Year of the Citizen has been extended to a decade, then quietly to "the foreseeable," which the Committee assures us it can see quite far into.
+UNION SIGNAL: a colony completed its enrollment today after a nineteen-year process of careful, respectful, absolutely non-negotiable dialogue. welcome. your flags have aged beautifully.
+UNION SIGNAL: SecComm advisory — the outer fleet is standing down. it always stands down. it stands down *right there*, where you can see it, so you never forget how kind that is.
+UNION SIGNAL: ...to the stars, together. and if you find you cannot manage "together," the Union will hold that part for you, for as long as necessary, which is forever.

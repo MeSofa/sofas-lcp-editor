@@ -1,5 +1,5 @@
 # IPS-Northstar — dispatch band. manifests, haulage, inventory, the frontier.
-# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** ((flicker)) __corrupt__
+# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** *italic* ((flicker)) __corrupt__
 IPS-N DISPATCH: manifest 44-Δ logged — 12 pallets reactor coolant, 3 crates ration bars, 1 undeclared. flagging the 1.
 IPS-N DISPATCH: a container is not sealed until the seal SAYS it is sealed. I will keep saying this until my throat gives out.
 IPS-N DISPATCH: hauler *Quietly Profitable* is forty hours out of Cradle. cargo nominal. crew morale, and I quote, "fine."
@@ -15,3 +15,72 @@ IPS-N DISPATCH: end of shift. the freight does not care that it's the end of you
 IPS-N DISPATCH: found the undeclared item from manifest 44. it was more ration bars. deeply boring crisis, averted.
 IPS-N DISPATCH: we haul it, we weld it, we ship it. we do not open it. we do not name it. we do not keep it.
 IPS-N DISPATCH: coffee's cold. export's clean. good enough.
+IPS-N DISPATCH: manifest 58-B — 400 units mining charges, insured; 400 units listed as "assorted." insurers asking about the assorted. so am I.
+IPS-N DISPATCH: the *Halcyon's Debt* has been "about to depart" for nine hours. someone go see if the captain is alive.
+IPS-N DISPATCH: reminder that a pallet jack is not a personal vehicle and Dock 4 is not a racetrack.
+IPS-N DISPATCH: customs at Ras Shamra held the whole convoy over one mislabelled crate of screws. six hours. for screws.
+IPS-N DISPATCH: inventory note — the number in the system and the number on the shelf disagree. the shelf wins. the shelf always wins.
+IPS-N DISPATCH: hauler *Second Mortgage* reports a stowaway. stowaway is a cat. cat is now crew. update the manifest.
+IPS-N DISPATCH: tariff schedule changed again mid-transit. three ships now owe money they didn't owe when they left.
+IPS-N DISPATCH: to whoever keeps microwaving fish in the break room on Deck 2: we have identified you. we are choosing peace, for now.
+IPS-N DISPATCH: crate 19 is leaking something blue. the manifest says "textiles." textiles do not leak blue. hold the crate.
+IPS-N DISPATCH: shift bid results posted. nobody wanted the graveyard run to the outer marches. graveyard run assigned by lottery. condolences to the winner.
+IPS-N DISPATCH: the coffee machine on Deck 3 has achieved sentience and it hates you specifically. use Deck 5.
+IPS-N DISPATCH: manifest 62-J — client wants "white glove handling." client also wants it in the cheapest hold. these are incompatible. informing client.
+IPS-N DISPATCH: hull scan on *Quietly Profitable* flagged a soft spot amidships. rerouting to drydock. cargo transfers to *Halcyon's Debt*, which is, per earlier, possibly captain-less.
+IPS-N DISPATCH: found a second Everest arm at Dock 9. we now have a matched pair and no torso. building a coat rack.
+IPS-N DISPATCH: reminder — declare it, don't smuggle it. smuggling is a felony. bad paperwork is just Tuesday.
+IPS-N DISPATCH: the frontier run is back. the long thin route where the charts get lazy and the relays get further apart. hazard pay approved. take the water.
+IPS-N DISPATCH: pilot on the *Marrow Line* asking why their pay stub says "−0 credits." we are asking accounting. accounting is asking the void.
+IPS-N DISPATCH: three crates of "ceremonial masks" for a buyer with no listed ceremony. shipping anyway. not our ceremony.
+IPS-N DISPATCH: dock strike averted. management agreed to fix the lift on Bay 7 by "soon." historic.
+IPS-N DISPATCH: manifest 70-A weight declared 2 tonnes. scale says 6. either the client is lying or the crate is doing something. hold it.
+IPS-N DISPATCH: the cat from *Second Mortgage* has been promoted to Morale Officer. this is not a joke. the crew voted.
+IPS-N DISPATCH: reminder that "fragile" stickers are load-bearing infrastructure. respect the stickers.
+IPS-N DISPATCH: convoy 12 delayed at the Karrak checkpoint. the toll went up. it always goes up when we're already moving.
+IPS-N DISPATCH: someone shipped a piano to a station with no gravity floor rated for a piano. the piano is now a hazard. the piano is now everyone's problem.
+IPS-N DISPATCH: hauler *Halcyon's Debt* confirms the captain is alive. she was asleep in the cargo netting. she says it's "the best bed on the ship."
+IPS-N DISPATCH: end of quarter. numbers are green. numbers are lies but they are green lies and green is what management reads.
+IPS-N DISPATCH: crate 19 update — the blue was dye. the "textiles" were real. the dye was not on the manifest. fined the shipper. kept the dye.
+IPS-N DISPATCH: reminder — the outer marches do not have a lost and found. whatever you drop out there is gone, or worse, found.
+IPS-N DISPATCH: pilot requesting a route that "skips customs." there is no such route. there is only the route where you get caught later.
+IPS-N DISPATCH: *Marrow Line* pay dispute resolved. the "−0" was a rounding error the size of a paycheck. corrected. barely.
+IPS-N DISPATCH: manifest 74-C — 1 crate, 1 tonne, contents "personal effects." personal effects do not hum. holding for inspection.
+IPS-N DISPATCH: the Deck 3 coffee machine has been unplugged and moved to storage. it is still on. we are not discussing it.
+IPS-N DISPATCH: reminder that Bay 9 is rated for mechs, Bay 10 is rated for mechs, and the corridor between them is rated for exactly one careful mech at a time.
+IPS-N DISPATCH: convoy 12 through the checkpoint. paid the toll. filed the complaint. nobody reads the complaints. we file them anyway.
+IPS-N DISPATCH: the piano has been secured. the pianist has not been located. shipping the piano onward. the buyer can find their own pianist.
+IPS-N DISPATCH: manifest 74-C cleared. the humming crate was a beehive. licensed apiary transfer. bees are fine. inspector is shaken.
+IPS-N DISPATCH: shift note — three haulers in, two out, one "circling." get the circling one a dock before the crew starts naming the stars.
+IPS-N DISPATCH: reminder — you are paid to move the box. you are not paid to wonder about the box. wondering about the box is unpaid overtime.
+IPS-N DISPATCH: *Quietly Profitable* out of drydock. soft spot welded. captain wants it noted that she "told them so." it is noted.
+IPS-N DISPATCH: audit season. every discrepancy under 5 units is "shrinkage." every discrepancy over 5 units is "a meeting."
+IPS-N DISPATCH: someone returned the coat rack. we did not know it was on loan. we did not know it was a coat rack to anyone but us.
+IPS-N DISPATCH: hauler *Barmetal Sunrise* reports a full hold, a happy crew, and an on-time arrival. logging it. framing it. showing it to the others.
+IPS-N DISPATCH: the frontier convoy made it back. two days late, as promised. everyone accounted for. the water ran out on the last day. add three days next time.
+IPS-N DISPATCH: manifest 80-A — a coffin. properly documented. properly sealed. respectfully handled. we do that one right, every time.
+IPS-N DISPATCH: reminder that the emergency airlock is for emergencies and the shortcut to Bay 6 is not an emergency.
+IPS-N DISPATCH: Morale Officer (cat) has knocked the entire pen cup off my console for the fourth time today. morale is, somehow, up.
+IPS-N DISPATCH: new hire orientation, Bay 1, 0800. bring gloves. bring patience. do not bring opinions about how the last place did it.
+IPS-N DISPATCH: convoy schedule for the cycle posted. it will change. it always changes. print it anyway so you have something to be wrong about.
+IPS-N DISPATCH: crate flagged "DO NOT STACK" was found under four other crates. the four other crates are fine. the flagged one is now art.
+IPS-N DISPATCH: reminder — a manifest with no errors has not been checked yet.
+IPS-N DISPATCH: the *Halcyon's Debt* captain has requested a permanent transfer to the cargo netting. request denied. request understood.
+IPS-N DISPATCH: fuel came back down a fraction. someone at accounting cheered. one person. it echoed.
+IPS-N DISPATCH: shipment of surveying drones to the far marches — half the order. the other half is "pending clearance." pending is where orders go to think about what they've done.
+IPS-N DISPATCH: reminder that the outer relays run on a schedule set forty years ago by someone who has since retired to a planet with weather.
+IPS-N DISPATCH: manifest 85-F — "assorted salvage." assorted salvage from where. the where is blank. the where is always blank on the good ones.
+IPS-N DISPATCH: dock 4 racing has resumed. we have installed a speed bump. they are now jumping the speed bump. escalating to a wall.
+IPS-N DISPATCH: the beehive crate reached its buyer. buyer is delighted. inspector has requested time off. both outcomes valid.
+IPS-N DISPATCH: end of cycle. the freight moved. the crews are tired. the coffee machine is still on in storage. nominal.
+IPS-N DISPATCH: reminder — we don't ask what's in the sealed ones for the government. we log the weight, we log the seal, we look away. it pays better that way.
+IPS-N DISPATCH: hauler *Second Mortgage* has renamed itself *First Mortgage* after a "very good quarter." congratulations to the crew and the cat.
+IPS-N DISPATCH: convoy to the thin edge is loading now. long haul, little company, worse comms the further out you go. volunteers only. bring a book.
+IPS-N DISPATCH: manifest 90-A — a piano. a different piano. we are not doing this again. rejecting on the grounds of "we remember."
+IPS-N DISPATCH: someone taught the Morale Officer to open the ration cabinet. we are now short on ration bars and long on a smug cat.
+IPS-N DISPATCH: reminder that "urgent" on a manifest means the client is in a hurry, not that physics is. it still takes as long as it takes.
+IPS-N DISPATCH: *Barmetal Sunrise* on another clean run. we are beginning to suspect that ship is just well-managed. unsettling. under review.
+IPS-N DISPATCH: the salvage with the blank origin field has been quarantined pending questions nobody wants to be the one to ask.
+IPS-N DISPATCH: shift change. hand over the clipboard, the codes, and the grudges. all three transfer.
+IPS-N DISPATCH: reminder — the frontier does not forgive a sloppy manifest, a short water ration, or a crew that stops talking to each other. pack all three carefully.
+IPS-N DISPATCH: coffee's cold. export's clean. crew's home. good enough.

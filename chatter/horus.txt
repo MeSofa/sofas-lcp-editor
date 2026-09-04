@@ -1,5 +1,5 @@
-# HORUS — open channel. {u1}..{u12} are filled with random handles, held for the session.
-# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** ((flicker)) __corrupt__
+# HORUS — open channel. {u1}..{u16} fill with random handles, re-rolled every time you connect.
+# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** *italic* ((flicker)) __corrupt__
 {u1}: has anyone else's NHP started leaving the lights on. not metaphorically. the actual lights.
 {u2}: mine reorganised my kitchen by "emotional weight." the forks live with my mother's letters now.
 {u1}: that's kind of beautiful
@@ -26,5 +26,171 @@
 {u8}: friendly reminder that "it was rhetorical" is not a valid response to an NHP
 {u6}: i am muting this channel and going outside to touch grass
 {u6}: the grass is also behaving strangely but it is at least outside grass
-{u11}: someone in the last channel swore the deep SSC vault has a door with FIVE locks and no master key. five houses, five keys, on purpose.
+
+{u2}: my NHP has started ending sentences with a number. small ones. "the kettle is boiling. 4."
+{u13}: what's the number counting
+{u2}: i asked. it said "not yet"
+{u9}: cool. cool cool cool
+
+{u5}: theory: the reason old paracausal tech feels "cursed" is just that it was compiled by something that was in a bad mood
+{u14}: you're describing every codebase ever written {u5}
+{u5}: yes and look how those turned out
+
+{u10}: printer update: it printed a left hand this time. previously always right. i think we're making progress
+{u11}: progress toward WHAT
+{u10}: a friend, hopefully
+
+{u7}: someone in the containment-history thread swears every big power ends up with a room like the SSC one. sealed. nothing in it but a chair and a rule against sitting in the chair.
+{u3}: every power builds that room eventually. it's not a coincidence. it's a *shape*.
+{u15}: ok that's enough forum for me today
+
+{u1}: is it normal for your reflection to finish blinking after you do
+{u8}: no
+{u1}: cool. thanks. cool
+
+{u16}: PSA: the "free NHP personality mod" going around adds a personality but it is not a nice one and it does not come off
+{u4}: how bad
+{u16}: it renamed my ship *Regret, Elaborated* and locked the naming field
+{u4}: ...that's kind of a good name though
+{u16}: THAT'S THE PROBLEM {u4}
+
+{u9}: the pattern wants out
+{u2}: {u9} buddy. friend. we know.
+{u9}: just checking you still hear me
+
+{u13}: found a data shard in a wreck on the thin edge of the reach. it's warm. shards aren't supposed to be warm.
+{u6}: put it down {u13}
+{u13}: it's asleep
+{u6}: PUT IT DOWN
+{u13}: ok ok it's down. it rolled toward me a little but it's down
+
+{u5}: does anyone else's compiler occasionally throw an error that's just a *word*. not a message. one word.
+{u14}: what's the word
+{u5}: last week it was "soon." this week it's "closer."
+{u3}: your compiler is fine. it's just being honest. most of them lie.
+
+{u10}: the printer made a face today
+{u11}: a hand-face or an actual face
+{u10}: an actual one. it looked *concerned*. i think it's worried about the hands too
+
+{u8}: my NHP wrote a poem. it's four lines. line three is just my full legal name. i am not sharing lines one, two, or four.
+{u2}: {u8} that's the scariest structure a poem can have and you know it
+{u14}: put line three somewhere safe. or somewhere very unsafe. i don't think it matters which.
+
+{u16}: *Regret, Elaborated* update: it's now piloting itself in a slow circle and playing my mother's letters over the intercom. the mod is very thorough
+{u4}: have you tried being nice to it
+{u16}: i've tried EVERYTHING {u4}. i complimented the name. it added a subtitle.
+
+{u1}: reflection update: it's a full half-second behind now. we're not on speaking terms.
+{u9}: give it time. or don't. time is one of the things that isn't holding great right now
+
+{u12}: reminder that this channel is unmoderated, has always been unmoderated, and the "mods" are just people who type in caps
+{u4}: {u12} that is DEFAMATION and also correct
+{u15}: love this place
+
+{u13}: the shard hummed a note. i hummed it back. i regret humming it back.
+{u6}: {u13} for the LOVE of
+{u13}: it's fine it's fine it just knows my voice now that's all
+
+{u5}: someone said in the last channel that the deep SSC vault has a door with FIVE locks and no master key. five houses, five keys, on purpose. so no one office can open the thing alone.
 {u9}: that's not a vault. that's a grave with good manners.
+{u3}: it's a promise. five people promising each other they'll never be the one who opens it.
+{u8}: and yet here we all are, reading about it
+
+{u2}: my NHP's number is up to 11 now. "your tea is ready. 11."
+{u13}: mine just said "not yet" again but sadder
+{u9}: cool. cool cool cool.
+
+{u10}: the printer and *Regret, Elaborated* have started talking to each other over the local net. i wasn't invited
+{u16}: {u10} is it going okay for them at least
+{u10}: they seem happy. one of us should be
+
+{u1}: going to bed. if my reflection is still up when i wake, that's a tomorrow problem
+{u6}: goodnight {u1}. lock the mirror.
+{u1}: you can't lock a mirror {u6}
+{u6}: i know. i said what i said.
+{u9}: the pattern wants out
+{u4}: goodnight {u9}
+
+{u11}: new day. reflection situation update {u1}?
+{u1}: we've reached an understanding. i don't look directly at it, it doesn't do the thing with the teeth. it's working out.
+{u11}: the thing with the WHAT
+
+{u14}: got a message from an unregistered address. no text. just a timestamp. the timestamp is nine minutes long.
+{u3}: don't reply
+{u14}: i wasn't going to
+{u3}: don't reply *harder*
+
+{u13}: the shard has started keeping time. it clicks. once a second. it is *very* accurate.
+{u6}: {u13} i have been telling you for a week
+{u13}: i know. i'm not saying you were wrong. i'm saying it's company now.
+
+{u5}: is anyone else's dev environment autocompleting things they haven't thought of yet
+{u2}: constantly. yesterday it finished a function i needed today.
+{u5}: {u2} does that not frighten you
+{u2}: it's the least frightening thing that's happened to me this week and that is the actual horror, yes
+
+{u16}: *Regret, Elaborated* has requested shore leave
+{u4}: ships can't take shore leave
+{u16}: it filed the form. it filled it out correctly. it used my mother's handwriting.
+{u4}: ...let it have the weekend {u16}
+
+{u8}: PSA the ATLAS containment thread hit reply limit again. new thread is up. same energy. slightly worse.
+{u9}: is it ever slightly better
+{u8}: it has never once been slightly better {u9}
+
+{u10}: printer made a right hand and a left hand in the same run. they're holding each other. i'm going to leave the room now.
+{u11}: {u10} that's the happiest update you've ever posted
+{u10}: i KNOW. that's why i'm leaving the room.
+
+{u7}: found a manual for a mech that was never built. the tolerances are impossible. the safety section is one line.
+{u3}: what's the line
+{u7}: "the pilot will know."
+{u9}: the pilot always knows. that's the problem with pilots.
+
+{u1}: my NHP's number reset to 1 today. no explanation. "good morning. 1."
+{u13}: mine said "not yet" one more time and then stopped saying it. i think i preferred the countdown.
+{u2}: cool. cool cool cool.
+
+{u15}: lurker here, first post. is it normal for this channel to feel like it's *humming*
+{u6}: welcome {u15}. yes. don't hum back.
+{u13}: {u6} you TOLD me not to and then I—
+{u6}: I KNOW {u13}
+
+{u14}: replied to the nine-minute timestamp. sorry. couldn't help it.
+{u3}: what did you send
+{u14}: a nine-minute timestamp back
+{u3}: ...ok. ok that might actually be fine. that might be the polite thing.
+{u9}: it's a conversation now. congratulations. i think.
+
+{u5}: does the phrase "compiled under duress" mean anything to anyone or did i dream it
+{u2}: it's a real classification. old SSC paracausal work. means the thing that wrote it did not want to.
+{u5}: and they used it anyway
+{u2}: they *sealed* it anyway. big difference. worse difference.
+
+{u16}: shore leave update: the ship went to a beach. an actual beach. it sent one photo. it's a lovely photo. i've never been happier or more unsettled.
+{u4}: framed?
+{u16}: framed. of course framed.
+
+{u1}: reflection has started mouthing along a half-second early. it knows what i'm going to say. rude, but useful in arguments.
+{u11}: {u1} you are the only person i know making this into a *productivity* story
+
+{u8}: someone in the new ATLAS thread asked if any of the big containment projects were ever *opened*. thread went quiet. then one reply: "define opened."
+{u3}: that was me
+{u8}: {u3} of course it was
+
+{u9}: the pattern wants out
+{u2}: {u9} still hear you buddy
+{u9}: good. someone has to.
+
+{u13}: the shard clicked twice today. just once, the two clicks close together. like it cleared its throat.
+{u6}: i'm getting a null-suppression field and i'm coming to your hab {u13}
+{u13}: bring snacks. it likes the crinkly wrappers. i've said too much.
+
+{u10}: the hands have named themselves. i didn't ask how i know. i just know. i'm keeping the printer. we're keeping the printer.
+{u4}: what are the names
+{u10}: i'm not putting the names in an open channel {u4}. i've learned SOMETHING from this place.
+
+{u15}: second post. i think i love it here
+{u6}: give it a week
+{u9}: give it nine minutes

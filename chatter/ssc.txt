@@ -1,5 +1,5 @@
 # Smith-Shimano Corpro — internal band. Constellar Congress, userscan, the Trench.
-# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** ((flicker)) __corrupt__
+# one line per line. blank lines and #comments ignored. effects: [[glitch]] ~~redact~~ **hot** *italic* ((flicker)) __corrupt__
 SSC NET: userscan has re-classified you as "aspirational." congratulations. your feed is now 8% more expensive.
 SSC NET: the Congress has reviewed your aesthetic submission. the Congress has notes. the notes are also, in their way, art.
 SSC NET: profile update — subject purchases exclusively in greyscale. subject is grieving, or a genius. monetise both.
@@ -13,3 +13,76 @@ SSC NET: the Congress voted. the vote was unanimous. the Congress is always unan
 SSC NET: your loadout is technically functional and spiritually bankrupt. book a consultation.
 SSC NET: profiling note — whatever it was you did not want us to see, we have already turned it into a colourway.
 SSC NET: the Trench does not forgive an unpolished silhouette. neither, apparently, does your case officer.
+SSC NET: the season's colour has been decided. it is a specific grief. samples on request.
+SSC NET: userscan flagged you for "authenticity." we've corrected it. you're welcome.
+SSC NET: a competitor's line was described as "brave." we have not spoken to them since. bravery is a *tell*.
+SSC NET: the Congress convened for eleven hours to approve a font. the font is beautiful. the font took eleven hours. both true.
+SSC NET: profile: subject cried at an advertisement. subject did not buy the product. userscan cannot decide if this is a failure or the highest art.
+SSC NET: reminder that every mirror in the Trench is also a lens. smile like someone is watching, because someone is, and it's us.
+SSC NET: your rival wore last season. we all saw. we are all being *so* kind about it.
+SSC NET: the archive's unlit wing requisitioned nothing this quarter except air scrubbers and time. userscan has stopped asking.
+SSC NET: darling the *cut* of that chassis. weep. I did.
+SSC NET: userscan tag added: "buys flowers for no one." cross-referencing with "leaves early." a portrait is forming.
+SSC NET: the Congress has ruled that the Congress's rulings are, themselves, a form of couture. appeal denied, gorgeously.
+SSC NET: profiling note — subject's search history is a novel. a *sad* one. we've optioned the rights.
+SSC NET: reminder: in the Trench, "how are you" is a diagnostic and "fine" is a data point.
+SSC NET: a Congress designer resigned over a hemline. the hemline stayed. the designer is on a beach now, styled by no one, presumed feral.
+SSC NET: userscan sentiment: the city is 3% more lonely this week. adjusting the ad rotation to be *warmer*. warmer is a price point.
+SSC NET: your case officer left a note on your last loadout. the note is one word. the word is "hmm." meditate on the "hmm."
+SSC NET: the windowless wing has requested that the corridor lights outside it be dimmed by 40%. request granted. no one wanted to be the one who said no.
+SSC NET: darling if you have to explain the silhouette, the silhouette has failed, and so, gently, have you.
+SSC NET: profile update — subject has begun buying in colour again. userscan flags this as either recovery or a *phase*. monitoring, tenderly.
+SSC NET: the Congress reviewed a citizen complaint. the complaint has been reframed as feedback, then as inspiration, then as a scarf.
+SSC NET: reminder that the Trench remembers what you wore to every funeral. it is building something with that.
+SSC NET: userscan tag: "stands where the light doesn't reach at parties." recurring across four unrelated subjects. opening a study.
+SSC NET: a Congress attaché asked to see the full staffing list for Sublevel Archive C. the attaché is now the full staffing list for Sublevel Archive C.
+SSC NET: your loadout photographs well and fights badly. in the Trench that is a *choice*, and it's the right one.
+SSC NET: the season's silhouette is "restraint." this is a joke the Congress is playing on itself. wear it anyway.
+SSC NET: profiling note — subject tips well, apologises to machines, and never finishes a drink. userscan is a little in love. escalating to marketing.
+SSC NET: reminder that in the Trench you are never *lost*, you are *between styles*.
+SSC NET: userscan detected an unpolished thought in your public feed. we've buffed it. it shines now. it means nothing now. perfect.
+SSC NET: the Congress has decreed that the colour of mourning shall change quarterly, to keep it *fresh*.
+SSC NET: darling that pilot suit has no story. a suit without a story is just fabric being loud.
+SSC NET: profile: subject re-reads old messages at 2am. userscan has a product for that. userscan has a product for everything. that's the point of userscan.
+SSC NET: the unlit wing's power draw spiked last night and then flatlined for exactly nine minutes. the log has been reclassified as "ambience."
+SSC NET: reminder: you cannot be overdressed in the Trench. you can only be *underprepared for the attention*.
+SSC NET: userscan sentiment on the new frame line: "want" (↑↑), "afford" (↓↓). the gap between those two is the whole business model. cherish it.
+SSC NET: a Congress vote passed on the definition of "chic." the definition is nine pages. page four is a painting.
+SSC NET: profiling note — subject stood at the edge of the ballroom for the entire gala, coat on, and left before the last song. userscan keeps the file open. some portraits take years.
+SSC NET: your case officer has upgraded the "hmm" to a "well." this is progress. this is, in fact, everything.
+SSC NET: reminder that the most surveilled person in the Trench is the one who thinks they've dressed to disappear.
+SSC NET: the Congress has approved a scent for the corporate lobby. the scent is "expensive regret." focus groups wept. sales up.
+SSC NET: userscan tag retired: "aspirational." you've arrived. your feed is now *aggressively* priced.
+SSC NET: profile update — subject bought flowers. for themselves. userscan does not know what to do with joy that spends money correctly. flagging for study.
+SSC NET: darling the whole *point* of the Trench is that everyone is looking. the tragedy is the ones who forget to look back.
+SSC NET: the Congress adjourned. the vote was unanimous. it is always unanimous. write that on my headstone, beautifully.
+SSC NET: userscan flagged a citizen for "wearing the same coat twice in one week." we reached out with concern. the concern was also an ad.
+SSC NET: the Congress spent a session debating whether beige is a betrayal. the ruling runs to six pages. the ruling is, itself, beige.
+SSC NET: profile — subject keeps a plant alive on a windowsill and talks to it. userscan has never seen a stronger signal and cannot say of what.
+SSC NET: darling if your loadout has to *shout*, your loadout has nothing to say.
+SSC NET: reminder that the Trench does not have weather, it has *lighting*, and the lighting has an agenda.
+SSC NET: userscan sentiment: the district is quietly proud this week. we're pricing "quiet pride" at a premium. it doesn't come around often.
+SSC NET: a Congress aesthetician retired. her replacement's first act was to un-retire the previous silhouette. the pendulum is also couture.
+SSC NET: profiling note — subject leaves one light on when they go out "so it looks like someone's home." userscan has forwarded this to three departments and a poet.
+SSC NET: your rival unveiled a line called *Sincerity*. we are watching to see if it's a bit. everything in the Trench is eventually a bit.
+SSC NET: the unlit wing filed a maintenance request for "the humidity." there is no listed humidity system in the unlit wing. the request was approved anyway. no notes.
+SSC NET: darling, a scar is a *story* and a covered scar is a *sequel*. choose your marketing.
+SSC NET: userscan tag: "arrives last, leaves first, remembers every name." this subject is either a spy or extremely tired. the file has both boxes ticked.
+SSC NET: the Congress has approved an official corporate silence, four seconds long, to be observed before all product launches. it tested *beautifully*.
+SSC NET: profile update — subject stopped buying black. userscan is treating this as a recovery until proven otherwise, which is generous of us.
+SSC NET: reminder: in the Trench, "you look well" means we have your data and "you look *rested*" means we are worried.
+SSC NET: a citizen asked to opt out of userscan. we have opted them into a *support tier* instead. the support tier is userscan with a warmer font.
+SSC NET: the season's accessory is a small mirror worn at the collar, "so the city can see itself in you." sales are unsettlingly strong.
+SSC NET: profiling note — subject reads the ends of books first. userscan has flagged this as "wants to know how it goes before committing." we have a frame line for that feeling. it's expensive.
+SSC NET: the Congress convened over a rumour that a rival's founder wears the *same outfit every day*. the Congress adjourned shaken. the rumour is being verified. tenderly.
+SSC NET: darling the point of a gala is not to be seen arriving. it's to be *missed* when you go.
+SSC NET: userscan detected genuine spontaneous laughter in Sector 9 last night. we've triangulated the joke. we're workshopping it for the spring campaign.
+SSC NET: reminder that the unlit wing does not appear on the evacuation map. in an emergency, citizen, you would not have gone there anyway.
+SSC NET: profile — subject buys two of everything they love "in case." userscan has never closed this file. we don't want to.
+SSC NET: the Congress has decreed that grief may now be *seasonal*, like the colour, so that no one has to carry last year's into this one.
+SSC NET: your case officer has escalated the "well" to a full sentence. the sentence is "I see what you were going for." meditate on *that* for a decade.
+SSC NET: userscan sentiment on the frontier line: "aspirational" among those who'll never see the frontier, "logistical" among those who will. we sell to the first group.
+SSC NET: profiling note — subject apologised to a door for walking into it. userscan flags: kind, distractible, *watched*. always watched. that's the tag that never comes off.
+SSC NET: the unlit wing went dark for exactly nine minutes again last night. the same nine minutes. the log now just says "as expected."
+SSC NET: darling, restraint is the loudest thing you can wear, provided everyone knows how much you could have worn instead.
+SSC NET: reminder — the Trench watches. make it worth watching.
