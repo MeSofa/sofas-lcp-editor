@@ -25,7 +25,7 @@ systems, weapon mods.
 **Pilot data** — CORE bonuses, talents, skill triggers, backgrounds, reserves,
 pilot gear, bonds.
 **NPC data** — classes (tiered stats), templates, features (trait / system /
-reaction / tech / weapon), factions.
+reaction / tech / weapon), factions, Eidolons (layered).
 **Other** — environments, SITREPs, statuses & conditions, rollable tables, name
 lists, custom stats, custom tags.
 **Reference** — base actions, glossary entries, rules-constant overrides.
@@ -52,7 +52,7 @@ faint glitch.
 ## Not yet supported
 
 Weapon profiles and ammo lists, integrated / special-equipment selectors, the
-richer Active Effects objects, license-collection bundles, Eidolons. Fields on
+richer Active Effects objects, license-collection bundles. Fields on
 categories that *are* covered round-trip untouched on import; an entirely
 unknown file is dropped on re-export.
 

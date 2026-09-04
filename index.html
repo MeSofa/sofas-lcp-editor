@@ -10,6 +10,7 @@
 <meta property="og:description" content="Build Lancer Content Packs for COMP/CON in the browser — every category, per-field help, full NPC support." />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
+<!-- SSC // PARACAUSAL DIVISION // clearance: name the bloom that grows facing the wall, kept from the sun -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -258,6 +259,41 @@
   #lcp-forge[data-motion="off"] .home-bg-inner .glitch::before,
   #lcp-forge[data-motion="off"] .home-bg-inner .glitch::after { display: none; }
 
+  /* eidolon vault (locked-state briefing) */
+  .lf-nav .nav-item.locked { font-style: italic; opacity: .75; }
+  .lf-nav .nav-item.locked .lk { font-style: normal; opacity: .6; margin-right: .15rem; }
+  .vault { max-width: 660px; margin: 1.5rem auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .vault .doc {
+    border: 1px solid var(--line); background: var(--panel); padding: 1.5rem 1.7rem; font-size: .9rem;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+  }
+  .vault .doc p { margin: 0 0 .9rem; line-height: 2; }
+  .vault .doc .hd { color: var(--accent); letter-spacing: .05em; border-bottom: 1px solid var(--line); padding-bottom: .6rem; }
+  .vault .redact {
+    background: var(--text); color: transparent; border-radius: 1px; padding: 0 .15em; user-select: none;
+    box-decoration-break: clone; -webkit-box-decoration-break: clone;
+  }
+  .vault.revealing .redact { animation: unredact .55s ease forwards; }
+  .vault.revealing .doc p:nth-child(2) .redact { animation-delay: .05s }
+  .vault.revealing .doc p:nth-child(3) .redact { animation-delay: .15s }
+  .vault.revealing .doc p:nth-child(4) .redact { animation-delay: .28s }
+  .vault.revealing .doc p:nth-child(5) .redact { animation-delay: .42s }
+  .vault.revealing .doc p:nth-child(6) .redact { animation-delay: .55s }
+  @keyframes unredact { to { background: transparent; color: var(--muted); } }
+  .vault .prompt { display: flex; align-items: center; gap: .7rem; margin-top: 1.5rem; }
+  .vault .prompt label { color: var(--accent); white-space: nowrap; }
+  .vault .prompt input {
+    flex: 1; background: transparent; border: 0; border-bottom: 1px solid var(--line);
+    color: var(--text); font: inherit; padding: .35rem 0; border-radius: 0;
+  }
+  .vault .prompt input:focus { outline: none; border-bottom-color: var(--accent); }
+  .vault .status { margin-top: .9rem; min-height: 1.3em; font-size: .82rem; color: var(--danger); letter-spacing: .03em; }
+  .vault.revealing .status { color: var(--accent); }
+  .vault.denied .doc { animation: vault-shake .34s; }
+  @keyframes vault-shake { 0%,100%{transform:none} 20%{transform:translateX(-6px)} 60%{transform:translateX(5px)} 80%{transform:translateX(-2px)} }
+  #lcp-forge[data-motion="off"] .vault.revealing .redact { animation: none; background: transparent; color: var(--muted); }
+  #lcp-forge[data-motion="off"] .vault.denied .doc { animation: none; }
+
   /* modal transition */
   .m-enter-active, .m-leave-active { transition: opacity .14s ease; }
   .m-enter-active .modal, .m-leave-active .modal { transition: transform .14s ease; }
@@ -464,9 +500,11 @@
             <span class="g-count">{{ groupCount(g) }}</span>
           </div>
           <template v-if="openGroup===g">
-            <button class="nav-item" v-for="t in groupTabs(g)" :key="t.id" :class="{active: tab===t.id}" @click="tab=t.id">
-              <span>{{ t.label }}</span>
-              <span v-if="t.key" class="count">{{ (lcp[t.key]||[]).length }}</span>
+            <button class="nav-item" v-for="t in groupTabs(g)" :key="t.id"
+              :class="{active: tab===t.id, locked: t.id==='eidolons' && !clearance}" @click="tab=t.id">
+              <span v-if="t.id==='eidolons' && !clearance"><span class="lk">▨</span> ███████</span>
+              <span v-else>{{ t.label }}</span>
+              <span v-if="t.key && !(t.id==='eidolons' && !clearance)" class="count">{{ (lcp[t.key]||[]).length }}</span>
             </button>
           </template>
         </template>
@@ -841,6 +879,39 @@
             @open="i => openEdit('factions', i)" @clone="i => cloneItem('factions', i)" @remove="i => removeItem('factions', i)">
             <template #add><button class="btn primary" @click="push('factions', blankFaction())">+ Faction</button></template>
           </cat-list>
+        </section>
+
+        <!-- ============ EIDOLONS ============ -->
+        <section v-show="tab==='eidolons'">
+          <template v-if="clearance">
+            <h2>Eidolons <span class="pill">eidolons.json</span></h2>
+            <p v-if="lcp.eidolons.length" class="lf-note">Layered paracausal war-machines. Each layer is peeled as the Eidolon takes damage — give each its own statblock and feature ids (drawn from NPC Features).</p>
+            <div v-if="!lcp.eidolons.length" class="empty"><span class="empty-ico" v-html="factionGlyph"></span><strong>Clearance granted — no Eidolons yet</strong><br>Each is a stack of layers, and each layer is its own statblock.</div>
+            <cat-list :items="lcp.eidolons" noun="Eidolon" :title="x => x.name || x.id || 'Untitled Eidolon'"
+              :meta="x => (x.layers||[]).length + ' layer' + ((x.layers||[]).length === 1 ? '' : 's')"
+              @open="i => openEdit('eidolons', i)" @clone="i => cloneItem('eidolons', i)" @remove="i => removeItem('eidolons', i)">
+              <template #add><button class="btn primary" @click="push('eidolons', blankEidolon())">+ Eidolon</button></template>
+            </cat-list>
+            <p class="lf-note" style="font-size:.8rem; margin-top:1rem">Clearance is stored in this browser only. <a href="#" @click.prevent="revokeClearance">Revoke it</a>.</p>
+          </template>
+          <template v-else>
+            <div class="vault" :class="{ revealing: eidolonRevealing, denied: eidolonShake }">
+              <div class="doc">
+                <p class="hd">SSC INTERNAL // PARACAUSAL CONTAINMENT // EYES ONLY</p>
+                <p><span class="redact">Authorization</span> withheld. The <span class="redact">deep archive</span> stays <span class="redact">sealed by order of</span> the Division.</p>
+                <p>Personnel are reminded that <span class="redact">the program's</span> designation is <span class="redact">itself</span> classified, and is <span class="redact">not to be</span> spoken <span class="redact">outside a closed</span> room.</p>
+                <p>The schematics <span class="redact">are</span> real. The <span class="redact">threat</span> is <span class="redact">real</span>. What <span class="redact">we grew</span> needs no <span class="redact">sun</span>:</p>
+                <p>a <span class="redact">bloom</span> pressed <span class="redact">flat</span> to a wall, a flower <span class="redact">whose face is</span> turned <span class="redact">from the</span> light.</p>
+                <p>Say <span class="redact">the two words left standing</span>, joined, to proceed.</p>
+              </div>
+              <div class="prompt">
+                <label>&gt; AUTHORIZATION:</label>
+                <input type="text" v-model="eidolonInput" @keydown.enter="tryClearance" autocomplete="off" spellcheck="false" aria-label="clearance phrase" />
+                <button class="btn tiny" @click="tryClearance">Submit</button>
+              </div>
+              <div class="status">{{ eidolonStatus }}</div>
+            </div>
+          </template>
         </section>
 
         <!-- ============ BASE ACTIONS ============ -->
@@ -1572,6 +1643,28 @@
             <div class="lf-field"><label>Term <span class="req">*</span><help t="The word or phrase being defined, exactly as it appears in your rules text."/></label><input type="text" v-model="x.name" /></div>
             <div class="lf-field"><label>Description <span class="req">*</span><help t="The definition. HTML allowed."/></label><textarea v-model="x.description"></textarea></div>
           </template></template>
+          <template v-if="edit.key==='eidolons'"><template v-for="x in [editTarget]" :key="edit.idx">
+            <div class="lf-row">
+              <div class="lf-field"><label>ID <span class="req">*</span><help t="Globally unique, conventionally eid_ prefixed."/></label><input type="text" v-model="x.id" placeholder="eid_..." /></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="x.name" /></div>
+            </div>
+            <div class="lf-field"><label>Note <help t="Optional short GM-facing note."/></label><input type="text" v-model="x.note" /></div>
+            <div class="lf-field"><label>Flavor <help t="Compendium fluff text. HTML allowed."/></label><textarea v-model="x.flavor"></textarea></div>
+            <datalist id="eidfeatureids"><option v-for="f in lcp.npc_features" :key="f.id" :value="f.id">{{ f.name }}</option></datalist>
+            <h3>Layers <help t="Ordered outer-to-inner. As the Eidolon is defeated it sheds the current layer and the next takes over, with its own stats and features."/></h3>
+            <div v-for="(l,li) in x.layers" :key="li" class="lf-sub">
+              <div class="head"><span class="title">Layer {{ li+1 }} — {{ l.name || '(unnamed)' }}</span><button class="btn tiny danger" @click="x.layers.splice(li,1)">Remove</button></div>
+              <div class="lf-field"><label>Name <span class="req">*</span></label><input type="text" v-model="l.name" /></div>
+              <div class="lf-field"><label>Description <help t="What this layer does and how it behaves. HTML allowed."/></label><textarea v-model="l.description"></textarea></div>
+              <h4>Stats <help t="Flat values for this layer. Leave a field blank to omit it."/></h4>
+              <div class="lf-stats">
+                <div class="lf-field" v-for="sf in eidolonStatFields" :key="sf[0]"><label style="font-size:.78rem">{{ sf[1] }}</label><input type="text" v-model="l._stats[sf[0]]" /></div>
+              </div>
+              <div class="lf-field"><label>Feature IDs <help t="Comma-separated NPC Feature ids that make up this layer."/></label><input type="text" list="eidfeatureids" v-model="l._features" placeholder="npcf_..., npcf_..." /></div>
+              <div class="lf-field"><label>Optional feature IDs <help t="Comma-separated. Optional picks for this layer."/></label><input type="text" list="eidfeatureids" v-model="l._optional" placeholder="npcf_..." /></div>
+            </div>
+            <button class="btn tiny" @click="x.layers.push(blankEidolonLayer())">+ Layer</button>
+          </template></template>
           </div>
           <div class="modal-foot">
             <span class="grow" style="flex:1;color:var(--muted);font-size:.8rem">Esc, or click outside, to close</span>
@@ -1608,6 +1701,7 @@
       <label><input type="checkbox" v-model="settings.chatter" /> Home background chatter <help t="A faint scrolling feed of in-universe comms behind the Home screen, like COMP/CON. Lines change with the theme."/></label>
       <label><input type="checkbox" v-model="settings.motion" /> Animations <help t="Off = no scrolling chatter, no modal transitions."/></label>
     </div>
+    <p v-if="clearance" style="margin:.7rem 0 0"><button class="btn tiny" @click="revokeClearance">Revoke Eidolon clearance</button></p>
     <p class="lf-note" style="font-size:.8rem; margin:.6rem 0 0">Saved in this browser only — never written to the pack.</p>
   </div>
 </div>
@@ -1870,6 +1964,18 @@ const loadDraft = () => {
     return (d && d.lcp && typeof d.lcp === 'object') ? d : null;
   } catch (e) { return null; }
 };
+
+/* Eidolon clearance. Client-side only — this keeps the editor out of sight, it
+   is NOT access control. Hash is SHA-256 of the phrase, lowercased with every
+   non-alphanumeric stripped. */
+const CLEARANCE_KEY = 'sofa-lcp-clearance';
+const EIDOLON_HASH = 'f9907facc0b323f57a0fac82ab9311963cfdc60519dcb9284ce209e7931a00c9';
+const normPhrase = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
+async function sha256Hex(s) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
+}
+const hasClearance = () => { try { return localStorage.getItem(CLEARANCE_KEY) === EIDOLON_HASH; } catch (e) { return false; } };
 
 /* =========================================================================
    Shared sub-editors (registered globally near the bottom)
@@ -2397,12 +2503,16 @@ const blankGlossary = () => ({ name:'', description:'' });
 const blankFaction = () => ({ id:'', name:'', description:'', color:'' });
 const blankAction = () => ({ id:'', name:'', activation:'Quick', terse:'', detail:'', pilot:false, mech:true, hide_active:false });
 const blankRule = () => ({ k:'', v:'' });
+const blankEidolonLayer = () => ({ name:'', description:'',
+  _stats:{ hp:'', armor:'', evasion:'', edef:'', heatcap:'', speed:'', size:'', sensor_range:'', save:'', activations:'' },
+  _features:'', _optional:'' });
+const blankEidolon = () => ({ id:'', name:'', note:'', flavor:'', layers:[blankEidolonLayer()] });
 
 const freshLcp = () => ({
   lcp_manifest: blankManifest(),
   manufacturers: [], frames: [], weapons: [], systems: [], mods: [],
   core_bonuses: [], talents: [], skills: [], backgrounds: [], reserves: [], pilot_gear: [], bonds: [],
-  npc_classes: [], npc_templates: [], npc_features: [], factions: [],
+  npc_classes: [], npc_templates: [], npc_features: [], factions: [], eidolons: [],
   environments: [], sitreps: [], statuses: [], tables: [], custom_stats: [],
   actions: [], glossary: [],
   _lists: blankLists(), _rules: [],
@@ -2410,7 +2520,7 @@ const freshLcp = () => ({
 });
 
 const ALL_CATEGORIES = ['manufacturers','frames','weapons','systems','mods','core_bonuses','talents','skills',
-  'backgrounds','reserves','pilot_gear','bonds','npc_classes','npc_templates','npc_features','factions',
+  'backgrounds','reserves','pilot_gear','bonds','npc_classes','npc_templates','npc_features','factions','eidolons',
   'environments','sitreps','statuses','tables','actions','glossary','custom_stats','tags'];
 
 /* =========================================================================
@@ -2516,6 +2626,10 @@ const app = createApp({
       draftRestored: !!draft,
       draftAt: draft ? draft.at : 0,
       draftBailed: (() => { try { const v = sessionStorage.getItem('lcp-draft-bailed'); if (v) sessionStorage.removeItem('lcp-draft-bailed'); return !!v; } catch (e) { return false; } })(),
+      clearance: hasClearance(),
+      eidolonInput: '', eidolonStatus: '', eidolonRevealing: false, eidolonShake: false, eidolonTries: 0,
+      eidolonStatFields: [['hp','HP'],['armor','Armor'],['evasion','Evasion'],['edef','E-Def'],['heatcap','Heat Cap'],
+        ['speed','Speed'],['size','Size'],['sensor_range','Sensors'],['save','Save'],['activations','Activations']],
       lcp: draft ? { ...freshLcp(), ...draft.lcp } : freshLcp(),
       navGroups: ['Licensed data','Pilot data','NPC data','Other content','Reference'],
       tabs: [
@@ -2536,6 +2650,7 @@ const app = createApp({
         { id:'npc_templates', label:'NPC Templates', key:'npc_templates', group:'NPC data' },
         { id:'npc_features', label:'NPC Features', key:'npc_features', group:'NPC data' },
         { id:'factions', label:'Factions', key:'factions', group:'NPC data' },
+        { id:'eidolons', label:'Eidolons', key:'eidolons', group:'NPC data' },
         { id:'environments', label:'Environments', key:'environments', group:'Other content' },
         { id:'sitreps', label:'SITREPs', key:'sitreps', group:'Other content' },
         { id:'statuses', label:'Statuses', key:'statuses', group:'Other content' },
@@ -2834,6 +2949,12 @@ const app = createApp({
         if (!x.title) p.push(`Custom Stat ${x.key}: title is required.`);
       });
       this.lcp.factions.forEach(x => { track('Faction', x.id); if (!x.name) p.push(`Faction ${x.id||'?'}: name is required.`); });
+      this.lcp.eidolons.forEach(x => {
+        track('Eidolon', x.id);
+        if (!x.name) p.push(`Eidolon ${x.id||'?'}: name is required.`);
+        if (!(x.layers||[]).length) p.push(`Eidolon ${x.id||'?'}: needs at least one layer.`);
+        (x.layers||[]).forEach((l,li) => { if (!l.name) p.push(`Eidolon ${x.id||'?'} layer ${li+1}: name is required.`); });
+      });
       this.lcp.actions.forEach(x => {
         track('Base Action', x.id);
         if (!x.name || !x.detail) p.push(`Base Action ${x.id||'?'}: name and detail are required.`);
@@ -2863,7 +2984,7 @@ const app = createApp({
       const M = { manufacturers:'Manufacturer', frames:'Frame', weapons:'Weapon', systems:'System',
         mods:'Weapon Mod', core_bonuses:'CORE Bonus', talents:'Talent', skills:'Skill Trigger',
         backgrounds:'Background', reserves:'Reserve', pilot_gear:'Pilot Gear', bonds:'Bond',
-        npc_classes:'NPC Class', npc_templates:'NPC Template', npc_features:'NPC Feature', factions:'Faction',
+        npc_classes:'NPC Class', npc_templates:'NPC Template', npc_features:'NPC Feature', factions:'Faction', eidolons:'Eidolon',
         environments:'Environment', sitreps:'SITREP', statuses:'Status / Condition', tables:'Rollable Table',
         actions:'Base Action', glossary:'Glossary Entry',
         custom_stats:'Custom Stat', tags:'Custom Tag' };
@@ -2882,7 +3003,7 @@ const app = createApp({
     toggleNavGroup(g) { this.openGroup = this.openGroup === g ? null : g; },
     toggleNav() { this.navOpen = !this.navOpen; },
     groupTabs(g) { return this.tabs.filter(t => t.group === g); },
-    groupCount(g) { return this.tabs.reduce((n, t) => n + (t.group === g && t.key ? (this.lcp[t.key] || []).length : 0), 0); },
+    groupCount(g) { return this.tabs.reduce((n, t) => n + (t.group === g && t.key && !(t.id === 'eidolons' && !this.clearance) ? (this.lcp[t.key] || []).length : 0), 0); },
     setTheme(id) { this.settings.theme = id; },
     applySettings() {
       const el = document.getElementById('lcp-forge');
@@ -2947,7 +3068,34 @@ const app = createApp({
     blankCoreBonus, blankTalent, blankTalentRank, blankSkill, blankBackground, blankReserve, blankPilotGear,
     blankNpcClass, blankNpcTemplate, blankNpcFeature, blankMod, blankEnvironment, blankSitrep, blankStatus,
     blankTable, blankTableResult, blankCustomStat, blankBond, blankBondQuestion, blankBondPower,
-    blankFaction, blankAction, blankGlossary, blankRule,
+    blankFaction, blankAction, blankGlossary, blankRule, blankEidolon, blankEidolonLayer,
+    async tryClearance() {
+      if (!window.crypto || !crypto.subtle) { this.eidolonStatus = 'terminal offline — this page must be served over http(s)'; return; }
+      const ok = (await sha256Hex(normPhrase(this.eidolonInput))) === EIDOLON_HASH;
+      if (ok) {
+        this.eidolonStatus = 'AUTHORIZATION ACCEPTED · declassifying';
+        this.eidolonRevealing = true;
+        setTimeout(() => {
+          try { localStorage.setItem(CLEARANCE_KEY, EIDOLON_HASH); } catch (e) {}
+          this.clearance = true;
+          this.eidolonRevealing = false;
+          this.eidolonInput = ''; this.eidolonStatus = ''; this.eidolonTries = 0;
+        }, 1500);
+      } else {
+        this.eidolonTries++;
+        this.eidolonInput = '';
+        this.eidolonShake = true;
+        setTimeout(() => { this.eidolonShake = false; }, 400);
+        const m = ['ACCESS DENIED.', 'ACCESS DENIED · query logged.',
+          'ACCESS DENIED · this terminal is monitored.', 'ACCESS DENIED · persistence noted. walk away.'];
+        this.eidolonStatus = m[Math.min(this.eidolonTries - 1, m.length - 1)];
+      }
+    },
+    revokeClearance() {
+      try { localStorage.removeItem(CLEARANCE_KEY); } catch (e) {}
+      this.clearance = false;
+      this.eidolonStatus = '';
+    },
     npcFeatureName(id) { const f = this.lcp.npc_features.find(x => x.id === id); return f ? f.name : id; },
     removeItem(key, i) { this.lcp[key].splice(i, 1); },
     cloneItem(key, i) {
@@ -2976,7 +3124,8 @@ const app = createApp({
         'CORE Bonus':'core_bonuses', 'Talent':'talents', 'Skill':'skills', 'Background':'backgrounds', 'Reserve':'reserves',
         'Pilot Gear':'pilot_gear', 'Bond':'bonds', 'NPC Class':'npc_classes', 'NPC Template':'npc_templates',
         'NPC Feature':'npc_features', 'Environment':'environments', 'SITREP':'sitreps', 'Status':'statuses',
-        'Table':'tables', 'Custom Stat':'custom_stats', 'Tag':'tags', 'Faction':'factions', 'Base Action':'actions'
+        'Table':'tables', 'Custom Stat':'custom_stats', 'Tag':'tags', 'Faction':'factions', 'Base Action':'actions',
+        'Eidolon':'eidolons'
       };
       const dup = msg.match(/^Duplicate id "([^"]+)"/);
       if (dup) {
@@ -3200,6 +3349,18 @@ const app = createApp({
       const sitreps = this.lcp.sitreps.map(x => clean(x));
       const statuses = this.lcp.statuses.map(x => clean(x));
       const factions = this.lcp.factions.map(x => clean(x));
+      const eidolons = this.lcp.eidolons.map(e => clean({
+        id: e.id, name: e.name, note: e.note, flavor_text: e.flavor,
+        layers: (e.layers || []).map(l => {
+          const stats = {};
+          this.eidolonStatFields.forEach(([k]) => {
+            const v = (l._stats[k] ?? '').toString().trim();
+            if (v !== '') stats[k] = isNaN(v) ? v : Number(v);
+          });
+          return clean({ name: l.name, description: l.description, stats,
+            features: csv(l._features), optional_features: csv(l._optional) });
+        })
+      }));
       const glossary = this.lcp.glossary.map(x => clean({ name: x.name, description: x.description }));
       const actions = this.lcp.actions.map(x => clean({
         id: x.id, name: x.name, activation: x.activation, terse: x.terse, detail: x.detail,
@@ -3226,7 +3387,7 @@ const app = createApp({
       return {
         lcp_manifest: manifest, manufacturers, frames, weapons, systems, mods,
         core_bonuses, talents, skills, backgrounds, reserves, pilot_gear, bonds,
-        npc_classes, npc_templates, npc_features, factions,
+        npc_classes, npc_templates, npc_features, factions, eidolons,
         environments, sitreps, statuses, tables, actions, glossary, custom_stats, lists, rules, tags
       };
     },
@@ -3395,6 +3556,14 @@ const app = createApp({
         }));
         fresh.environments = (await read('environments.json')) || [];
         fresh.factions = ((await read('factions.json')) || []).map(x => ({ ...blankFaction(), ...x }));
+        fresh.eidolons = ((await read('eidolons.json')) || []).map(e => ({
+          ...blankEidolon(), id: e.id || '', name: e.name || '', note: e.note || '', flavor: e.flavor_text || e.flavor || '',
+          layers: (e.layers || []).map(l => ({
+            ...blankEidolonLayer(), name: l.name || '', description: l.description || '',
+            _stats: { ...blankEidolonLayer()._stats, ...(l.stats || {}) },
+            _features: (l.features || []).join(', '), _optional: (l.optional_features || []).join(', ')
+          }))
+        }));
         fresh.glossary = ((await read('glossary.json')) || []).map(x => ({ ...blankGlossary(), ...x }));
         fresh.actions = ((await read('actions.json')) || []).map(x => ({ ...blankAction(), ...x }));
         const rulesData = (await read('rules.json')) || {};
@@ -3422,6 +3591,7 @@ const app = createApp({
         this.edit = { key: null, idx: -1 };
         this.tab = 'home';
         this.draftRestored = false;
+        if (fresh.eidolons.length) { try { localStorage.setItem(CLEARANCE_KEY, EIDOLON_HASH); } catch (e) {} this.clearance = true; }
         alert('Loaded ' + file.name);
       } catch (err) {
         console.error(err);
