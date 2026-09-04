@@ -10,7 +10,7 @@
 <meta property="og:description" content="Build Lancer Content Packs for COMP/CON in the browser — every category, per-field help, full NPC support." />
 <meta property="og:type" content="website" />
 <meta name="twitter:card" content="summary" />
-<!-- SSC // PARACAUSAL DIVISION // clearance: name the bloom that grows facing the wall, kept from the sun -->
+<!-- PARACAUSAL CONTAINMENT // five seals, five books — each band remembers what its pilots read -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;600;700&display=swap" rel="stylesheet" />
@@ -281,10 +281,18 @@
   .vault .doc .hd { color: var(--accent); letter-spacing: .05em; border-bottom: 1px solid var(--line); padding-bottom: .6rem; }
   .vault .doc .fx-redact { background: var(--text); }
   .vault.revealing .fx-redact { animation: unredact .6s ease forwards; }
-  .vault.revealing .doc p:nth-child(3) .fx-redact { animation-delay: .12s }
-  .vault.revealing .doc p:nth-child(4) .fx-redact { animation-delay: .26s }
-  .vault.revealing .doc p:nth-child(5) .fx-redact { animation-delay: .4s }
   @keyframes unredact { to { background: transparent; color: var(--muted); } }
+  .vault .seals { margin: 1.2rem 0 .2rem; display: flex; flex-direction: column; gap: .3rem; }
+  .vault .seal {
+    display: flex; align-items: center; gap: .8rem; padding: .35rem .1rem; font-size: .82rem;
+    color: var(--muted); letter-spacing: .06em; border-bottom: 1px dashed var(--line);
+  }
+  .vault .seal .sig { color: var(--danger); letter-spacing: .1em; }
+  .vault .seal .band { flex: 1; }
+  .vault .seal .state { font-size: .72rem; opacity: .8; }
+  .vault .seal.open { color: var(--accent); }
+  .vault .seal.open .sig { color: var(--accent); }
+  .vault .seal.open .band { text-decoration: none; }
   .vault .prompt { display: flex; align-items: center; gap: .7rem; margin-top: 1.5rem; }
   .vault .prompt label { color: var(--accent); white-space: nowrap; }
   .vault .prompt input {
@@ -298,6 +306,41 @@
   @keyframes vault-shake { 0%,100%{transform:none} 20%{transform:translateX(-6px)} 60%{transform:translateX(5px)} 80%{transform:translateX(-2px)} }
   #lcp-forge[data-motion="off"] .vault.revealing .fx-redact { animation: none; background: transparent; color: var(--muted); }
   #lcp-forge[data-motion="off"] .vault.denied .doc { animation: none; }
+
+  /* comms window */
+  .pin-btn .comms-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-left: .4rem; }
+  .comms { max-width: 760px; margin: .5rem auto; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .comms-head {
+    display: flex; align-items: center; gap: .5rem; color: var(--accent); font-size: .85rem;
+    letter-spacing: .06em; border-bottom: 1px solid var(--line); padding-bottom: .6rem; margin-bottom: 1rem;
+  }
+  .comms-head .grow { flex: 1; }
+  .comms-head .conn-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: blink 1.4s step-end infinite; }
+  #lcp-forge[data-motion="off"] .comms-head .conn-dot { animation: none; }
+  .net-list { display: flex; flex-direction: column; gap: 2px; }
+  .net-row {
+    display: flex; align-items: center; gap: .9rem; width: 100%; text-align: left; cursor: pointer;
+    background: var(--panel); border: 1px solid var(--line); border-left: 3px solid var(--line);
+    color: var(--text); font: inherit; font-size: .88rem; padding: .7rem .9rem; border-radius: 6px;
+    transition: border-color .12s, background .12s;
+  }
+  .net-row:hover { border-color: var(--accent); border-left-color: var(--accent); background: var(--panel-2); }
+  .net-row .net-code { font-weight: 700; min-width: 84px; }
+  .net-row .net-band { color: var(--muted); letter-spacing: .05em; }
+  .net-row .net-band.unlisted { color: var(--danger); font-style: italic; }
+  .net-row .grow { flex: 1; }
+  .net-row .net-go { color: var(--muted); font-size: .82rem; }
+  .net-row:hover .net-go { color: var(--accent); }
+  .comms-feed {
+    margin: 0; font: inherit; font-size: .86rem; line-height: 1.9; color: var(--accent);
+    white-space: pre-wrap; word-break: break-word; min-height: 300px;
+    max-height: calc(100vh - 220px); overflow-y: auto;
+    border: 1px solid var(--line); border-radius: 6px; padding: 1rem 1.2rem; background: var(--panel);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 8%, #000 100%);
+    mask-image: linear-gradient(to bottom, transparent, #000 8%, #000 100%);
+  }
+  .comms-feed .cursor { animation: blink 1.05s step-end infinite; }
+  #lcp-forge[data-motion="off"] .comms-feed .cursor { animation: none; opacity: .6; }
 
   /* modal transition */
   .m-enter-active, .m-leave-active { transition: opacity .14s ease; }
@@ -497,6 +540,9 @@
         <button class="pin-btn" :class="{active: tab==='home'}" @click="tab='home'">
           <span class="ico">◈</span> Home
         </button>
+        <button class="pin-btn" :class="{active: tab==='comms'}" @click="tab='comms'">
+          <span class="ico">◍</span> Comms<span v-if="commsNet" class="comms-dot"></span>
+        </button>
       </div>
       <div class="nav-scroll">
         <template v-for="g in navGroups" :key="g">
@@ -632,6 +678,39 @@
               <span>{{ t.label }}</span><span class="n">{{ (lcp[t.key]||[]).length }}</span>
             </button>
           </div>
+          </div>
+        </section>
+
+        <!-- ============ COMMS ============ -->
+        <section v-show="tab==='comms'">
+          <div class="comms">
+            <template v-if="!commsNet && !commsConnecting">
+              <div class="comms-head">COMMS RELAY // SELECT BAND</div>
+              <p class="lf-note" style="font-size:.82rem">Open channels from across the sector. Connecting also switches the editor theme.</p>
+              <div class="net-list">
+                <button v-for="n in networks" :key="n.id" class="net-row" @click="connectNet(n.id)">
+                  <span class="net-code">{{ n.code }}</span>
+                  <span class="net-band" :class="{ unlisted: n.unlisted }">{{ n.band }}</span>
+                  <span class="grow"></span>
+                  <span class="net-go">{{ n.unlisted ? 'intercept' : 'connect' }} ›</span>
+                </button>
+              </div>
+            </template>
+            <template v-else-if="commsConnecting">
+              <div class="comms-head">— handshake —</div>
+              <pre class="comms-feed">establishing carrier...
+routing through {{ (networks.find(n => n.id === commsPending) || {}).code }} relay...
+<span class="cursor">▊</span></pre>
+            </template>
+            <template v-else>
+              <div class="comms-head">
+                <span>{{ (networks.find(n => n.id === commsNet) || {}).code }} // {{ (networks.find(n => n.id === commsNet) || {}).band }}</span>
+                <span class="grow"></span>
+                <span class="conn-dot"></span> live
+                <button class="btn tiny" style="margin-left:.8rem" @click="disconnectNet">disconnect</button>
+              </div>
+              <pre class="comms-feed" v-html="chatterHtml"></pre>
+            </template>
           </div>
         </section>
 
@@ -902,16 +981,22 @@
           <template v-else>
             <div class="vault" :class="{ revealing: eidolonRevealing, denied: eidolonShake }">
               <div class="doc">
-                <p class="hd">SSC INTERNAL // PARACAUSAL CONTAINMENT // EYES ONLY</p>
-                <p><span class="fx-redact">Authorization</span> withheld. The <span class="fx-redact">deep archive</span> stays <span class="fx-redact">sealed by order of</span> the Division.</p>
-                <p>Personnel are reminded that even <span class="fx-redact">the program's</span> designation is <span class="fx-redact">itself</span> classified, and is <span class="fx-redact">never</span> spoken <span class="fx-redact">outside a closed</span> room.</p>
-                <p>The schematics <span class="fx-redact">are</span> real. The <span class="fx-redact">threat</span> is <span class="fx-redact">real</span>. We grew <span class="fx-redact">something</span> that wants no sun — it keeps its face <span class="fx-redact">turned</span> from every light, and opens only <span class="fx-redact">in the cold</span> shade where nothing <span class="fx-redact">green</span> should.</p>
-                <p>You already know what it is. Speak <span class="fx-redact">its</span> name to proceed.</p>
+                <p class="hd">PARACAUSAL CONTAINMENT // EYES ONLY</p>
+                <p><span class="fx-redact">Access</span> withheld. The <span class="fx-redact">deep archive</span> stays <span class="fx-redact">sealed by order of</span> the Division.</p>
+                <p>The schematics <span class="fx-redact">are</span> real. The <span class="fx-redact">threat</span> is <span class="fx-redact">real</span>. This door has <span class="fx-redact">five</span> seals, and no single office holds them all.</p>
+                <p>Each was struck from a text the fleets still <span class="fx-redact">read</span>. Name the five and the shade lets go.</p>
+                <div class="seals">
+                  <div v-for="lk in eidolonLocks" :key="lk.id" class="seal" :class="{ open: openLocks.includes(lk.id) }">
+                    <span class="sig">{{ openLocks.includes(lk.id) ? '▹▹▹' : '▚▚▚' }}</span>
+                    <span class="band">{{ lk.band }}</span>
+                    <span class="state">{{ openLocks.includes(lk.id) ? 'RELEASED' : 'ENGAGED' }}</span>
+                  </div>
+                </div>
               </div>
               <div class="prompt">
-                <label>&gt; AUTHORIZATION:</label>
+                <label>&gt; SPEAK A NAME:</label>
                 <input type="text" v-model="eidolonInput" @keydown.enter="tryClearance" autocomplete="off" spellcheck="false" aria-label="clearance phrase" />
-                <button class="btn tiny" @click="tryClearance">Submit</button>
+                <button class="btn tiny" @click="tryClearance">Send</button>
               </div>
               <div class="status">{{ eidolonStatus }}</div>
             </div>
@@ -1705,7 +1790,7 @@
       <label><input type="checkbox" v-model="settings.chatter" /> Home background chatter <help t="A faint scrolling feed of in-universe comms behind the Home screen, like COMP/CON. Lines change with the theme."/></label>
       <label><input type="checkbox" v-model="settings.motion" /> Animations <help t="Off = no scrolling chatter, no modal transitions."/></label>
     </div>
-    <p v-if="clearance" style="margin:.7rem 0 0"><button class="btn tiny" @click="revokeClearance">Revoke Eidolon clearance</button></p>
+    <p v-if="openLocks.length" style="margin:.7rem 0 0"><button class="btn tiny" @click="revokeClearance">Reset Eidolon seals ({{ openLocks.length }}/5)</button></p>
     <p class="lf-note" style="font-size:.8rem; margin:.6rem 0 0">Saved in this browser only — never written to the pack.</p>
   </div>
 </div>
@@ -1982,17 +2067,40 @@ const loadDraft = () => {
   } catch (e) { return null; }
 };
 
-/* Eidolon clearance. Client-side only — this keeps the editor out of sight, it
-   is NOT access control. Hash is SHA-256 of the phrase, lowercased with every
-   non-alphanumeric stripped. */
+/* Eidolon clearance — five seals, each a Lancer book referenced obliquely, its
+   riddle hidden in one network's comms feed. Client-side only: this keeps the
+   editor out of sight, it is NOT access control. Hashes are SHA-256 of the
+   answer, lowercased with every non-alphanumeric stripped. */
 const CLEARANCE_KEY = 'sofa-lcp-clearance';
-const EIDOLON_HASH = 'f9907facc0b323f57a0fac82ab9311963cfdc60519dcb9284ce209e7931a00c9';
 const normPhrase = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '');
 async function sha256Hex(s) {
   const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return Array.from(new Uint8Array(b)).map(x => x.toString(16).padStart(2, '0')).join('');
 }
-const hasClearance = () => { try { return localStorage.getItem(CLEARANCE_KEY) === EIDOLON_HASH; } catch (e) { return false; } };
+const EIDOLON_LOCKS = [
+  { id: 'ssc',      band: 'SSC band',    hashes: ['f9907facc0b323f57a0fac82ab9311963cfdc60519dcb9284ce209e7931a00c9'] },                                                                                 // wallflower
+  { id: 'union',    band: 'UNION band',  hashes: ['30f0a5f976f4aade4c0d961feb14faf1cfbc685fc567122d70e9a7eb4237fe75'] },                                                                                 // battlegroup
+  { id: 'ipsn',     band: 'IPS-N band',  hashes: ['ad1c3feded40f68d13103d1ad64f4da0654a137cd043674b26014150d12a9eb2'] },                                                                                 // longrim
+  { id: 'harrison', band: 'HA band',     hashes: ['48784d52b38a64a5fd238951cb28d5087c45f7160f11be1d187724b6f02e4190', '2cdc71860b214356b569a7bce4782ca48415337faa5113c7ec3bbf307be2d5ca'] },              // karrakin / baronies
+  { id: 'horus',    band: 'HORUS band',  hashes: ['ebaa5cc4c2c295fc72834298b0b51bec6189fc31d1a1dc65b4f7537cdb66ca36', '09fd70dc1822ac99bdeb852f6c9572e98f09dfd1e9ee71b93a086eac222d1c4e'] }               // dustgrave / solsticerain
+];
+const loadLocks = () => {
+  try {
+    const open = (localStorage.getItem(CLEARANCE_KEY) || '').split(',').filter(Boolean);
+    return EIDOLON_LOCKS.map(l => l.id).filter(id => open.includes(id));
+  } catch (e) { return []; }
+};
+
+/* comms networks — id doubles as chatter/<id>.txt and the theme id */
+const NETWORKS = [
+  { id: 'comp-con', code: 'COMP/CON', band: 'PUBLIC' },
+  { id: 'gms',      code: 'GMS',      band: 'SUPPLY' },
+  { id: 'ipsn',     code: 'IPS-N',    band: 'HAULAGE' },
+  { id: 'harrison', code: 'HA',       band: 'COMMAND' },
+  { id: 'ssc',      code: 'SSC',      band: 'NET' },
+  { id: 'union',    code: 'UNION',    band: 'CENTCOM' },
+  { id: 'horus',    code: 'HORUS',    band: '— UNLISTED —', unlisted: true }
+];
 
 /* =========================================================================
    Shared sub-editors (registered globally near the bottom)
@@ -2643,14 +2751,18 @@ const app = createApp({
       draftRestored: !!draft,
       draftAt: draft ? draft.at : 0,
       draftBailed: (() => { try { const v = sessionStorage.getItem('lcp-draft-bailed'); if (v) sessionStorage.removeItem('lcp-draft-bailed'); return !!v; } catch (e) { return false; } })(),
-      clearance: hasClearance(),
-      eidolonInput: '', eidolonStatus: '', eidolonRevealing: false, eidolonShake: false, eidolonTries: 0,
+      openLocks: loadLocks(),
+      eidolonInput: '', eidolonStatus: '', eidolonRevealing: false, eidolonShake: false,
       eidolonStatFields: [['hp','HP'],['armor','Armor'],['evasion','Evasion'],['edef','E-Def'],['heatcap','Heat Cap'],
         ['speed','Speed'],['size','Size'],['sensor_range','Sensors'],['save','Save'],['activations','Activations']],
+      eidolonLocks: EIDOLON_LOCKS,
+      networks: NETWORKS,
+      commsNet: null, commsConnecting: false, commsPending: null,
       lcp: draft ? { ...freshLcp(), ...draft.lcp } : freshLcp(),
       navGroups: ['Licensed data','Pilot data','NPC data','Other content','Reference'],
       tabs: [
         { id:'home', label:'Home', group:'Pack' },
+        { id:'comms', label:'Comms', group:'Pack' },
         { id:'manufacturers', label:'Manufacturers', key:'manufacturers', group:'Licensed data' },
         { id:'frames', label:'Frames', key:'frames', group:'Licensed data' },
         { id:'weapons', label:'Weapons', key:'weapons', group:'Licensed data' },
@@ -2739,6 +2851,7 @@ const app = createApp({
     window.removeEventListener('keydown', this._esc);
     window.removeEventListener('beforeunload', this._unload);
     this.stopChatter();
+    clearTimeout(this._connT);
   },
   updated() {
     // keep the `required` flag in sync with the * marker as editor fields render
@@ -2753,8 +2866,8 @@ const app = createApp({
         this.applySettings();
       }
     },
-    'settings.theme'() { this.startChatter(); },
-    'settings.chatter'(v) { if (v) this.startChatter(); else { this.stopChatter(); this.chatterLog = []; this.chatterTyping = ''; } },
+    feedSource() { this.startChatter(); },
+    'settings.chatter'() { this.startChatter(); },
     'settings.motion'() { this.startChatter(); },
     lcp: {
       deep: true,
@@ -2768,11 +2881,10 @@ const app = createApp({
         }, 800);
       }
     },
-    tab(v) {
+    tab(v, old) {
       const t = this.tabs.find(x => x.id === v);
       if (t && this.navGroups.includes(t.group)) this.openGroup = t.group;
-      if (v === 'home') { if (this.settings.chatter && this.settings.motion && !this._chatTimer && this._chatLines && this._chatLines.length) this._chatterTick(); }
-      else this.stopChatter();
+      if (['home', 'comms'].includes(v) || ['home', 'comms'].includes(old)) this.startChatter();
     }
   },
   computed: {
@@ -2992,6 +3104,9 @@ const app = createApp({
       const done = this.chatterLog.map(fmtFx).join('\n');
       return done + (done ? '\n' : '') + escHtml(this.chatterTyping) + '<span class="cursor">▊</span>';
     },
+    clearance() { return this.eidolonLocks.every(l => this.openLocks.includes(l.id)); },
+    commsRunning() { return this.tab === 'comms' && !!this.commsNet && !this.commsConnecting; },
+    feedSource() { return this.commsRunning ? this.commsNet : this.settings.theme; },
     factionGlyph() { return GLYPHS[this.settings.theme] || GLYPHS['comp-con']; },
     modalTitle() {
       const M = { manufacturers:'Manufacturer', frames:'Frame', weapons:'Weapon', systems:'System',
@@ -3028,19 +3143,45 @@ const app = createApp({
     startChatter() {
       this.stopChatter();
       this.chatterLog = []; this.chatterTyping = ''; this._chatIdx = 0; this._chatLines = [];
-      if (!this.settings.chatter) return;
-      const theme = this.settings.theme;
+      const onComms = this.tab === 'comms' && !!this.commsNet && !this.commsConnecting;
+      const onHome = this.tab === 'home' && this.settings.chatter;
+      if (!onComms && !onHome) return;
+      const src = onComms ? this.commsNet : this.settings.theme;
+      if (!src) return;
       this._chatterCache = this._chatterCache || {};
-      const got = this._chatterCache[theme]
-        ? Promise.resolve(this._chatterCache[theme])
-        : loadChatterLines(theme).then(l => (this._chatterCache[theme] = l));
+      const got = this._chatterCache[src]
+        ? Promise.resolve(this._chatterCache[src])
+        : loadChatterLines(src).then(l => (this._chatterCache[src] = l));
       got.then(lines => {
-        if (this.settings.theme !== theme || !this.settings.chatter) return;   // changed while loading
+        const stillComms = this.tab === 'comms' && this.commsNet === src && !this.commsConnecting;
+        const stillHome = this.tab === 'home' && this.settings.theme === src && this.settings.chatter;
+        if (!stillComms && !stillHome) return;   // changed while loading
         this._chatLines = lines;
         if (!lines.length) return;
         if (!this.settings.motion) { this.chatterLog = lines.slice(0, 24); return; }
-        if (this.tab === 'home') this._chatterTick();
+        this._chatterTick();
       });
+    },
+    connectNet(id) {
+      this.commsPending = id;
+      this.commsConnecting = true;
+      this.stopChatter();
+      clearTimeout(this._connT);
+      this._connT = setTimeout(() => {
+        this.commsConnecting = false;
+        this.commsNet = id;
+        this.commsPending = null;
+        if (THEME_LIST.some(t => t.id === id)) this.settings.theme = id;
+        this.startChatter();
+      }, 850);
+    },
+    disconnectNet() {
+      clearTimeout(this._connT);
+      this.commsConnecting = false;
+      this.commsNet = null;
+      this.commsPending = null;
+      this.stopChatter();
+      this.chatterLog = []; this.chatterTyping = '';
     },
     _chatterTick() {
       const lines = this._chatLines || [];
@@ -3082,32 +3223,40 @@ const app = createApp({
     blankNpcClass, blankNpcTemplate, blankNpcFeature, blankMod, blankEnvironment, blankSitrep, blankStatus,
     blankTable, blankTableResult, blankCustomStat, blankBond, blankBondQuestion, blankBondPower,
     blankFaction, blankAction, blankGlossary, blankRule, blankEidolon, blankEidolonLayer,
+    saveLocks() { try { localStorage.setItem(CLEARANCE_KEY, this.openLocks.join(',')); } catch (e) {} },
     async tryClearance() {
+      const phrase = this.eidolonInput.trim();
+      if (!phrase) return;
       if (!window.crypto || !crypto.subtle) { this.eidolonStatus = 'terminal offline — this page must be served over http(s)'; return; }
-      const ok = (await sha256Hex(normPhrase(this.eidolonInput))) === EIDOLON_HASH;
-      if (ok) {
-        this.eidolonStatus = 'AUTHORIZATION ACCEPTED · declassifying';
-        this.eidolonRevealing = true;
-        setTimeout(() => {
-          try { localStorage.setItem(CLEARANCE_KEY, EIDOLON_HASH); } catch (e) {}
-          this.clearance = true;
-          this.eidolonRevealing = false;
-          this.eidolonInput = ''; this.eidolonStatus = ''; this.eidolonTries = 0;
-        }, 1500);
+      const h = await sha256Hex(normPhrase(phrase));
+      const hit = this.eidolonLocks.find(l => l.hashes.includes(h));
+      this.eidolonInput = '';
+      if (hit && this.openLocks.includes(hit.id)) {
+        this.eidolonStatus = hit.band.toUpperCase() + ' SEAL — already released.';
+        return;
+      }
+      if (hit) {
+        this.openLocks = [...this.openLocks, hit.id];
+        this.saveLocks();
+        if (this.clearance) {
+          this.eidolonStatus = 'FIVE OF FIVE · declassifying';
+          this.eidolonRevealing = true;
+          setTimeout(() => { this.eidolonRevealing = false; this.eidolonStatus = ''; }, 1600);
+        } else {
+          this.eidolonStatus = hit.band.toUpperCase() + ' SEAL RELEASED · ' + this.openLocks.length + ' / 5';
+        }
       } else {
-        this.eidolonTries++;
-        this.eidolonInput = '';
         this.eidolonShake = true;
         setTimeout(() => { this.eidolonShake = false; }, 400);
-        const m = ['ACCESS DENIED.', 'ACCESS DENIED · query logged.',
-          'ACCESS DENIED · this terminal is monitored.', 'ACCESS DENIED · persistence noted. walk away.'];
-        this.eidolonStatus = m[Math.min(this.eidolonTries - 1, m.length - 1)];
+        this.eidolonStatus = ['ACCESS DENIED.', 'ACCESS DENIED · not a name we know.',
+          'ACCESS DENIED · this terminal is monitored.'][Math.min(this.openLocks.length, 2)];
       }
     },
+    grantAllLocks() { this.openLocks = this.eidolonLocks.map(l => l.id); this.saveLocks(); },
     revokeClearance() {
+      this.openLocks = [];
       try { localStorage.removeItem(CLEARANCE_KEY); } catch (e) {}
-      this.clearance = false;
-      this.eidolonStatus = '';
+      this.eidolonStatus = ''; this.eidolonRevealing = false;
     },
     npcFeatureName(id) { const f = this.lcp.npc_features.find(x => x.id === id); return f ? f.name : id; },
     removeItem(key, i) { this.lcp[key].splice(i, 1); },
@@ -3604,7 +3753,7 @@ const app = createApp({
         this.edit = { key: null, idx: -1 };
         this.tab = 'home';
         this.draftRestored = false;
-        if (fresh.eidolons.length) { try { localStorage.setItem(CLEARANCE_KEY, EIDOLON_HASH); } catch (e) {} this.clearance = true; }
+        if (fresh.eidolons.length) this.grantAllLocks();
         alert('Loaded ' + file.name);
       } catch (err) {
         console.error(err);
